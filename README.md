@@ -2,7 +2,7 @@
 *A minimal Ghostty-style `key = value` configuration parser for Dart and Flutter.*  
 
 [![Pub Version](https://img.shields.io/pub/v/flatconfig.svg)](https://pub.dev/packages/flatconfig)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/grumpypixel/flatconfig/test.yml?label=tests)](https://github.com/grumpypixel/flatconfig/actions)
+[![Tests](https://github.com/grumpypixel/flatconfig/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/grumpypixel/flatconfig/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Dart Version](https://img.shields.io/badge/dart-%3E%3D3.0.0-blue.svg)](https://dart.dev)
 [![Pub Points](https://img.shields.io/pub/points/flatconfig?label=pub%20points)](https://pub.dev/packages/flatconfig/score)
