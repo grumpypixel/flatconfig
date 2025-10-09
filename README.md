@@ -1,5 +1,5 @@
-# flatconfig  
-*A minimal Ghostty-style `key = value` configuration parser for Dart and Flutter.*  
+# flatconfig
+*A minimal Ghostty-style `key = value` configuration parser for Dart and Flutter.*
 
 [![Pub Version](https://img.shields.io/pub/v/flatconfig.svg)](https://pub.dev/packages/flatconfig)
 [![Tests](https://github.com/grumpypixel/flatconfig/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/grumpypixel/flatconfig/actions/workflows/test.yml)
@@ -27,6 +27,8 @@ that need structured settings without heavy dependencies.
 - 🧱 **Collapse helpers** to deduplicate keys (first occurrence or last write)
 - 🧰 **Pretty-print and debug dumps**
 - 🔁 **Round-tripping** with configurable quoting and escaping
+- 🧮 **Factories for easy creation** — build documents from maps, entries, or single pairs
+- ✅ **Strict validation** for non-empty keys, toggleable via `strict: false`
 
 ---
 
@@ -36,7 +38,7 @@ Add `flatconfig` as a dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flatconfig: ^0.1.0
+  flatconfig: ^0.1.0 # check pub.dev for the latest version
 ```
 
 Then import it in your Dart code:
@@ -70,6 +72,29 @@ void main() {
 
 ---
 
+## Validation & Strict Mode
+
+`FlatEntry` and `FlatDocument` validate all keys by default — empty or whitespace-only keys
+throw an error. You can disable this behavior by passing `strict: false`.
+
+```dart
+// Throws an ArgumentError:
+FlatEntry.validated('   ', 'oops');
+
+// Works fine:
+final relaxed = FlatDocument.fromMap({'': 'x', 'theme': 'dark'}, strict: false);
+print(relaxed.toMap()); // {theme: dark}
+```
+
+All factory constructors respect `strict`:
+
+- `FlatDocument.fromMap(...)`
+- `FlatDocument.fromEntries(...)`
+- `FlatDocument.merge([...])`
+- `FlatDocument.single('key', value: 'x')`
+
+---
+
 ## Data model
 
 ```dart
@@ -91,6 +116,27 @@ class FlatDocument {
   bool has(String key);
   bool hasNonNull(String key);
 }
+```
+
+### Document Factories
+
+`FlatDocument` provides several constructors for flexible creation:
+
+```dart
+// From a Map
+final fromMap = FlatDocument.fromMap({'theme': 'dark', 'font-size': '14'});
+
+// From a list of entries
+final fromEntries = FlatDocument.fromEntries([
+  FlatEntry('theme', 'dark'),
+  FlatEntry('accent', 'mint'),
+]);
+
+// Merge multiple documents
+final merged = FlatDocument.merge([fromMap, fromEntries]);
+
+// Single key/value
+final single = FlatDocument.single('theme', value: 'dark');
 ```
 
 ---
@@ -294,5 +340,5 @@ Future<void> main() async {
 
 ---
 
-Made with ❤️ in Dart.  
+Made with ❤️ in Dart.
 Contributions welcome on [GitHub → grumpypixel/flatconfig](https://github.com/grumpypixel/flatconfig)
