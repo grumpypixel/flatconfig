@@ -84,7 +84,7 @@ k = v
     });
 
     test(
-        'duplicate keys preserve insertion order; latest returns last '
+        'duplicate keys preserve insertion order; indexer returns last '
         'value', () {
       const src = '''
 mode = a

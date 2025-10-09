@@ -14,7 +14,7 @@ void main() {
       expect(doc.keys, ['a', 'b']);
     });
 
-    test('latest returns last value per key', () {
+    test('indexer returns last value per key', () {
       final doc = FlatDocument(const [
         FlatEntry('a', '1'),
         FlatEntry('a', '2'),
@@ -38,7 +38,7 @@ void main() {
       expect(doc.valuesOf('font-family'), [null]);
     });
 
-    test('latest map reflects null if last value is null', () {
+    test('indexer reflects null if last value is null', () {
       final doc = FlatDocument(const [
         FlatEntry('x', 'one'),
         FlatEntry('x', null),
@@ -55,14 +55,14 @@ void main() {
       expect(doc.valuesOf('k'), ['v1', null, 'v3']);
     });
 
-    test('empty document has no keys, no latest, empty valuesOf', () {
+    test('empty document has no keys, empty toMap, empty valuesOf', () {
       final doc = FlatDocument.empty();
       expect(doc.keys, isEmpty);
       expect(doc.toMap(), isEmpty);
       expect(doc.valuesOf('missing'), isEmpty);
     });
 
-    test('calling latest does not mutate entries order', () {
+    test('calling toMap does not mutate entries order', () {
       final doc = FlatDocument(const [
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
@@ -166,7 +166,7 @@ void main() {
       expect(doc.whereValue('missing').toList(), isEmpty);
     });
 
-    test('getString returns latest value', () {
+    test('getString returns last value', () {
       final doc = FlatDocument(const [
         FlatEntry('a', '1'),
         FlatEntry('a', '2'),

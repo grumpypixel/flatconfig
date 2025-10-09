@@ -100,7 +100,7 @@ void main() {
       });
 
       test(
-          'latest parity: collapse().latest equals latest when dropNulls=false',
+          'parity: collapse().toMap equals toMap when dropNulls=false',
           () {
         final doc = FlatDocument(const [
           FlatEntry('a', '1'),
