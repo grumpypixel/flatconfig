@@ -1,0 +1,41 @@
+# Lightweight, package-friendly lints for a Dart library.
+# Uses the official recommended ruleset and adds a few sensible tweaks.
+
+include: package:lints/recommended.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  # errors:
+  #   prefer_expression_function_bodies: error
+  exclude:
+    - "**/*.g.dart"
+    - "build/**"
+    - ".dart_tool/**"
+    - "coverage/**"
+    # If your example/ is a full app and noisy in CI, exclude it.
+    # Otherwise, feel free to remove the next line to analyze examples too.
+    - "example/**"
+
+linter:
+  rules:
+    # For libraries with a src/ layout, relative imports keep things simple.
+    always_use_package_imports: false
+    prefer_relative_imports: true
+
+    # Libraries benefit from public API docs.
+    public_member_api_docs: true
+
+    # Pragmatic defaults (tune to taste):
+    avoid_print: false                 # fine for examples/tests; adjust in apps
+    combinators_ordering: true
+    directives_ordering: true
+    omit_local_variable_types: false   # allow explicit local types when clearer
+    prefer_expression_function_bodies: true
+    prefer_final_locals: true          # encourages immutability in functions
+    sort_constructors_first: true
+    sort_pub_dependencies: true
+    sort_unnamed_constructors_first: true
+    unnecessary_library_name: false

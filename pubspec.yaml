@@ -1,0 +1,27 @@
+name: flatconfig
+description: >
+  A minimal `key = value` configuration parser for Dart & Flutter — 
+  easy to read, supports duplicate keys, comments, and empty values as reset.
+version: 0.1.0
+
+repository: https://github.com/grumpypixel/flatconfig
+issue_tracker: https://github.com/grumpypixel/flatconfig/issues
+homepage: https://github.com/grumpypixel/flatconfig
+
+topics:
+  - config
+  - parser
+  - keyvalue
+  - flat
+  - ghostty
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  meta: ^1.17.0
+
+dev_dependencies:
+  coverage: ^1.15.0
+  lints: ^6.0.0
+  test: ^1.26.3
