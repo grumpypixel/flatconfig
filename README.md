@@ -85,7 +85,7 @@ class FlatDocument {
 
   // Frequently used:
   Map<String, String?> toMap();     // last value per key
-  String? operator [](String key);  // shorthand for latest[key]
+  String? operator [](String key);  // same as toMap()[key]
   Iterable<String> get keys;        // first occurrence order
   List<String?> valuesOf(String key);
   bool has(String key);
