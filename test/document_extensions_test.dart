@@ -99,9 +99,7 @@ void main() {
         expect(collapsed['greeting'], 'Hey ya! 👋');
       });
 
-      test(
-          'parity: collapse().toMap equals toMap when dropNulls=false',
-          () {
+      test('parity: collapse().toMap equals toMap when dropNulls=false', () {
         final doc = FlatDocument(const [
           FlatEntry('a', '1'),
           FlatEntry('mv', 'X'),

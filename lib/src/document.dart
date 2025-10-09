@@ -20,6 +20,21 @@ class FlatEntry {
   /// an empty or reset configuration value.
   const FlatEntry(this.key, this.value);
 
+  /// Creates a new [FlatEntry] after validating the [key].
+  ///
+  /// This factory ensures that the given [key] is not empty or whitespace-only.
+  /// The key is automatically trimmed before being stored.
+  ///
+  /// Throws an [ArgumentError] if the [key] is empty after trimming.
+  factory FlatEntry.validated(String key, [String? value]) {
+    final k = key.trim();
+    if (k.isEmpty) {
+      throw ArgumentError.value(key, 'key', 'must not be empty or whitespace');
+    }
+
+    return FlatEntry(k, value);
+  }
+
   /// The configuration key (left side of the `=` sign).
   final String key;
 
@@ -74,6 +89,96 @@ class FlatDocument extends Iterable<FlatEntry> {
 
   /// Creates an empty configuration document.
   factory FlatDocument.empty() => const FlatDocument._(<FlatEntry>[]);
+
+  /// Creates a [FlatDocument] from a [Map] of key-value pairs.
+  ///
+  /// The map keys represent configuration names and the values represent
+  /// the corresponding configuration values. The map is copied defensively
+  /// and the order of iteration determines the order of entries.
+  ///
+  /// When [strict] is `true` (default), an empty or whitespace-only key
+  /// causes a [FormatException]. When `false`, such keys are silently
+  /// ignored and not included in the resulting document.
+  factory FlatDocument.fromMap(Map<String, String?> map, {bool strict = true}) {
+    final out = <FlatEntry>[];
+    map.forEach((k, v) {
+      final kt = k.trim();
+      if (kt.isEmpty) {
+        if (strict) {
+          throw const FormatException('Empty key in fromMap input.');
+        }
+
+        return; // ignore in non-strict mode
+      }
+      out.add(FlatEntry(kt, v));
+    });
+
+    if (out.isNotEmpty) {
+      validateEntries(out, strict: strict);
+    }
+
+    return FlatDocument(out);
+  }
+
+  /// Creates a [FlatDocument] from an iterable of [FlatEntry] objects.
+  ///
+  /// The provided entries are copied defensively and preserve their order.
+  ///
+  /// When [strict] is `true` (default), any entry with an empty or
+  /// whitespace-only key causes a [FormatException]. When `false`,
+  /// such entries are ignored.
+  factory FlatDocument.fromEntries(
+    Iterable<FlatEntry> entries, {
+    bool strict = true,
+  }) {
+    final list = List<FlatEntry>.unmodifiable(entries);
+
+    if (list.isNotEmpty) {
+      validateEntries(list, strict: strict);
+    }
+
+    return FlatDocument(list);
+  }
+
+  /// Merges multiple [FlatDocument] instances into a single document.
+  ///
+  /// Entries are concatenated in order, preserving duplicates. Later
+  /// documents in [docs] override earlier ones when viewed through
+  /// [toMap] or the `[]` operator (i.e. last value wins).
+  ///
+  /// When [strict] is `true` (default), empty or whitespace-only keys
+  /// cause a [FormatException]. When `false`, such entries are skipped.
+  factory FlatDocument.merge(
+    Iterable<FlatDocument> docs, {
+    bool strict = true,
+  }) {
+    final all = <FlatEntry>[];
+    for (final d in docs) {
+      all.addAll(d.entries);
+    }
+
+    if (all.isNotEmpty) {
+      validateEntries(all, strict: strict);
+    }
+
+    return FlatDocument(all);
+  }
+
+  /// Creates a [FlatDocument] containing exactly one [FlatEntry].
+  ///
+  /// When [strict] is `true` (default), the [key] is validated and
+  /// must not be empty or whitespace-only. When `false`, validation is
+  /// skipped and the key is used as-is.
+  factory FlatDocument.single(
+    String key, {
+    String? value,
+    bool strict = true,
+  }) =>
+      FlatDocument(
+        [
+          strict ? FlatEntry.validated(key, value) : FlatEntry(key, value),
+        ],
+      );
 
   // Private const constructor used internally
   const FlatDocument._(this.entries);
@@ -280,6 +385,33 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// This is equivalent to `this[key]` and returns the most recent value
   /// for the key, or null if the key is not found or has an empty value.
   String? getString(String key) => this[key];
+
+// Validates a collection of [FlatEntry] objects.
+  ///
+  /// When [strict] is `true` (default), this method checks that all
+  /// entries have non-empty keys after trimming whitespace. If any key is
+  /// empty or consists only of whitespace, a [FormatException] is thrown.
+  ///
+  /// When [strict] is `false`, the validation is skipped and the method
+  /// returns immediately.
+  ///
+  /// This method is typically used internally by [FlatDocument] factory
+  /// constructors such as [FlatDocument.fromMap], [FlatDocument.merge],
+  /// and [FlatDocument.fromEntries] to enforce consistent data integrity.
+  static void validateEntries(
+    Iterable<FlatEntry> entries, {
+    bool strict = true,
+  }) {
+    if (!strict) {
+      return;
+    }
+    for (final e in entries) {
+      final k = e.key.trim();
+      if (k.isEmpty) {
+        throw const FormatException('Empty key found in FlatEntry.');
+      }
+    }
+  }
 
   @override
   String toString() => 'FlatDocument(${entries.length} entries)';
