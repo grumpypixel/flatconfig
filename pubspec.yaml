@@ -10,16 +10,16 @@ homepage: https://github.com/grumpypixel/flatconfig
 
 topics:
   - config
-  - parser
-  - keyvalue
   - flat
   - ghostty
+  - keyvalue
+  - parser
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  meta: ^1.17.0
+  meta: ">=1.16.0 <2.0.0"
 
 dev_dependencies:
   coverage: ^1.15.0
