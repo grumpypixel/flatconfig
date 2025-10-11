@@ -1,3 +1,9 @@
+## 0.1.2
+
+📝 Documentation & metadata improvements
+- Updated dependency constraints and topics for pub.dev
+- Updated README with slightly clearer description
+
 ## 0.1.1
 
 ✨ Added:
