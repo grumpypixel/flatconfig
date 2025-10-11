@@ -10,11 +10,9 @@
 flatconfig is a flat, minimal `key = value` configuration format for Dart and Flutter — easy to read, trivial to hand-edit, and simple to round-trip.
 Inspired by 👻 [Ghostty](https://ghostty.org)-style configuration files.
 
-It provides a simple, predictable alternative to verbose formats like YAML or JSON
-for small, human-editable configuration files. Ideal for tools, CLIs, and Flutter apps
-that need structured settings without heavy dependencies.
-
----
+It offers a clean, predictable alternative to verbose formats like YAML or JSON,
+with support for duplicate keys, comments, and empty values (`key =`) that act as explicit (null) resets.
+Perfect for tools, CLIs, and Flutter apps that need structured settings without heavy dependencies.
 
 ## Highlights
 
@@ -30,8 +28,6 @@ that need structured settings without heavy dependencies.
 - 🧮 **Factories for easy creation** — build documents from maps, entries, or single pairs
 - ✅ **Strict validation** for non-empty keys, toggleable via `strict: false`
 
----
-
 ## Usage
 
 Add `flatconfig` as a dependency to your `pubspec.yaml`:
@@ -46,8 +42,6 @@ Then import it in your Dart code:
 ```dart
 import 'package:flatconfig/flatconfig.dart';
 ```
-
----
 
 ## Quick Start 🚀
 
@@ -70,8 +64,6 @@ void main() {
 }
 ```
 
----
-
 ## Validation & Strict Mode
 
 `FlatEntry` and `FlatDocument` validate all keys by default — empty or whitespace-only keys
@@ -92,8 +84,6 @@ All factory constructors respect `strict`:
 - `FlatDocument.fromEntries(...)`
 - `FlatDocument.merge([...])`
 - `FlatDocument.single('key', value: 'x')`
-
----
 
 ## Data model
 
@@ -139,8 +129,6 @@ final merged = FlatDocument.merge([fromMap, fromEntries]);
 final single = FlatDocument.single('theme', value: 'dark');
 ```
 
----
-
 ## Parsing
 
 ### Strings
@@ -177,8 +165,6 @@ final sync = File('config.conf').parseFlatSync();
 - Supports `\n`, `\r\n`, and `\r` line endings
 - Works with async and sync file I/O
 
----
-
 ## Encoding & Round-Tripping
 
 ```dart
@@ -201,8 +187,6 @@ File('out.conf').writeFlatSync(doc);
 - Lossy by design: comments and blank lines are not preserved
 - `null` values are written as key `=`
 
----
-
 ## Duplicate Keys → Collapse
 
 ```dart
@@ -214,8 +198,6 @@ final dynamicMulti = doc.collapse(isMultiValueKey: (k) => k.startsWith('mv_'));
 
 final dropResets = doc.collapse(dropNulls: true); // omit keys with null
 ```
-
----
 
 ## Typed Accessors (Examples)
 
@@ -276,8 +258,6 @@ doc.requireKeys(['host', 'port']);       // throws on first missing key
 
 All `require*` methods throw a `FormatException` with context on invalid data.
 
----
-
 ## Debug & Pretty Print
 
 ```dart
@@ -292,8 +272,6 @@ print(doc.toPrettyString(
   alignColumns: true,
 ));
 ```
-
----
 
 ## End-to-End Example
 
@@ -314,8 +292,6 @@ Future<void> main() async {
 }
 ```
 
----
-
 ## Format Rules & Limits
 
 - Only full-line comments (default prefix `#`)
@@ -325,14 +301,10 @@ Future<void> main() async {
 - Empty unquoted values become `null` (explicit reset)
 - Encoding is lossy (comments and blank lines are dropped)
 
----
+## See also
 
-### See also
-
-- 🧠 [Ghostty Configuration Format](https://ghostty.org/docs/config)
+- 👻 [Ghostty Configuration Format](https://ghostty.org/docs/config)
 - 🧰 [Dart Configuration File Libraries on pub.dev](https://pub.dev/packages?q=config)
-
----
 
 ## License
 
