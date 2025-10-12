@@ -1,5 +1,5 @@
 # flatconfig
-*A minimal Ghostty-style `key = value` configuration parser for Dart and Flutter.*
+*A minimal `Ghostty`-style `key = value` configuration parser for Dart and Flutter.*
 
 [![Pub Version](https://img.shields.io/pub/v/flatconfig.svg)](https://pub.dev/packages/flatconfig)
 [![Tests](https://github.com/grumpypixel/flatconfig/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/grumpypixel/flatconfig/actions/workflows/test.yml)
@@ -34,7 +34,7 @@ Add `flatconfig` as a dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flatconfig: ^0.1.1 # check pub.dev for the latest version
+  flatconfig: ^0.1.2 # check pub.dev for the latest version
 ```
 
 Then import it in your Dart code:
@@ -49,20 +49,59 @@ import 'package:flatconfig/flatconfig.dart';
 import 'package:flatconfig/flatconfig.dart';
 
 void main() {
+  // Each key can appear multiple times; latest value wins.
   const raw = '''
-  # Example config
-  background = 282c34
-  keybind = ctrl+z=close_surface
-  font-family =
+  # Example configuration
+  background = 343028
+  foreground = f3d735
+  shader = bloom
+  shader = vignette
+  texture =
   ''';
 
   final doc = FlatConfig.parse(raw);
 
-  print(doc['background']);       // 282c34
-  print(doc.valuesOf('keybind')); // [ctrl+z=close_surface]
-  print(doc['font-family']);      // null → explicit reset
+  print(doc['background']);         // → 343028
+  print(doc['foreground']);         // → f3d735
+  print(doc['shader']);             // → vignette (latest value wins)
+  print(doc.valuesOf('shader'));    // → ["bloom", "vignette"]
+  print(doc.has('shader'));         // → true
+  print(doc['texture']);            // → null (explicit reset)
+  print(doc.hasNonNull('texture')); // → false
 }
 ```
+
+## Syntax 🧩
+
+flatconfig uses a minimal `key = value` syntax, designed to be easy to read and edit by hand.
+
+```text
+# The syntax is "key = value".
+# Whitespace around "=" is ignored.
+background = 343028
+foreground = f3d735
+
+# Comments start with "#" and are valid only on their own line.
+# Blank lines are ignored.
+
+shader = bloom
+shader = vignette
+
+# Empty values reset the key to null.
+texture =
+```
+
+### Notes
+- Keys are case-sensitive: background ≠ Background
+- Values can be quoted or unquoted:
+```text
+font-family = "FiraCode Nerd Font"
+font-family = FiraCode Nerd Font
+```
+- Quoted values preserve inner whitespace and `=`
+- Empty (unquoted) values are interpreted as explicit resets (`null`)
+- Lines without = are ignored unless `strict: true` is enabled
+- The comment prefix (`#`) and the key-value separator (`=`) can be customized
 
 ## Validation & Strict Mode
 
@@ -85,7 +124,7 @@ All factory constructors respect `strict`:
 - `FlatDocument.merge([...])`
 - `FlatDocument.single('key', value: 'x')`
 
-## Data model
+## Data Model
 
 ```dart
 // A single key/value pair (value may be null for explicit resets: "key =")
@@ -177,6 +216,8 @@ final out = doc.encodeToString(
 );
 ```
 
+> Note: Encoding does not include a BOM and does not preserve comments or blank lines.
+
 ### Writing to Files
 
 ```dart
@@ -193,7 +234,7 @@ File('out.conf').writeFlatSync(doc);
 final collapsedFirst = doc.collapse(); // keep first position, last value wins
 final collapsedLast  = doc.collapse(order: CollapseOrder.lastWrite);
 
-final keepMulti = doc.collapse(multiValueKeys: {'keybind'});
+final keepMulti = doc.collapse(multiValueKeys: {'shader'});
 final dynamicMulti = doc.collapse(isMultiValueKey: (k) => k.startsWith('mv_'));
 
 final dropResets = doc.collapse(dropNulls: true); // omit keys with null
@@ -206,7 +247,7 @@ final b  = doc.getBytes('size');          // SI (kB/MB/...) and IEC (KiB/MiB/...
 final cc = doc.getColor('color');         // {a, r, g, b}
 final d  = doc.getDuration('timeout');    // "150ms", "2s", "5m", "3h", "1d"
 final e  = doc.getEnum('mode', {'prod': 1, 'dev': 2}); // case-insensitive
-final co = doc.getHexColor('color');      // #rgb, #rgba, #rrggbb, #aarrggbb → 0xAARRGGBB
+final hc = doc.getHexColor('color');      // #rgb, #rgba, #rrggbb, #aarrggbb → 0xAARRGGBB
 final j  = doc.getJson('payload');        // parsed JSON object
 final p  = doc.getPercent('alpha');       // "80%", "0.8", "80" → 0.8
 final r  = doc.getRatio('video');         // "16:9" → 1.777...
@@ -217,33 +258,34 @@ final list = doc.getList('features');     // "A, b , a" → ["A","b","a"]
 final set  = doc.getSet('features');      // → {"a","b"} (case-insensitive)
 
 // Ranges
-final dIn  = doc.getDoubleInRange('gamma', min: 0.5, max: 2.0);
-final iIn  = doc.getIntInRange('retries', min: 0, max: 10);
+final dir = doc.getDoubleInRange('gamma', min: 0.5, max: 2.0);
+final iir = doc.getIntInRange('retries', min: 0, max: 10);
 
 // Require* methods throw FormatException on missing/invalid values
-final sz   = doc.requireBytes('size');
-final ms   = doc.requireDuration('timeout');
-final col  = doc.requireHexColor('color');
-final pct  = doc.requirePercent('alpha');
+final siz = doc.requireBytes('size');
+final tim = doc.requireDuration('timeout');
+final hex = doc.requireHexColor('color');
+final pct = doc.requirePercent('alpha');
 ```
 
 ### Mini-Documents & Pairs
 
 ```dart
 // Single key=value inside a value
-final pair = doc.getKeyValue('keybind');
-// e.g. "ctrl+z=close_surface" → ('ctrl+z','close_surface')
+final pair = doc.getKeyValue('shader');
+// e.g. "bloom=intense" → ('bloom', 'intense')
 
 // Mini-document in a single value
-final sub = doc.getDocument('db'); // "host=foo, port=5432"
-print(sub.toMap());                // {host: foo, port: 5432}
+final sub = doc.getDocument('db'); // "host=localhost, port=2358"
+print(sub.toMap());                // {host: localhost, port: 2358}
 
 // List of mini-documents
-final servers = doc.getListOfDocuments('servers');
-// "host=foo,port=8080 | host=bar,port=9090" → List<FlatDocument>
+final effects = doc.getListOfDocuments('shaders');
+// "name=bloom,intensity=0.8 | name=vignette,intensity=0.5"
+// → List<FlatDocument>
 
 // Host[:port]
-final hp = doc.getHostPort('listen'); // "[::1]:8080" → ('::1', 8080)
+final hp = doc.getHostPort('listen'); // "127.0.0.1:8080" → ('127.0.0.1', 8080)
 ```
 
 ### Other Convenience Methods
@@ -301,7 +343,7 @@ Future<void> main() async {
 - Empty unquoted values become `null` (explicit reset)
 - Encoding is lossy (comments and blank lines are dropped)
 
-## See also
+## See Also
 
 - 👻 [Ghostty Configuration Format](https://ghostty.org/docs/config)
 - 🧰 [Dart Configuration File Libraries on pub.dev](https://pub.dev/packages?q=config)
