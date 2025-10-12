@@ -48,7 +48,7 @@ abstract class FlatParseException extends FormatException {
 /// This exception is thrown when a line that should contain a configuration
 /// entry doesn't have the required `=` separator between the key and value.
 ///
-/// Example of invalid line: `background 282c34` (missing `=`)
+/// Example of invalid line: `background 343028` (missing `=`)
 class MissingEqualsException extends FlatParseException {
   /// Creates a new [MissingEqualsException].
   MissingEqualsException(
@@ -63,7 +63,7 @@ class MissingEqualsException extends FlatParseException {
 /// This exception is thrown when a configuration line has a value but no key,
 /// which is not allowed in flat configuration files.
 ///
-/// Example of invalid line: `= 282c34` (empty key)
+/// Example of invalid line: `= 343028` (empty key)
 class EmptyKeyException extends FlatParseException {
   /// Creates a new [EmptyKeyException].
   EmptyKeyException(

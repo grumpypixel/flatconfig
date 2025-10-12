@@ -16,13 +16,13 @@
 /// void main() {
 ///   const config = '''
 ///   # Application settings
-///   background = 282c34
+///   background = 343028
 ///   font-size = 14
 ///   debug = true
 ///   ''';
 ///
 ///   final doc = FlatConfig.parse(config);
-///   print(doc['background']); // 282c34
+///   print(doc['background']); // 343028
 ///   print(doc.getInt('font-size')); // 14
 ///   print(doc.getBool('debug')); // true
 /// }

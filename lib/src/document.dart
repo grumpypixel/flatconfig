@@ -8,9 +8,9 @@ import 'package:meta/meta.dart';
 ///
 /// Example:
 /// ```dart
-/// final entry = FlatEntry('background', '282c34');
+/// final entry = FlatEntry('background', '343028');
 /// print(entry.key);   // background
-/// print(entry.value); // 282c34
+/// print(entry.value); // 343028
 /// ```
 @immutable
 class FlatEntry {
@@ -69,14 +69,14 @@ class FlatEntry {
 /// Example:
 /// ```dart
 /// const config = '''
-/// background = 282c34
+/// background = 343028
 /// background = ffaa00
 /// font-size = 14
 /// ''';
 ///
 /// final doc = FlatConfig.parse(config);
 /// print(doc['background']); // ffaa00 (last value)
-/// print(doc.valuesOf('background')); // [282c34, ffaa00] (all values)
+/// print(doc.valuesOf('background')); // [343028, ffaa00] (all values)
 /// ```
 @immutable
 class FlatDocument extends Iterable<FlatEntry> {
@@ -268,13 +268,13 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// Example:
   /// ```dart
   /// const config = '''
-  /// background = 282c34
+  /// background = 343028
   /// background = ffaa00
   /// background =
   /// ''';
   ///
   /// final doc = FlatConfig.parse(config);
-  /// print(doc.valuesOf('background')); // [282c34, ffaa00, null]
+  /// print(doc.valuesOf('background')); // [343028, ffaa00, null]
   /// ```
   List<String?> valuesOf(String key) {
     final map = _valuesOfExpando[this] ??= _buildValuesOf();

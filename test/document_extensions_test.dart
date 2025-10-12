@@ -59,19 +59,19 @@ void main() {
 
       test('multiValueKeys preserved fully and in-place', () {
         final doc = FlatDocument(const [
-          FlatEntry('keybind', 'A'),
+          FlatEntry('shader', 'A'),
           FlatEntry('mode', '1'),
-          FlatEntry('keybind', 'B'),
+          FlatEntry('shader', 'B'),
           FlatEntry('mode', '2'),
-          FlatEntry('keybind', 'C'),
+          FlatEntry('shader', 'C'),
         ]);
 
-        final collapsed = doc.collapse(multiValueKeys: {'keybind'});
+        final collapsed = doc.collapse(multiValueKeys: {'shader'});
         expect(collapsed.entries.map((e) => '${e.key}:${e.value}').toList(), [
-          'keybind:A',
+          'shader:A',
           'mode:2',
-          'keybind:B',
-          'keybind:C',
+          'shader:B',
+          'shader:C',
         ]);
       });
 
