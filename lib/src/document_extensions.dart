@@ -46,7 +46,7 @@ extension FlatDocumentExtensions on FlatDocument {
   /// Example:
   /// ```dart
   /// const config = '''
-  /// background = 282c34
+  /// background = 343028
   /// background = ffaa00
   /// title = My App
   /// ''';
@@ -149,10 +149,10 @@ extension FlatDocumentExtensions on FlatDocument {
   ///
   /// Example:
   /// ```dart
-  /// final doc = FlatConfig.fromMap({'background': '282c34', 'title': 'My App'});
+  /// final doc = FlatConfig.fromMap({'background': '343028', 'title': 'My App'});
   /// final text = doc.encode();
   /// print(text);
-  /// // background = 282c34
+  /// // background = 343028
   /// // title = My App
   /// ```
   String encode({
@@ -206,7 +206,7 @@ extension FlatDocumentExtensions on FlatDocument {
   ///
   /// Example:
   /// ```dart
-  /// final doc = FlatConfig.fromMap({'background': '282c34'});
+  /// final doc = FlatConfig.fromMap({'background': '343028'});
   /// final bytes = doc.encodeToBytesWithWriteOptions();
   /// await File('config.flat').writeAsBytes(bytes);
   /// ```
@@ -236,7 +236,7 @@ extension FlatDocumentExtensions on FlatDocument {
   ///
   /// Example:
   /// ```dart
-  /// final doc1 = FlatConfig.fromMap({'background': '282c34', 'title': 'App'});
+  /// final doc1 = FlatConfig.fromMap({'background': '343028', 'title': 'App'});
   /// final doc2 = FlatConfig.fromMap({'background': 'ffaa00', 'debug': 'true'});
   /// final merged = doc1.merge(doc2);
   /// print(merged['background']); // ffaa00 (overridden)
@@ -266,7 +266,7 @@ extension FlatDocumentExtensions on FlatDocument {
   ///
   /// Example output (includeIndexes=true):
   /// ```
-  /// [0] background = 282c34
+  /// [0] background = 343028
   /// [1] title = My App
   /// [2] debug = null
   /// ```
@@ -305,7 +305,7 @@ extension FlatDocumentExtensions on FlatDocument {
   ///
   /// Example output (sortByKey=true, alignColumns=true):
   /// ```
-  /// [0] background = 282c34
+  /// [0] background = 343028
   /// [1] debug      = true
   /// [2] title      = My App
   /// ```

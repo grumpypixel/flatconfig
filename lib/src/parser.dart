@@ -16,8 +16,8 @@ import 'parser_utils.dart';
 ///
 /// Example:
 /// ```dart
-/// final doc = FlatConfig.parse('background = 282c34');
-/// print(doc['background']); // 282c34
+/// final doc = FlatConfig.parse('background = 343028');
+/// print(doc['background']); // 343028
 /// ```
 class FlatConfig {
   /// Parses a configuration string into a [FlatDocument].
@@ -40,13 +40,13 @@ class FlatConfig {
   /// ```dart
   /// const config = '''
   /// # This is a comment
-  /// background = 282c34
+  /// background = 343028
   /// title = "My Application"
   /// debug = true
   /// ''';
   ///
   /// final doc = FlatConfig.parse(config);
-  /// print(doc['background']); // 282c34
+  /// print(doc['background']); // 343028
   /// print(doc['title']); // My Application
   /// ```
   static FlatDocument parse(
@@ -75,7 +75,7 @@ class FlatConfig {
   /// Example:
   /// ```dart
   /// final lines = [
-  ///   'background = 282c34',
+  ///   'background = 343028',
   ///   'title = "My App"',
   ///   '# This is a comment',
   /// ];
@@ -228,7 +228,7 @@ class FlatConfig {
   /// Example:
   /// ```dart
   /// final map = {
-  ///   'background': '282c34',
+  ///   'background': '343028',
   ///   'title': 'My App',
   ///   'debug': null, // becomes 'debug ='
   /// };

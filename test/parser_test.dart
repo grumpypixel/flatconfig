@@ -25,24 +25,27 @@ void main() {
       expect(doc3.keys, isEmpty);
     });
 
-    test('parses duplicates, comments and empty values', () {
-      const src = '''
+test('parses duplicates, comments and empty values', () {
+  const src = '''
 # comment
-background = 282c34
-keybind = ctrl+z=close_surface
-keybind = ctrl+d=new_split:right
+background = 343028
+shader = bloom=intense
+shader = vignette=soft
 font-family =
 ''';
 
-      final doc = FlatConfig.parse(src);
+  final doc = FlatConfig.parse(src);
 
-      expect(doc['background'], '282c34');
-      expect(
-        doc.valuesOf('keybind'),
-        ['ctrl+z=close_surface', 'ctrl+d=new_split:right'],
-      );
-      expect(doc['font-family'], isNull);
-    });
+  expect(doc['background'], '343028');
+  expect(
+    doc.valuesOf('shader'),
+    ['bloom=intense', 'vignette=soft'],
+  );
+  expect(doc['font-family'], isNull);
+
+  final pair = doc.getKeyValue('shader');
+  expect(pair, ('vignette', 'soft')); // latest wins
+});
 
     test('ignores lines without "="', () {
       const src = '''
@@ -453,8 +456,8 @@ mode = c
     test('parseLines (via convert) works like parse', () {
       const src = '''
 # comment
-background = 282c34
-keybind = ctrl+z=close_surface
+background = 343028
+shader = bloom=intense
 font-family =
 ''';
 
@@ -462,7 +465,7 @@ font-family =
       final doc2 = FlatConfig.parseLines(const LineSplitter().convert(src));
 
       expect(doc1['background'], doc2['background']);
-      expect(doc1['keybind'], doc2['keybind']);
+      expect(doc1['shader'], doc2['shader']);
       expect(doc1['font-family'], doc2['font-family']);
       expect(doc1.keys.toList(), doc2.keys.toList());
     });
@@ -470,8 +473,8 @@ font-family =
     test('parseLines processes list of strings', () {
       const strings = [
         '# comment',
-        'background = 282c34',
-        'keybind = ctrl+z=close_surface',
+        'background = 343028',
+        'shader = bloom=intense',
         'font-family =',
         '', // empty line
         'another = value',
@@ -479,15 +482,15 @@ font-family =
 
       final doc = FlatConfig.parseLines(strings);
 
-      expect(doc['background'], '282c34');
-      expect(doc['keybind'], 'ctrl+z=close_surface');
+      expect(doc['background'], '343028');
+      expect(doc['shader'], 'bloom=intense');
       expect(doc['font-family'], isNull);
       expect(doc['another'], 'value');
       expect(
         doc.keys.toList(),
         [
           'background',
-          'keybind',
+          'shader',
           'font-family',
           'another',
         ],
@@ -542,16 +545,16 @@ font-family =
 
       const src = '''
 # Example
-background = 282c34
+background = 343028
 font-family =
-keybind = ctrl+d=new_split:right
+shader = vignette=soft
 ''';
       file.writeAsStringSync(src);
 
       final doc = await file.parseFlat();
-      expect(doc['background'], '282c34');
+      expect(doc['background'], '343028');
       expect(doc['font-family'], isNull);
-      expect(doc.valuesOf('keybind'), ['ctrl+d=new_split:right']);
+      expect(doc.valuesOf('shader'), ['vignette=soft']);
     });
 
     test('honors custom encoding and LineSplitter', () async {
@@ -1046,8 +1049,8 @@ keybind = ctrl+d=new_split:right
     test('parseLines is equivalent to parse', () {
       const lines = [
         '# comment',
-        'background = 282c34',
-        'keybind = ctrl+z=close_surface',
+        'background = 343028',
+        'shader = bloom',
         'font-family =',
         '', // empty line
         'another = value',
@@ -1057,7 +1060,7 @@ keybind = ctrl+d=new_split:right
       final doc2 = FlatConfig.parse(lines.join('\n'));
 
       expect(doc1['background'], doc2['background']);
-      expect(doc1['keybind'], doc2['keybind']);
+      expect(doc1['shader'], doc2['shader']);
       expect(doc1['font-family'], doc2['font-family']);
       expect(doc1['another'], doc2['another']);
       expect(doc1.keys.toList(), doc2.keys.toList());

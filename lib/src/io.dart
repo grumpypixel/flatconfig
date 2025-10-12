@@ -15,7 +15,7 @@ import 'parser.dart';
 /// Example:
 /// ```dart
 /// final doc = await parseFlatFile('config.flat');
-/// print(doc['background']); // 282c34
+/// print(doc['background']); // 343028
 /// ```
 Future<FlatDocument> parseFlatFile(
   String path, {
@@ -90,7 +90,7 @@ extension FlatConfigIO on File {
   /// Example:
   /// ```dart
   /// final file = File('config.flat');
-  /// final doc = FlatConfig.fromMap({'background': '282c34'});
+  /// final doc = FlatConfig.fromMap({'background': '343028'});
   /// await file.writeFlat(doc);
   /// ```
   Future<void> writeFlat(
@@ -114,7 +114,7 @@ extension FlatConfigIO on File {
   /// Example:
   /// ```dart
   /// final file = File('config.flat');
-  /// final doc = FlatConfig.fromMap({'background': '282c34'});
+  /// final doc = FlatConfig.fromMap({'background': '343028'});
   /// file.writeFlatSync(doc);
   /// ```
   void writeFlatSync(
@@ -145,7 +145,7 @@ extension FlatDocumentIO on FlatDocument {
   ///
   /// Example:
   /// ```dart
-  /// final doc = FlatConfig.fromMap({'background': '282c34'});
+  /// final doc = FlatConfig.fromMap({'background': '343028'});
   /// await doc.saveToFile('config.flat');
   /// ```
   Future<void> saveToFile(
@@ -168,7 +168,7 @@ extension FlatDocumentIO on FlatDocument {
   ///
   /// Example:
   /// ```dart
-  /// final doc = FlatConfig.fromMap({'background': '282c34'});
+  /// final doc = FlatConfig.fromMap({'background': '343028'});
   /// doc.saveToFileSync('config.flat');
   /// ```
   void saveToFileSync(
