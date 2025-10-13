@@ -39,12 +39,12 @@ void main() {
     });
 
     test('normalizeCanonicalPath behavior (platform dependent)', () async {
-      // Just validate that on non-Windows it returns input unchanged
-      // and on Windows it lowercases. We cannot change Platform here,
-      // so check current behavior is consistent.
+      // Just validate that on case-insensitive filesystems (Windows and macOS)
+      // it lowercases, and on case-sensitive filesystems it returns input unchanged.
+      // We cannot change Platform here, so check current behavior is consistent.
       const input = 'C:/Some/Path/File.CONF';
       final out = FlatConfigIncludes.normalizeCanonicalPath(input);
-      if (Platform.isWindows) {
+      if (Platform.isWindows || Platform.isMacOS) {
         expect(out, equals(input.toLowerCase()));
       } else {
         expect(out, equals(input));
