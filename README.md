@@ -254,8 +254,8 @@ final r  = doc.getRatio('video');         // "16:9" → 1.777...
 final u  = doc.getUri('endpoint');        // relative or absolute URI
 
 // Collections
-final list = doc.getList('features');     // "A, b , a" → ["A","b","a"]
-final set  = doc.getSet('features');      // → {"a","b"} (case-insensitive)
+final l = doc.getList('features');        // "A, b , a" → ["A","b","a"]
+final s = doc.getSet('features');         // → {"a","b"} (case-insensitive)
 
 // Ranges
 final dir = doc.getDoubleInRange('gamma', min: 0.5, max: 2.0);
