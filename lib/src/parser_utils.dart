@@ -71,7 +71,11 @@ String? parseValue(
     if (endIdxInSlice <= 0) {
       // No closing quote in the slice
       if (strict) {
-        throw UnterminatedQuoteException(lineNumber ?? 0, (rawLine ?? raw));
+        throw UnterminatedQuoteException(
+          lineNumber ?? 0,
+          (rawLine ?? raw),
+          column: start + 1, // Position of the opening quote
+        );
       }
 
       // lax: as before -> treat as unquoted (return trimmed token)
@@ -89,6 +93,7 @@ String? parseValue(
           throw TrailingCharactersAfterQuoteException(
             lineNumber ?? 0,
             (rawLine ?? raw),
+            column: start + j + 1, // Position of the trailing character
           );
         }
 
@@ -213,8 +218,9 @@ String normalizeLineEndings(
   assert(lineTerminator.isNotEmpty);
 
   // If the original had a trailing newline
-  final hadTrailingNewline =
-      text.endsWith(Constants.crlf) || text.endsWith(Constants.newline) || text.endsWith(Constants.carriageReturn);
+  final hadTrailingNewline = text.endsWith(Constants.crlf) ||
+      text.endsWith(Constants.newline) ||
+      text.endsWith(Constants.carriageReturn);
 
   // Split robustly (\r\n / \n / \r)
   final lines = const LineSplitter().convert(text);
