@@ -58,7 +58,7 @@ export 'src/exceptions.dart'
         UnterminatedQuoteException;
 export 'src/includes.dart' show FileIncludes, FlatConfigIncludes;
 export 'src/io.dart'
-    show FlatConfigIO, FlatDocumentIO, parseFlatFile, parseFlatFileWithIncludes;
+    show FlatConfigIO, FlatDocumentIO, parseFileWithIncludes, parseFlatFile;
 export 'src/options.dart'
     show
         FlatEncodeOptions,

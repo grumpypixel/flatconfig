@@ -29,27 +29,14 @@ Future<FlatDocument> parseFlatFile(
 
 /// Reads a configuration file with includes and parses it into a [FlatDocument].
 ///
-/// This is a convenience function that opens a file at the given [path] and
-/// parses its contents as a flat configuration file with automatic include
-/// processing. The include key is configurable via [options.includeKey] (defaults
-/// to `config-file` for Ghostty compatibility). The parsing behavior can be
-/// customized using [options] and [readOptions].
+/// Preferred alias for reading with includes from a path.
 ///
 /// Example:
 /// ```dart
-/// final doc = await parseFlatFileWithIncludes('main.conf');
+/// final doc = await parseFileWithIncludes('main.conf');
 /// print(doc['background']); // 343028
-///
-/// // With custom include key
-/// final doc = await parseFlatFileWithIncludes(
-///   'main.conf',
-///   options: const FlatParseOptions(includeKey: 'include'),
-/// );
 /// ```
-///
-/// Throws [CircularIncludeException] if a circular include is detected.
-/// Throws [MissingIncludeException] if a required include file is missing.
-Future<FlatDocument> parseFlatFileWithIncludes(
+Future<FlatDocument> parseFileWithIncludes(
   String path, {
   FlatParseOptions options = const FlatParseOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
@@ -125,16 +112,12 @@ extension FlatConfigIO on File {
   /// Example:
   /// ```dart
   /// final file = File('main.conf');
-  /// final doc = await file.parseFlatWithIncludes();
-  ///
-  /// // With custom include key
-  /// final doc = await file.parseFlatWithIncludes(
-  ///   options: const FlatParseOptions(includeKey: 'include'),
-  /// );
+  /// // Prefer: await file.parseWithIncludes();
   /// ```
   ///
   /// Throws [CircularIncludeException] if a circular include is detected.
   /// Throws [MissingIncludeException] if a required include file is missing.
+  @Deprecated('Use File.parseWithIncludes instead')
   Future<FlatDocument> parseFlatWithIncludes({
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),

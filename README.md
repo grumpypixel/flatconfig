@@ -208,7 +208,7 @@ final sync = File('config.conf').parseFlatSync();
 
 flatconfig supports **recursive includes** using the `config-file` key, just like [Ghostty](https://ghostty.org/docs/config).
 
-Use `File.parseWithIncludes()` or `parseFlatFileWithIncludes()` to automatically load and merge related config files.
+Use `File.parseWithIncludes()` or `parseFileWithIncludes()` to automatically load and merge related config files.
 
 This lets you split your configuration into smaller files that are loaded automatically — with support for **optional includes**, **nested includes**, and **cycle detection**.
 

@@ -380,7 +380,7 @@ foreground = f3d735
       expect(doc['foreground'], equals('f3d735'));
     });
 
-    test('parseFlatFileWithIncludes convenience function', () async {
+    test('parseFileWithIncludes convenience function', () async {
       // Create main config file
       final mainFile = File('${tempDir.path}/main.conf');
       await mainFile.writeAsString('''
@@ -395,7 +395,7 @@ foreground = f3d735
 ''');
 
       // Parse with includes using convenience function
-      final doc = await parseFlatFileWithIncludes(mainFile.path);
+      final doc = await parseFileWithIncludes(mainFile.path);
 
       // Verify all entries are present
       expect(doc['background'], equals('343028'));

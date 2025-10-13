@@ -182,9 +182,9 @@ config-file = circular1.conf
     final doc1 = await mainFile.parseWithIncludes();
     print('   - Parsed ${doc1.length} entries');
 
-    // Method 2: Convenience function
-    print('2. parseFlatFileWithIncludes(String):');
-    final doc2 = await parseFlatFileWithIncludes(mainFile.path);
+    // Method 2: Convenience function (preferred)
+    print('2. parseFileWithIncludes(String):');
+    final doc2 = await parseFileWithIncludes(mainFile.path);
     print('   - Parsed ${doc2.length} entries');
     print('');
 
