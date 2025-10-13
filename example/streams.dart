@@ -28,7 +28,7 @@ Future<void> main(List<String> args) async {
   final useStdin = args.contains('--stdin');
 
   if (useStdin) {
-    stdout.writeln('--- Reading from stdin (bytes -> parseFromByteStream) ---');
+    stdout.writeln('📥 Reading from stdin (bytes → parseFromByteStream):');
     final doc = await FlatConfig.parseFromByteStream(
       stdin,
       options: laxWithWarn,
@@ -56,7 +56,7 @@ Future<void> main(List<String> args) async {
 
   // 1) Byte-Stream (e.g. File.openRead, Socket, stdin)
   {
-    stdout.writeln('--- parseFromByteStream (utf8 bytes) ---');
+    stdout.writeln('🔌 parseFromByteStream (utf8 bytes):');
     final bytes = utf8.encode(sampleLines.join('\n'));
     final byteStream = Stream<List<int>>.value(bytes);
 
@@ -74,7 +74,7 @@ Future<void> main(List<String> args) async {
 
   // 2) String-Stream with already split lines
   {
-    stdout.writeln('\n--- parseFromStringStream (line-by-line strings) ---');
+    stdout.writeln('\n🔤 parseFromStringStream (line-by-line strings):');
     // Simulate "lines come one after the other":
     final stringStream = Stream<String>.fromIterable(sampleLines);
 
@@ -92,7 +92,7 @@ Future<void> main(List<String> args) async {
 
   // 3) Lazy: process individual entries while reading from a BYTES stream
   {
-    stdout.writeln('\n--- parseEntries(byte stream) [lazy] ---');
+    stdout.writeln('\n🐢 parseEntries (byte stream) [lazy]:');
     final bytes = utf8.encode(sampleLines.join('\n'));
     final byteStream = Stream<List<int>>.value(bytes);
 
@@ -103,8 +103,7 @@ Future<void> main(List<String> args) async {
 
   // ...same, same but different, starting from a STRING stream of lines:
   {
-    stdout.writeln(
-        '\n--- parseEntriesFromStringStream(string stream) [lazy] ---');
+    stdout.writeln('\n🐇 parseEntriesFromStringStream (string stream) [lazy]:');
     final lineStream = Stream<String>.fromIterable(sampleLines);
 
     await for (final e in FlatConfig.parseEntriesFromStringStream(lineStream)) {
@@ -114,7 +113,7 @@ Future<void> main(List<String> args) async {
 
   // 4) strict vs lax difference visible
   {
-    stdout.writeln('\n--- strict vs lax ---');
+    stdout.writeln('\n⚖️ strict vs lax:');
 
     final badLines = ['onlykey', 'good = ok', ' = emptykey', 'x=1'];
 
