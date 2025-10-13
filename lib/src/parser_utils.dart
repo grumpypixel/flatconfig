@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:meta/meta.dart';
-
 import 'constants.dart';
 import 'exceptions.dart';
 
@@ -65,7 +63,7 @@ String? parseValue(
     // '"'
     // Search for last unescaped-Quote in the *trimmed* range.
     // We call your existing lastUnescapedQuote, but only on the slicing.
-    final slice = raw.substring(start, end); // beginnt mit '"'
+    final slice = raw.substring(start, end); // starts with '"'
     final endIdxInSlice = lastUnescapedQuote(slice);
 
     if (endIdxInSlice <= 0) {
@@ -117,7 +115,6 @@ String? parseValue(
 }
 
 /// Returns true if the character is a whitespace character.
-@internal
 bool isWhitespace(int c) =>
     c == Constants.blankCharCode ||
     c == Constants.tabCharCode ||

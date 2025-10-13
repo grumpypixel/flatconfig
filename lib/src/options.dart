@@ -22,6 +22,7 @@ class FlatParseOptions {
     this.decodeEscapesInQuoted = false,
     this.strict = false,
     this.includeKey = Constants.includeKey,
+    this.maxIncludeDepth = 64,
     this.onMissingEquals,
     this.onEmptyKey,
   });
@@ -60,6 +61,13 @@ class FlatParseOptions {
   /// ```
   final String includeKey;
 
+  /// Maximum recursion depth for processing includes.
+  ///
+  /// This defensive limit prevents pathological include graphs from causing
+  /// unbounded recursion in cases where canonicalization fails or the graph
+  /// is extremely deep. Defaults to 64.
+  final int maxIncludeDepth;
+
   /// Handler called when a line is missing the `=` separator.
   ///
   /// This is only called when [strict] is false. If null, invalid lines are
@@ -81,6 +89,7 @@ class FlatParseOptions {
     bool? decodeEscapesInQuoted,
     bool? strict,
     String? includeKey,
+    int? maxIncludeDepth,
     OnErrorHandler? onMissingEquals,
     OnErrorHandler? onEmptyKey,
   }) =>
@@ -90,6 +99,7 @@ class FlatParseOptions {
             decodeEscapesInQuoted ?? this.decodeEscapesInQuoted,
         strict: strict ?? this.strict,
         includeKey: includeKey ?? this.includeKey,
+        maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
         onMissingEquals: onMissingEquals ?? this.onMissingEquals,
         onEmptyKey: onEmptyKey ?? this.onEmptyKey,
       );
