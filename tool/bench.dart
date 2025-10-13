@@ -265,6 +265,56 @@ void main(List<String> args) async {
     },
   ));
 
+  // Includes benches (cold vs. warm cache)
+  final incDir = await Directory.systemTemp.createTemp('flatconfig_bench_inc_');
+  final mainInc = File('${incDir.path}/main.conf')..writeAsStringSync('''
+# main
+app = bench
+config-file = theme.conf
+config-file = features.conf
+tail = after
+''');
+  File('${incDir.path}/theme.conf').writeAsStringSync('''
+theme = dark
+config-file = colors.conf
+''');
+  File('${incDir.path}/colors.conf').writeAsStringSync('''
+background = 343028
+foreground = ffffff
+''');
+  File('${incDir.path}/features.conf').writeAsStringSync('''
+feature-a = on
+feature-b = off
+''');
+
+  _printStats(await _measureAsync(
+    label: 'parseWithIncludes (cold)',
+    iterations: iterations,
+    repeats: repeats,
+    body: () async {
+      final d = await mainInc.parseWithIncludes();
+      _sink ^= d.length;
+    },
+  ));
+
+  final includesCache = <String, FlatDocument>{};
+  _printStats(await _measureAsync(
+    label: 'parseWithIncludes (warm cache)',
+    iterations: iterations,
+    repeats: repeats,
+    body: () async {
+      final d = await mainInc.parseWithIncludes(cache: includesCache);
+      _sink ^= d.length;
+    },
+  ));
+
+  // Cleanup includes temp directory
+  try {
+    await incDir.delete(recursive: true);
+  } on PathNotFoundException {
+    // ignore
+  }
+
   // Strict vs. Lax
   final strictSample = '# ok\nonlykey\nk = v\n';
   _printStats(_measureSync(
