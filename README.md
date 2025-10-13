@@ -17,7 +17,7 @@ Perfect for tools, CLIs, and Flutter apps that need structured settings without 
 ## Highlights
 
 - 🧩 **Tiny syntax:** `key = value` (values may be quoted)
-- 📦 **Pure Dart**, minimal dependencies (only `meta`)
+- 📦 **Pure Dart**, minimal dependencies (`meta`; `path` for includes)
 - 📝 **Supports duplicates**, preserves entry order
 - 🔐 **Strict or lenient parsing**, optional callbacks for invalid lines
 - 📁 **Async/sync file I/O**, handles UTF-8 BOM and any line endings
@@ -203,6 +203,52 @@ final sync = File('config.conf').parseFlatSync();
 - Handles UTF-8 BOM
 - Supports `\n`, `\r\n`, and `\r` line endings
 - Works with async and sync file I/O
+
+## Splitting into Multiple Files 💾
+
+flatconfig supports **recursive includes** using the `config-file` key, just like [Ghostty](https://ghostty.org/docs/config).
+
+Use `File.parseWithIncludes()` or `parseFlatFileWithIncludes()` to automatically load and merge related config files.
+
+This lets you split your configuration into smaller files that are loaded automatically — with support for **optional includes**, **nested includes**, and **cycle detection**.
+
+```text
+# main.conf
+app-name = MyFlutterApp
+version = 1.0.1
+config-file = theme.conf
+config-file = ?user.conf  # optional
+theme = custom  # won't override included theme
+```
+
+```text
+# theme.conf
+theme = dark
+background = 343028
+foreground = f3d735
+```
+
+```dart
+import 'dart:io';
+import 'package:flatconfig/flatconfig.dart';
+
+Future<void> main() async {
+  final doc = await File('main.conf').parseWithIncludes();
+  print(doc['theme']);       // → dark
+  print(doc['user-name']);  // from optional include
+}
+```
+
+### Behavior
+
+- **Includes** are processed *after* the current file → later entries won’t override included ones
+- When multiple included files set the same key, the later include wins
+- Includes are processed with a defensive maximum depth (default 64)
+- `?path` makes an include **optional**
+- **Relative paths** are resolved to the including file
+- **Cycles** raise a `CircularIncludeException`
+
+> Customize the key via `FlatParseOptions(includeKey: 'include')`
 
 ## Encoding & Round-Tripping
 
