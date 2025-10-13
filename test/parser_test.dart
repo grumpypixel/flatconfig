@@ -25,8 +25,8 @@ void main() {
       expect(doc3.keys, isEmpty);
     });
 
-test('parses duplicates, comments and empty values', () {
-  const src = '''
+    test('parses duplicates, comments and empty values', () {
+      const src = '''
 # comment
 background = 343028
 shader = bloom=intense
@@ -34,18 +34,18 @@ shader = vignette=soft
 font-family =
 ''';
 
-  final doc = FlatConfig.parse(src);
+      final doc = FlatConfig.parse(src);
 
-  expect(doc['background'], '343028');
-  expect(
-    doc.valuesOf('shader'),
-    ['bloom=intense', 'vignette=soft'],
-  );
-  expect(doc['font-family'], isNull);
+      expect(doc['background'], '343028');
+      expect(
+        doc.valuesOf('shader'),
+        ['bloom=intense', 'vignette=soft'],
+      );
+      expect(doc['font-family'], isNull);
 
-  final pair = doc.getKeyValue('shader');
-  expect(pair, ('vignette', 'soft')); // latest wins
-});
+      final pair = doc.getKeyValue('shader');
+      expect(pair, ('vignette', 'soft')); // latest wins
+    });
 
     test('ignores lines without "="', () {
       const src = '''

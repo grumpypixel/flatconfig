@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'document.dart';
 import 'document_extensions.dart';
+import 'includes.dart';
 import 'options.dart';
 import 'parser.dart';
 
@@ -23,6 +24,39 @@ Future<FlatDocument> parseFlatFile(
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
 }) async =>
     File(path).parseFlat(
+      options: options,
+      readOptions: readOptions,
+    );
+
+/// Reads a configuration file with includes and parses it into a [FlatDocument].
+///
+/// This is a convenience function that opens a file at the given [path] and
+/// parses its contents as a flat configuration file with automatic include
+/// processing. The include key is configurable via [options.includeKey] (defaults
+/// to `config-file` for Ghostty compatibility). The parsing behavior can be
+/// customized using [options] and [readOptions].
+///
+/// Example:
+/// ```dart
+/// final doc = await parseFlatFileWithIncludes('main.conf');
+/// print(doc['background']); // 343028
+///
+/// // With custom include key
+/// final doc = await parseFlatFileWithIncludes(
+///   'main.conf',
+///   options: const FlatParseOptions(includeKey: 'include'),
+/// );
+/// ```
+///
+/// Throws [CircularIncludeException] if a circular include is detected.
+/// Throws [MissingIncludeException] if a required include file is missing.
+Future<FlatDocument> parseFlatFileWithIncludes(
+  String path, {
+  FlatParseOptions options = const FlatParseOptions(),
+  FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+}) async =>
+    FlatConfigIncludes.parseWithIncludesFromPath(
+      path,
       options: options,
       readOptions: readOptions,
     );
@@ -80,6 +114,37 @@ extension FlatConfigIO on File {
       lineSplitter: readOptions.lineSplitter,
     );
   }
+
+  /// Parses this file with automatic include processing.
+  ///
+  /// This method parses the file and automatically processes any include
+  /// directives found within it. The include key is configurable via
+  /// [options.includeKey] (defaults to `config-file` for Ghostty compatibility).
+  /// The includes are processed recursively with cycle detection and support
+  /// for optional includes.
+  ///
+  /// Example:
+  /// ```dart
+  /// final file = File('main.conf');
+  /// final doc = await file.parseFlatWithIncludes();
+  ///
+  /// // With custom include key
+  /// final doc = await file.parseFlatWithIncludes(
+  ///   options: const FlatParseOptions(includeKey: 'include'),
+  /// );
+  /// ```
+  ///
+  /// Throws [CircularIncludeException] if a circular include is detected.
+  /// Throws [MissingIncludeException] if a required include file is missing.
+  Future<FlatDocument> parseFlatWithIncludes({
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+  }) async =>
+      FlatConfigIncludes.parseWithIncludes(
+        this,
+        options: options,
+        readOptions: readOptions,
+      );
 
   /// Writes a [FlatDocument] to this file asynchronously.
   ///

@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart';
 
+/// Constants used throughout the library.
 @internal
 class Constants {
   /// Character codes
@@ -15,7 +16,10 @@ class Constants {
 
   static const backslash = '\\';
   static const carriageReturn = '\r';
+  static const crlf = '\r\n';
   static const commentPrefix = '#';
+  static const includeKey = 'config-file';
+  static const optionalIncludePrefix = '?';
   static const newline = '\n';
   static const pairSeparator = '=';
   static const quote = '"';

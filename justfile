@@ -104,8 +104,9 @@ bench ITERATIONS="1000" ENTRIES="2000":
 examples:
 	dart run example/basic.dart
 	dart run example/accessors.dart
-	dart run example/io.dart
 	dart run example/streams.dart
+	dart run example/io.dart
+	dart run example/includes.dart
 
 # Publish dry run
 publish-dry-run:

@@ -214,7 +214,7 @@ String normalizeLineEndings(
 
   // If the original had a trailing newline
   final hadTrailingNewline =
-      text.endsWith('\r\n') || text.endsWith('\n') || text.endsWith('\r');
+      text.endsWith(Constants.crlf) || text.endsWith(Constants.newline) || text.endsWith(Constants.carriageReturn);
 
   // Split robustly (\r\n / \n / \r)
   final lines = const LineSplitter().convert(text);
