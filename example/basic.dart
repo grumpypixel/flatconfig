@@ -7,7 +7,7 @@ import 'package:flatconfig/flatconfig.dart';
 void main() {
   // Sample configuration (could come from a file)
   const configText = '''
-# FlatConfig Example
+# FlatConfig Example - Game Settings
 fullscreen = true
 resolution = 1920x1080
 volume = 80
@@ -18,13 +18,17 @@ music.tracks = "bonus" # duplicate key
 player.name = "Guest"
 player.score = 4200
 player.active = on
+# New features
+auto-save = true
+difficulty = "normal"
 ''';
 
   // Parse configuration text into a FlatDocument
   final doc = FlatConfig.parse(configText);
 
-  print('--- Parsed document ---');
+  print('🔍 Parsed document:');
   print(doc.debugDump());
+  print('');
 
   // Access values using convenience accessors
   final fullscreen = doc.getBool('fullscreen') ?? false;
@@ -33,22 +37,29 @@ player.active = on
   final playerName = doc['player.name'];
   final score = doc.getInt('player.score');
   final musicTracks = doc.valuesOf('music.tracks');
+  final autoSave = doc.getBool('auto-save') ?? false;
+  final difficulty = doc['difficulty'];
 
-  print('\n--- Accessed values ---');
+  print('');
+  print('🎯 Accessed values:');
   print('Fullscreen: $fullscreen');
   print('Resolution: $resolution');
   print('Volume: $volume');
   print('Player: $playerName ($score points)');
   print('Music tracks: $musicTracks');
+  print('Auto-save: $autoSave');
+  print('Difficulty: $difficulty');
 
   // Collapse duplicate keys (keep last values)
   final collapsed = doc.collapse(order: CollapseOrder.lastWrite);
 
-  print('\n--- Collapsed document ---');
+  print('');
+  print('🗜️ Collapsed document:');
   print(collapsed.toPrettyString(alignColumns: true));
 
   // Encode back to text
   final encoded = collapsed.encode();
-  print('\n--- Encoded text ---');
+  print('');
+  print('📝 Encoded text:');
   print(encoded);
 }

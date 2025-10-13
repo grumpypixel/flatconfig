@@ -38,7 +38,7 @@ user-name = admin
 # Theme configuration
 theme = dark
 background = 343028
-foreground = ffffff
+foreground = f3d735
 cursor = 00ff00
 selection = 444444
 
@@ -75,7 +75,7 @@ auto-save = true
 
     // Parse the main configuration file with includes
     print('🔍 Parsing configuration with includes...');
-    final doc = await FlatConfigIncludes.parseWithIncludes(mainFile);
+    final doc = await mainFile.parseWithIncludes();
 
     print('✅ Configuration parsed successfully!');
     print('');
@@ -143,7 +143,7 @@ setting2 = value2
 ''');
 
     try {
-      await FlatConfigIncludes.parseWithIncludes(errorFile);
+      await errorFile.parseWithIncludes();
     } on MissingIncludeException catch (e) {
       print('   - Missing required include: ${e.message}');
       print('     File: ${e.filePath}');
@@ -165,7 +165,7 @@ config-file = circular1.conf
 ''');
 
     try {
-      await FlatConfigIncludes.parseWithIncludes(circular1File);
+      await circular1File.parseWithIncludes();
     } on CircularIncludeException catch (e) {
       print('   - Circular include detected: ${e.message}');
       print('     File: ${e.filePath}');
@@ -177,26 +177,35 @@ config-file = circular1.conf
     print('🔧 API methods available:');
     print('');
 
-    // Method 1: Direct file parsing
-    print('1. FlatConfigIncludes.parseWithIncludes(File):');
-    final doc1 = await FlatConfigIncludes.parseWithIncludes(mainFile);
+    // Method 1: File extension method
+    print('1. File.parseWithIncludes():');
+    final doc1 = await mainFile.parseWithIncludes();
     print('   - Parsed ${doc1.length} entries');
 
-    // Method 2: Path-based parsing
-    print('2. FlatConfigIncludes.parseWithIncludesFromPath(String):');
-    final doc2 =
-        await FlatConfigIncludes.parseWithIncludesFromPath(mainFile.path);
+    // Method 2: Convenience function
+    print('2. parseFlatFileWithIncludes(String):');
+    final doc2 = await parseFlatFileWithIncludes(mainFile.path);
     print('   - Parsed ${doc2.length} entries');
+    print('');
 
-    // Method 3: File extension method
-    print('3. File.parseFlatWithIncludes():');
-    final doc3 = await mainFile.parseFlatWithIncludes();
-    print('   - Parsed ${doc3.length} entries');
+    // Demonstrate caching for performance
+    print('⚡ Performance optimization with caching:');
+    print('');
 
-    // Method 4: Convenience function
-    print('4. parseFlatFileWithIncludes(String):');
-    final doc4 = await parseFlatFileWithIncludes(mainFile.path);
-    print('   - Parsed ${doc4.length} entries');
+    // Create a shared cache for multiple parse operations
+    final cache = <String, FlatDocument>{};
+
+    // Parse multiple files that share common includes
+    final startTime = DateTime.now();
+    final docCached1 = await mainFile.parseWithIncludes(cache: cache);
+    final docCached2 = await mainFile.parseWithIncludes(cache: cache);
+    final endTime = DateTime.now();
+
+    print('5. Cached parsing (shared cache):');
+    print('   - First parse: ${docCached1.length} entries');
+    print('   - Second parse: ${docCached2.length} entries (uses cache)');
+    print('   - Cache contains ${cache.length} files');
+    print('   - Parse time: ${endTime.difference(startTime).inMicroseconds}μs');
     print('');
 
     // Demonstrate configurable include key
@@ -211,8 +220,7 @@ include = theme.conf
 ''');
 
     // Parse with custom include key
-    final customDoc = await FlatConfigIncludes.parseWithIncludes(
-      customMainFile,
+    final customDoc = await customMainFile.parseWithIncludes(
       options: const FlatParseOptions(includeKey: 'include'),
     );
 
@@ -234,6 +242,7 @@ include = theme.conf
         '   - Entries after include directives don\'t override included values');
     print('   - Supports nested includes and cycle detection');
     print('   - Multiple API methods available for different use cases');
+    print('   - Use caching for better performance with shared includes');
   } finally {
     // Clean up temporary files
     await tempDir.delete(recursive: true);

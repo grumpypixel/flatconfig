@@ -35,7 +35,7 @@ servers = host=a,port=8080 | host=b,port=9090
 
   // 2) Parse using the convenience function
   final docA = await parseFlatFile(cfgPath);
-  print('--- Parsed via parseFlatFile ---');
+  print('🔍 Parsed via parseFlatFile:');
   print(docA.toPrettyString(alignColumns: true));
 
   // 3) Parse via File extension with custom parsing options
@@ -58,24 +58,24 @@ servers = host=a,port=8080 | host=b,port=9090
   final color = docB.getHexColor('colors.primary'); // ARGB as int
   final servers = docB.getListOfDocuments('servers') ?? const [];
 
-  print('\n--- Accessed values ---');
-  print('fullscreen: $fullscreen');
-  print('size: $size');
-  print('theme: $theme');
-  print('colors.primary (ARGB int): ${color?.toRadixString(16)}');
+  print('\n🎯 Accessed values:');
+  print('  - fullscreen: $fullscreen');
+  print('  - size: $size');
+  print('  - theme: $theme');
+  print('  - colors.primary (ARGB int): ${color?.toRadixString(16)}');
 
   for (var i = 0; i < servers.length; i++) {
     final s = servers[i];
     final host = s['host'];
     final port = s.getInt('port');
-    print('server[$i]: host=$host, port=$port');
+    print('  - server[$i]: host=$host, port=$port');
   }
 
   // 4) Collapse duplicate keys and write back (default encode options)
   final collapsed = docB.collapse(order: CollapseOrder.lastWrite);
   await File(outPath).writeFlat(collapsed);
 
-  print('\nWrote collapsed config (UTF-8, default line endings): $outPath');
+  print('\n💾 Wrote collapsed config (UTF-8, default line endings): $outPath');
 
   // 5) Write with Windows line endings and forced quoting+escaping
   await File(outWinPath).writeFlat(
@@ -91,7 +91,7 @@ servers = host=a,port=8080 | host=b,port=9090
     ),
   );
 
-  print('Wrote collapsed config (UTF-8, CRLF, always quoted): $outWinPath');
+  print('💾 Wrote collapsed config (UTF-8, CRLF, always quoted): $outWinPath');
 
   // 6) Use FlatDocument.saveToFile (same as File.writeFlat but from doc side)
   final merged = collapsed.merge(
@@ -111,14 +111,14 @@ servers = host=a,port=8080 | host=b,port=9090
     ),
   );
 
-  print('Saved merged config: $savedPath');
+  print('💾 Saved merged config: $savedPath');
 
   // 7) Read back synchronously to demonstrate sync API
   final readBack = File(savedPath).parseFlatSync();
-  print('\n--- Read back (sync) ---');
+  print('\n📖 Read back (sync):');
   print(readBack.toPrettyString(alignColumns: true));
 
   // Cleanup hint (leave files around so you can inspect them)
-  print('\nTemp folder with outputs: ${tmpDir.path}');
-  print('Inspect the files, then delete the folder if you like.\n');
+  print('\n📂 Temp folder with outputs: ${tmpDir.path}');
+  print('🧹 Inspect the files, then delete the folder if you like.\n');
 }

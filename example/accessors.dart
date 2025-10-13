@@ -57,23 +57,23 @@ hp3 = localhost
 
   final doc = FlatConfig.parse(cfg);
 
-  print('--- booleans & numbers ---');
+  print('🔢 Booleans & numbers:');
   print(
       'enabled: ${doc.getBool("enabled")} (require: ${_try(() => doc.requireBool("enabled"))})');
   print(
       'retries: ${doc.getInt("retries")} (default: ${doc.getIntOr("missing", 42)})');
   print('threshold: ${doc.getDouble("threshold")}');
 
-  print('\n--- duration ---');
+  print('\n⏱️ Duration:');
   print('timeout: ${doc.getDuration("timeout")}');
   print(
       'backoff: ${doc.getDuration("backoff")} (require: ${_try(() => doc.requireDuration("backoff"))})');
 
-  print('\n--- bytes ---');
+  print('\n📦 Bytes:');
   print('bytes.si:  ${doc.getBytes("bytes.si")} B');
   print('bytes.iec: ${doc.getBytes("bytes.iec")} B');
 
-  print('\n--- colors ---');
+  print('\n🎨 Colors:');
   final css = doc.getHexColor('color.css', cssAlphaAtEnd: true);
   final argb = doc.getHexColor('color.argb', cssAlphaAtEnd: false);
   final short = doc.getHexColor('color.short');
@@ -82,7 +82,7 @@ hp3 = localhost
   print('color.short (#rgb):                0x${short?.toRadixString(16)}');
   print('color.css channels: ${doc.getColor("color.css")}');
 
-  print('\n--- date, ratio, percent ---');
+  print('\n📅 Date, ratio, percent:');
   print(
       'when:     ${doc.getDateTime("when")} (require: ${_try(() => doc.requireDateTime("when"))})');
   print('aspect:   ${doc.getRatio("aspect")}');
@@ -90,7 +90,7 @@ hp3 = localhost
   print('percent.b ${doc.getPercent("percent.b")}');
   print('percent.c ${doc.getPercent("percent.c")}');
 
-  print('\n--- enums (mapping) ---');
+  print('\n🔠 Enums (mapping):');
   final modeMap = {
     'slow': 0,
     'normal': 1,
@@ -98,13 +98,13 @@ hp3 = localhost
   };
   print('mode: ${doc.getEnum("mode", modeMap, caseInsensitive: true)}');
 
-  print('\n--- lists, sets, maps ---');
+  print('\n🧮 Lists, sets, maps:');
   print('list: ${doc.getListOrEmpty("list")}');
   print('set:  ${doc.getSetOrEmpty("set")}');
   print(
       'map:  ${doc.getMap("map")} (orEmpty: ${doc.getMapOrEmpty("missing")})');
 
-  print('\n--- mini document & list of docs ---');
+  print('\n🧩 Mini document & list of docs:');
   final mini = doc.getDocument('mini');
   print('mini:\n${mini.toPrettyString(alignColumns: true)}');
 
@@ -114,17 +114,17 @@ hp3 = localhost
     print('server[$i]: host=${s.getString("host")}, port=${s.getInt("port")}');
   }
 
-  print('\n--- uri, json ---');
+  print('\n🔗 URI, JSON:');
   print(
       'endpoint: ${doc.getUri("endpoint")} (require: ${_try(() => doc.requireUri("endpoint"))})');
   print('json:     ${doc.getJson("json")}');
 
-  print('\n--- host:port ---');
+  print('\n🔌 Host:port:');
   print('hp1: ${doc.getHostPort("hp1")}');
   print('hp2: ${doc.getHostPort("hp2")}');
   print('hp3: ${doc.getHostPort("hp3")}');
 
-  print('\n--- ranges, clamping, one-of, requireKeys ---');
+  print('\n📏 Ranges, clamping, one-of, requireKeys:');
   print('retries in [0..5]: ${doc.getIntInRange("retries", min: 0, max: 5)}');
   print(
       'clamped retries to [5..1] (swapped): ${doc.getClampedInt("retries", min: 5, max: 1)}');
