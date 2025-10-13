@@ -1,16 +1,41 @@
-# flutter_web
+### flatconfig Flutter Web Example
 
-A new Flutter project.
+This example shows how to use `flatconfig` in a Flutter web app. It loads a flat configuration file from assets and uses it to drive theme and UI elements, then lists the active key=value pairs.
 
-## Getting Started
+### What it does
+- Loads `assets/config/app.conf` via `rootBundle`
+- Parses using `FlatConfig.parse`
+- Applies optional `primary-color`, `background-color`, `dark-mode`
+- Displays all latest key=value pairs from `config.toMap()`
 
-This project is a starting point for a Flutter application.
+### Relevant files
+- `lib/main.dart` – loads/parses config and renders the UI
+- `assets/config/app.conf` – example configuration
+- `pubspec.yaml` – adds the local `flatconfig` path dependency and registers the asset
 
-A few resources to get you started if this is your first Flutter project:
+### Run (web)
+```bash
+cd example/flutter_web
+flutter pub get
+flutter run -d chrome
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Build for static hosting:
+```bash
+flutter build web
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Edit the configuration
+Change values in `assets/config/app.conf`, e.g.:
+```
+title = Flatconfig Flutter Web
+welcome-message = "Hello from assets via flatconfig!"
+dark-mode = false
+primary-color = #6750A4
+background-color = #F6F2FF
+padding = 20
+```
+
+### Notes
+- On web, file-based includes and `dart:io` APIs are not available. Use `FlatConfig.parse` on strings (assets or HTTP responses).
+- The example depends on the local package via `path: ../../` in `pubspec.yaml`.
