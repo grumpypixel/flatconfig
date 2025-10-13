@@ -253,7 +253,7 @@ Future<void> main() async {
 ## Encoding & Round-Tripping
 
 ```dart
-final out = doc.encodeToString(
+final out = doc.encode(
   options: const FlatEncodeOptions(
     quoteIfWhitespace: true,  // quote values with outer spaces
     alwaysQuote: false,        // force quotes on all non-null values
