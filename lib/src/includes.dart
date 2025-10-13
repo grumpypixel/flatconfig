@@ -492,13 +492,13 @@ extension FlatConfigIncludes on FlatConfig {
     return result;
   }
 
-  /// Normalizes a canonical path for Windows-like systems.
+  /// Normalizes a canonical path for case-insensitive filesystems.
   ///
   /// This method ensures that the path is normalized and converted to lowercase
-  /// on Windows systems to ensure consistent canonical paths.
+  /// on case-insensitive filesystems (Windows and macOS/APFS) to ensure consistent canonical paths.
   @visibleForTesting
   static String normalizeCanonicalPath(String path) =>
-      Platform.isWindows ? path.toLowerCase() : path;
+      (Platform.isWindows || Platform.isMacOS) ? path.toLowerCase() : path;
 }
 
 /// Extensions on [File] for parsing flat configuration files with includes.
