@@ -69,6 +69,24 @@ extension FlatConfigIncludes on FlatConfig {
         cache: cache ?? <String, FlatDocument>{},
       );
 
+  /// Synchronous variant of [parseWithIncludes].
+  ///
+  /// Parses a configuration file with automatic include processing, using
+  /// synchronous filesystem APIs.
+  static FlatDocument parseWithIncludesSync(
+    File file, {
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+    Map<String, FlatDocument>? cache,
+  }) =>
+      parseWithIncludesRecursiveSync(
+        file,
+        options: options,
+        readOptions: readOptions,
+        visited: <String>{},
+        cache: cache ?? <String, FlatDocument>{},
+      );
+
   /// Parses a configuration file with includes from a file path.
   ///
   /// This is a convenience method that creates a [File] object from the given
@@ -91,6 +109,20 @@ extension FlatConfigIncludes on FlatConfig {
         cache: cache,
       );
 
+  /// Synchronous variant of [parseWithIncludesFromPath].
+  static FlatDocument parseWithIncludesFromPathSync(
+    String path, {
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+    Map<String, FlatDocument>? cache,
+  }) =>
+      parseWithIncludesSync(
+        File(path),
+        options: options,
+        readOptions: readOptions,
+        cache: cache,
+      );
+
   /// Resolves a canonical path for a file, handling symbolic links.
   ///
   /// This method attempts to resolve symbolic links to get the canonical path.
@@ -103,6 +135,17 @@ extension FlatConfigIncludes on FlatConfig {
     } catch (_) {
       final abs = file.absolute.path;
       // Normalize case on Windows (case-insensitive FS) for stable canonical keys
+      return normalizeCanonicalPath(abs);
+    }
+  }
+
+  /// Synchronous canonical path resolution.
+  static String _canonicalSync(File file) {
+    try {
+      final resolved = file.resolveSymbolicLinksSync();
+      return normalizeCanonicalPath(resolved);
+    } catch (_) {
+      final abs = file.absolute.path;
       return normalizeCanonicalPath(abs);
     }
   }
@@ -175,6 +218,53 @@ extension FlatConfigIncludes on FlatConfig {
       includeEntries.addAll(subDoc.entries);
     }
 
+    return includeEntries;
+  }
+
+  /// Synchronous include processing.
+  static List<FlatEntry> processIncludesSync(
+    List<String> includePaths,
+    File baseFile,
+    String canonicalPath,
+    FlatParseOptions options,
+    FlatStreamReadOptions readOptions,
+    Set<String> visited,
+    Map<String, FlatDocument> cache, {
+    int depth = 0,
+  }) {
+    final includeEntries = <FlatEntry>[];
+    for (var path in includePaths) {
+      var trimmed = path.trim();
+      if (trimmed.isEmpty) {
+        continue;
+      }
+      final optional = trimmed.startsWith(Constants.optionalIncludePrefix);
+      if (optional) {
+        trimmed = trimmed.substring(1).trim();
+      }
+      if (trimmed.startsWith(Constants.quote) &&
+          trimmed.endsWith(Constants.quote)) {
+        trimmed = trimmed.substring(1, trimmed.length - 1);
+      }
+
+      final includedFile = _resolveChild(baseFile.parent, trimmed);
+      if (!includedFile.existsSync()) {
+        if (!optional) {
+          throw MissingIncludeException(canonicalPath, trimmed);
+        }
+        continue;
+      }
+
+      final subDoc = parseWithIncludesRecursiveSync(
+        includedFile,
+        options: options,
+        readOptions: readOptions,
+        visited: visited,
+        cache: cache,
+        depth: depth + 1,
+      );
+      includeEntries.addAll(subDoc.entries);
+    }
     return includeEntries;
   }
 
@@ -307,6 +397,98 @@ extension FlatConfigIncludes on FlatConfig {
     // Cache the parsed document for future use
     cache[canonicalPath] = result;
 
+    return result;
+  }
+
+  /// Internal synchronous recursive method for parsing with includes.
+  static FlatDocument parseWithIncludesRecursiveSync(
+    File file, {
+    required FlatParseOptions options,
+    required FlatStreamReadOptions readOptions,
+    required Set<String> visited,
+    required Map<String, FlatDocument> cache,
+    int depth = 0,
+  }) {
+    if (depth > options.maxIncludeDepth) {
+      throw MaxIncludeDepthExceededException(
+          file.path, depth, options.maxIncludeDepth);
+    }
+
+    final canonicalPath = _canonicalSync(file);
+    if (!visited.add(canonicalPath)) {
+      throw CircularIncludeException(file.path, canonicalPath);
+    }
+    if (!file.existsSync()) {
+      throw MissingIncludeException(file.path, file.path);
+    }
+    final cached = cache[canonicalPath];
+    if (cached != null) {
+      visited.remove(canonicalPath);
+      return cached;
+    }
+
+    final content = file.readAsStringSync(encoding: readOptions.encoding);
+    final doc = FlatConfig.parse(
+      content,
+      options: options,
+      lineSplitter: readOptions.lineSplitter,
+    );
+
+    final includeValues = <String>[];
+    final preIncludeEntries = <FlatEntry>[];
+    var seenAnyInclude = false;
+    for (final e in doc.entries) {
+      if (e.key == options.includeKey) {
+        if (e.value != null) {
+          final trimmedValue = e.value!.trim();
+          if (trimmedValue.isNotEmpty) {
+            includeValues.add(trimmedValue);
+            seenAnyInclude = true;
+          }
+        }
+        continue;
+      } else if (!seenAnyInclude) {
+        preIncludeEntries.add(e);
+      }
+    }
+
+    final includeEntries = processIncludesSync(
+      includeValues,
+      file,
+      canonicalPath,
+      options,
+      readOptions,
+      visited,
+      cache,
+      depth: depth,
+    );
+
+    final keysFromIncludes = includeEntries.map((e) => e.key).toSet();
+    final filteredTail = <FlatEntry>[];
+    if (seenAnyInclude) {
+      var afterFirstInclude = false;
+      for (final e in doc.entries) {
+        if (e.key == options.includeKey) {
+          afterFirstInclude = true;
+          continue;
+        }
+        if (!afterFirstInclude) {
+          continue;
+        }
+        if (keysFromIncludes.contains(e.key)) {
+          continue;
+        }
+        filteredTail.add(e);
+      }
+    }
+
+    visited.remove(canonicalPath);
+    final result = FlatDocument([
+      ...preIncludeEntries,
+      ...includeEntries,
+      ...filteredTail,
+    ]);
+    cache[canonicalPath] = result;
     return result;
   }
 

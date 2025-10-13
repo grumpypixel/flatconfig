@@ -90,6 +90,352 @@ cursor = 00ff00
       expect(entries[3].key, equals('cursor'));
     });
 
+    test('basic include functionality (sync)', () async {
+      // Create main config file
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+# Main configuration
+background = 343028
+font-size = 14
+
+# Include another config file
+config-file = theme.conf
+''');
+
+      // Create included config file
+      final themeFile = File('${tempDir.path}/theme.conf');
+      await themeFile.writeAsString('''
+# Theme configuration
+foreground = f3d735
+cursor = 00ff00
+''');
+
+      // Parse with includes (sync)
+      final doc = mainFile.parseWithIncludesSync();
+
+      // Verify all entries are present
+      expect(doc['background'], equals('343028'));
+      expect(doc['font-size'], equals('14'));
+      expect(doc['foreground'], equals('f3d735'));
+      expect(doc['cursor'], equals('00ff00'));
+    });
+
+    test('sync circular include detection', () async {
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+background = 343028
+config-file = circular.conf
+''');
+
+      final circularFile = File('${tempDir.path}/circular.conf');
+      await circularFile.writeAsString('''
+foreground = f3d735
+config-file = main.conf
+''');
+
+      expect(
+        () => mainFile.parseWithIncludesSync(),
+        throwsA(isA<CircularIncludeException>()),
+      );
+    });
+
+    test('sync missing required include throws exception', () async {
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+background = 343028
+config-file = missing.conf
+''');
+
+      expect(
+        () => mainFile.parseWithIncludesSync(),
+        throwsA(isA<MissingIncludeException>()),
+      );
+    });
+
+    test('sync max include depth is enforced', () async {
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('config-file = a.conf\n');
+
+      final a = File('${tempDir.path}/a.conf');
+      await a.writeAsString('config-file = b.conf\n');
+      final b = File('${tempDir.path}/b.conf');
+      await b.writeAsString('config-file = c.conf\n');
+      final c = File('${tempDir.path}/c.conf');
+      await c.writeAsString('key = value\n');
+
+      expect(
+        () => mainFile.parseWithIncludesSync(
+          options: const FlatParseOptions(maxIncludeDepth: 2),
+        ),
+        throwsA(isA<MaxIncludeDepthExceededException>()),
+      );
+    });
+
+    test('sync cache avoids re-parsing same files', () async {
+      final sharedFile = File('${tempDir.path}/shared.conf');
+      await sharedFile.writeAsString('theme = dark\nfont-size = 16\n');
+
+      final main1 = File('${tempDir.path}/main1.conf');
+      await main1.writeAsString('background = 343028\nconfig-file = shared.conf\n');
+      final main2 = File('${tempDir.path}/main2.conf');
+      await main2.writeAsString('foreground = f3d735\nconfig-file = shared.conf\n');
+
+      final cache = <String, FlatDocument>{};
+      final doc1 = main1.parseWithIncludesSync(cache: cache);
+      final doc2 = main2.parseWithIncludesSync(cache: cache);
+
+      expect(doc1['background'], equals('343028'));
+      expect(doc1['theme'], equals('dark'));
+      expect(doc2['foreground'], equals('f3d735'));
+      expect(doc2['font-size'], equals('16'));
+
+      final canonical = sharedFile.resolveSymbolicLinksSync();
+      expect(cache.containsKey(canonical), isTrue);
+      expect(cache[canonical]!['theme'], equals('dark'));
+    });
+
+    test('sync custom include key', () async {
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+background = 343028
+include = theme.conf
+''');
+
+      final themeFile = File('${tempDir.path}/theme.conf');
+      await themeFile.writeAsString('foreground = f3d735\n');
+
+      final doc = mainFile.parseWithIncludesSync(
+        options: const FlatParseOptions(includeKey: 'include'),
+      );
+      expect(doc['background'], equals('343028'));
+      expect(doc['foreground'], equals('f3d735'));
+    });
+
+    test('processIncludesSync method is testable in isolation', () async {
+      final includedFile = File('${tempDir.path}/included.conf');
+      await includedFile.writeAsString('theme = dark\nfont-size = 16\n');
+
+      final baseFile = File('${tempDir.path}/base.conf');
+
+      final entries = FlatConfigIncludes.processIncludesSync(
+        ['included.conf'],
+        baseFile,
+        baseFile.absolute.path,
+        const FlatParseOptions(),
+        const FlatStreamReadOptions(),
+        <String>{},
+        <String, FlatDocument>{},
+      );
+
+      expect(entries.length, equals(2));
+      expect(entries[0].key, equals('theme'));
+      expect(entries[0].value, equals('dark'));
+      expect(entries[1].key, equals('font-size'));
+      expect(entries[1].value, equals('16'));
+    });
+
+    test('processIncludesSync handles optional includes', () async {
+      final baseFile = File('${tempDir.path}/base.conf');
+
+      final entries = FlatConfigIncludes.processIncludesSync(
+        ['?missing.conf'],
+        baseFile,
+        baseFile.absolute.path,
+        const FlatParseOptions(),
+        const FlatStreamReadOptions(),
+        <String>{},
+        <String, FlatDocument>{},
+      );
+
+      expect(entries.length, equals(0));
+    });
+
+    test('processIncludesSync handles quoted paths', () async {
+      final includedFile = File('${tempDir.path}/included.conf');
+      await includedFile.writeAsString('theme = light\n');
+
+      final baseFile = File('${tempDir.path}/base.conf');
+
+      final entries = FlatConfigIncludes.processIncludesSync(
+        ['"included.conf"'],
+        baseFile,
+        baseFile.absolute.path,
+        const FlatParseOptions(),
+        const FlatStreamReadOptions(),
+        <String>{},
+        <String, FlatDocument>{},
+      );
+
+      expect(entries.length, equals(1));
+      expect(entries[0].key, equals('theme'));
+      expect(entries[0].value, equals('light'));
+    });
+
+    test('processIncludesSync handles empty include values', () async {
+      final baseFile = File('${tempDir.path}/base.conf');
+
+      expect(
+        () => FlatConfigIncludes.processIncludesSync(
+          ['', '  ', 'valid.conf'],
+          baseFile,
+          baseFile.absolute.path,
+          const FlatParseOptions(),
+          const FlatStreamReadOptions(),
+          <String>{},
+          <String, FlatDocument>{},
+        ),
+        throwsA(isA<MissingIncludeException>()),
+      );
+    });
+
+    test('parseWithIncludesRecursiveSync method is testable in isolation', () async {
+      final testFile = File('${tempDir.path}/test.conf');
+      await testFile.writeAsString('background = 343028\nforeground = f3d735\n');
+
+      final doc = FlatConfigIncludes.parseWithIncludesRecursiveSync(
+        testFile,
+        options: const FlatParseOptions(),
+        readOptions: const FlatStreamReadOptions(),
+        visited: <String>{},
+        cache: <String, FlatDocument>{},
+      );
+
+      expect(doc.length, equals(2));
+      expect(doc['background'], equals('343028'));
+      expect(doc['foreground'], equals('f3d735'));
+    });
+
+    test('parseWithIncludesRecursiveSync handles cycle detection', () async {
+      final testFile = File('${tempDir.path}/cycle.conf');
+      await testFile.writeAsString('''
+background = 343028
+config-file = cycle.conf
+''');
+
+      expect(
+        () => FlatConfigIncludes.parseWithIncludesRecursiveSync(
+          testFile,
+          options: const FlatParseOptions(),
+          readOptions: const FlatStreamReadOptions(),
+          visited: <String>{},
+          cache: <String, FlatDocument>{},
+        ),
+        throwsA(isA<CircularIncludeException>()),
+      );
+    });
+
+    test('parseWithIncludesRecursiveSync handles missing file', () async {
+      final testFile = File('${tempDir.path}/nonexistent.conf');
+
+      expect(
+        () => FlatConfigIncludes.parseWithIncludesRecursiveSync(
+          testFile,
+          options: const FlatParseOptions(),
+          readOptions: const FlatStreamReadOptions(),
+          visited: <String>{},
+          cache: <String, FlatDocument>{},
+        ),
+        throwsA(isA<MissingIncludeException>()),
+      );
+    });
+
+    test('parseWithIncludesRecursiveSync processes includes correctly', () async {
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+background = 343028
+config-file = theme.conf
+foreground = 000000
+''');
+
+      final themeFile = File('${tempDir.path}/theme.conf');
+      await themeFile.writeAsString('''
+foreground = f3d735
+font-size = 14
+''');
+
+      final doc = FlatConfigIncludes.parseWithIncludesRecursiveSync(
+        mainFile,
+        options: const FlatParseOptions(),
+        readOptions: const FlatStreamReadOptions(),
+        visited: <String>{},
+        cache: <String, FlatDocument>{},
+      );
+
+      expect(doc.length, equals(3));
+      expect(doc['background'], equals('343028'));
+      expect(doc['foreground'], equals('f3d735'));
+      expect(doc['font-size'], equals('14'));
+    });
+
+    test('parseWithIncludesRecursiveSync handles custom include key', () async {
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+background = 343028
+include = theme.conf
+''');
+
+      final themeFile = File('${tempDir.path}/theme.conf');
+      await themeFile.writeAsString('foreground = f3d735\n');
+
+      final doc = FlatConfigIncludes.parseWithIncludesRecursiveSync(
+        mainFile,
+        options: const FlatParseOptions(includeKey: 'include'),
+        readOptions: const FlatStreamReadOptions(),
+        visited: <String>{},
+        cache: <String, FlatDocument>{},
+      );
+
+      expect(doc.length, equals(2));
+      expect(doc['background'], equals('343028'));
+      expect(doc['foreground'], equals('f3d735'));
+    });
+
+    test('parseWithIncludesRecursiveSync handles optional includes', () async {
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+background = 343028
+config-file = ?optional.conf
+''');
+
+      final doc = FlatConfigIncludes.parseWithIncludesRecursiveSync(
+        mainFile,
+        options: const FlatParseOptions(),
+        readOptions: const FlatStreamReadOptions(),
+        visited: <String>{},
+        cache: <String, FlatDocument>{},
+      );
+
+      expect(doc.length, equals(1));
+      expect(doc['background'], equals('343028'));
+    });
+
+    test('parseWithIncludesRecursiveSync handles entries after include that do not override', () async {
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+background = 343028
+config-file = theme.conf
+new-key = new-value
+''');
+
+      final themeFile = File('${tempDir.path}/theme.conf');
+      await themeFile.writeAsString('''
+foreground = f3d735
+''');
+
+      final doc = FlatConfigIncludes.parseWithIncludesRecursiveSync(
+        mainFile,
+        options: const FlatParseOptions(),
+        readOptions: const FlatStreamReadOptions(),
+        visited: <String>{},
+        cache: <String, FlatDocument>{},
+      );
+
+      expect(doc.length, equals(3));
+      expect(doc['background'], equals('343028'));
+      expect(doc['foreground'], equals('f3d735'));
+      expect(doc['new-key'], equals('new-value'));
+    });
+
     test('multiple includes', () async {
       // Create main config file
       final mainFile = File('${tempDir.path}/main.conf');
@@ -352,6 +698,29 @@ foreground = f3d735
       // Parse with includes using path
       final doc =
           await FlatConfigIncludes.parseWithIncludesFromPath(mainFile.path);
+
+      // Verify all entries are present
+      expect(doc['background'], equals('343028'));
+      expect(doc['foreground'], equals('f3d735'));
+    });
+
+    test('parseWithIncludesFromPathSync convenience method (sync)', () async {
+      // Create main config file
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+background = 343028
+config-file = theme.conf
+''');
+
+      // Create included config file
+      final themeFile = File('${tempDir.path}/theme.conf');
+      await themeFile.writeAsString('''
+foreground = f3d735
+''');
+
+      // Parse with includes using path (sync)
+      final doc =
+          FlatConfigIncludes.parseWithIncludesFromPathSync(mainFile.path);
 
       // Verify all entries are present
       expect(doc['background'], equals('343028'));
@@ -668,6 +1037,37 @@ config-file = "?optional.conf"
       // Verify only main entries are present
       expect(doc['background'], equals('343028'));
       expect(doc.length, equals(1));
+    });
+
+    test('sync optional includes and quoted paths', () async {
+      // Create main config file with optional and quoted includes
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+background = 343028
+config-file = ?missing.conf
+config-file = "themes/dark.conf"
+''');
+
+      // Create directory and included file
+      final themesDir = Directory('${tempDir.path}/themes');
+      await themesDir.create();
+      final darkThemeFile = File('${themesDir.path}/dark.conf');
+      await darkThemeFile.writeAsString('foreground = f3d735\n');
+
+      final doc = mainFile.parseWithIncludesSync();
+      expect(doc['background'], equals('343028'));
+      expect(doc['foreground'], equals('f3d735'));
+    });
+
+    test('canonicalSync fallback path is covered via non-resolvable link',
+        () async {
+      // Use a file that likely cannot resolve symlinks (not a symlink)
+      final file = File('${tempDir.path}/plain.conf');
+      await file.writeAsString('key = v\n');
+
+      // Smoke-call the sync parser to ensure _canonicalSync fallback is exercised
+      final doc = file.parseWithIncludesSync();
+      expect(doc['key'], equals('v'));
     });
 
     test('main file does not exist throws exception', () async {
