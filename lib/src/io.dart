@@ -1,4 +1,3 @@
-// lib/src/io.dart
 import 'dart:io';
 
 import 'document.dart';
