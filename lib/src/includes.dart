@@ -1,4 +1,3 @@
-// lib/src/includes.dart
 import 'dart:io';
 
 import 'package:meta/meta.dart';
@@ -10,9 +9,9 @@ import 'exceptions.dart';
 import 'options.dart';
 import 'parser.dart';
 
-/// File-based includes functionality for flat configuration files.
+/// Extensions on [FlatConfig] for parsing configuration files with includes.
 ///
-/// This class provides static methods for parsing configuration files
+/// These extensions provide methods for parsing configuration files
 /// with automatic include processing. The includes are processed recursively
 /// with cycle detection and support for optional includes.
 ///
@@ -23,7 +22,7 @@ import 'parser.dart';
 /// - Relative paths are resolved relative to the including file's directory
 /// - Absolute paths are used as-is
 /// - Circular includes are detected and cause an exception
-class FlatConfigIncludes {
+extension FlatConfigIncludes on FlatConfig {
   /// Parses a configuration file with automatic include processing.
   ///
   /// This method parses a configuration file and automatically processes any
@@ -107,7 +106,7 @@ class FlatConfigIncludes {
   /// This method properly handles both absolute and relative paths using
   /// the path package for cross-platform compatibility.
   static File _resolveChild(Directory base, String includePath) {
-    final String abs = p.isAbsolute(includePath)
+    final abs = p.isAbsolute(includePath)
         ? includePath
         : p.normalize(p.join(base.path, includePath));
     return File(abs);
@@ -300,4 +299,51 @@ class FlatConfigIncludes {
 
     return result;
   }
+}
+
+/// Extensions on [File] for parsing flat configuration files with includes.
+///
+/// These extensions provide convenient methods for parsing configuration files
+/// directly from File objects with automatic include processing.
+extension FileIncludes on File {
+  /// Parses this configuration file with automatic include processing.
+  ///
+  /// This method parses the current file and automatically processes any
+  /// include directives found within it. The include key is configurable via
+  /// [options.includeKey] (defaults to `config-file` for Ghostty compatibility).
+  /// The includes are processed recursively with cycle detection and support
+  /// for optional includes.
+  ///
+  /// Include processing follows Ghostty semantics:
+  /// - Include directives are processed at the end of the current file
+  /// - Later entries in the current file do not override entries from included files
+  /// - Optional includes are prefixed with `?` and are silently ignored if missing
+  /// - Relative paths are resolved relative to the including file's directory
+  /// - Absolute paths are used as-is
+  /// - Circular includes are detected and cause an exception
+  ///
+  /// Example:
+  /// ```dart
+  /// final file = File('main.conf');
+  /// final doc = await file.parseWithIncludes();
+  ///
+  /// // Custom include key
+  /// final doc = await file.parseWithIncludes(
+  ///   options: const FlatParseOptions(includeKey: 'include'),
+  /// );
+  /// ```
+  ///
+  /// Throws [CircularIncludeException] if a circular include is detected.
+  /// Throws [MissingIncludeException] if a required include file is missing.
+  Future<FlatDocument> parseWithIncludes({
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+    Map<String, FlatDocument>? cache,
+  }) async =>
+      FlatConfigIncludes.parseWithIncludes(
+        this,
+        options: options,
+        readOptions: readOptions,
+        cache: cache,
+      );
 }

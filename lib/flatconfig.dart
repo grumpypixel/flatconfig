@@ -55,7 +55,7 @@ export 'src/exceptions.dart'
         MissingIncludeException,
         TrailingCharactersAfterQuoteException,
         UnterminatedQuoteException;
-export 'src/includes.dart' show FlatConfigIncludes;
+export 'src/includes.dart' show FileIncludes, FlatConfigIncludes;
 export 'src/io.dart'
     show FlatConfigIO, FlatDocumentIO, parseFlatFile, parseFlatFileWithIncludes;
 export 'src/options.dart'
