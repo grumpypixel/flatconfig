@@ -45,6 +45,60 @@ void main() {
       expect(doc['k'], r'He said: "hi" \ o/');
     });
 
+    test('parseFlatWithIncludes parses file with includes', () async {
+      final mainFile = File('test/tmp_io_parse_flat_with_includes.conf');
+      final includeFile = File('test/tmp_io_include_file.conf');
+      addTearDown(() {
+        if (mainFile.existsSync()) mainFile.deleteSync();
+        if (includeFile.existsSync()) includeFile.deleteSync();
+      });
+
+      // Create main file with include
+      mainFile.writeAsStringSync('''
+key1 = value1
+config-file = tmp_io_include_file.conf
+key2 = value2
+''');
+
+      // Create include file
+      includeFile.writeAsStringSync('''
+included_key = included_value
+''');
+
+      // Test the parseFlatWithIncludes method
+      final doc = await mainFile.parseFlatWithIncludes();
+      expect(doc['key1'], 'value1');
+      expect(doc['included_key'], 'included_value');
+      expect(doc['key2'], 'value2');
+    });
+
+    test('parseFlatWithIncludes with custom options', () async {
+      final mainFile = File('test/tmp_io_parse_flat_with_includes_opts.conf');
+      final includeFile = File('test/tmp_io_include_file_opts.conf');
+      addTearDown(() {
+        if (mainFile.existsSync()) mainFile.deleteSync();
+        if (includeFile.existsSync()) includeFile.deleteSync();
+      });
+
+      // Create main file with custom include key
+      mainFile.writeAsStringSync('''
+key1 = value1
+include = tmp_io_include_file_opts.conf
+''');
+
+      // Create include file
+      includeFile.writeAsStringSync('''
+included_key = included_value
+''');
+
+      // Test with custom include key
+      final doc = await mainFile.parseFlatWithIncludes(
+        options: const FlatParseOptions(includeKey: 'include'),
+      );
+      expect(doc['key1'], 'value1');
+      expect(doc['included_key'], 'included_value');
+    });
+
     test('respects custom single commentPrefix', () async {
       final file = File('test/tmp_io_comment.conf');
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
@@ -183,6 +237,65 @@ void main() {
       );
       expect(doc['key'], 'value');
       expect(doc.keys.length, 1);
+    });
+  });
+
+  group('parseFlatFileWithIncludes function', () {
+    test('parses file with includes using parseFlatFileWithIncludes function',
+        () async {
+      final mainFile = File('test/tmp_parse_flat_file_with_includes.conf');
+      final includeFile = File('test/tmp_include_file.conf');
+      addTearDown(() {
+        if (mainFile.existsSync()) mainFile.deleteSync();
+        if (includeFile.existsSync()) includeFile.deleteSync();
+      });
+
+      // Create main file with include
+      mainFile.writeAsStringSync('''
+key1 = value1
+config-file = tmp_include_file.conf
+key2 = value2
+''');
+
+      // Create include file
+      includeFile.writeAsStringSync('''
+included_key = included_value
+''');
+
+      // Test the actual parseFlatFileWithIncludes function
+      final doc = await parseFlatFileWithIncludes(
+          'test/tmp_parse_flat_file_with_includes.conf');
+      expect(doc['key1'], 'value1');
+      expect(doc['included_key'], 'included_value');
+      expect(doc['key2'], 'value2');
+    });
+
+    test('parseFlatFileWithIncludes with custom options', () async {
+      final mainFile = File('test/tmp_parse_flat_file_with_includes_opts.conf');
+      final includeFile = File('test/tmp_include_file_opts.conf');
+      addTearDown(() {
+        if (mainFile.existsSync()) mainFile.deleteSync();
+        if (includeFile.existsSync()) includeFile.deleteSync();
+      });
+
+      // Create main file with custom include key
+      mainFile.writeAsStringSync('''
+key1 = value1
+include = tmp_include_file_opts.conf
+''');
+
+      // Create include file
+      includeFile.writeAsStringSync('''
+included_key = included_value
+''');
+
+      // Test with custom include key
+      final doc = await parseFlatFileWithIncludes(
+        'test/tmp_parse_flat_file_with_includes_opts.conf',
+        options: const FlatParseOptions(includeKey: 'include'),
+      );
+      expect(doc['key1'], 'value1');
+      expect(doc['included_key'], 'included_value');
     });
   });
 
