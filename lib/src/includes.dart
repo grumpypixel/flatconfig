@@ -8,6 +8,7 @@ import 'document.dart';
 import 'exceptions.dart';
 import 'options.dart';
 import 'parser.dart';
+import 'parser_utils.dart';
 
 /// Extensions on [FlatConfig] for parsing configuration files with includes.
 ///
@@ -190,6 +191,8 @@ extension FlatConfigIncludes on FlatConfig {
       // Handle quoted paths (for paths that actually start with [Constants.quote])
       if (path.startsWith(Constants.quote) && path.endsWith(Constants.quote)) {
         path = path.substring(1, path.length - 1);
+        // Decode escape sequences in quoted paths (e.g., "C:\\foo\\bar.conf" -> C:\foo\bar.conf)
+        path = unescapeQuotesAndBackslashes(path);
       }
 
       // Resolve the include path
@@ -245,6 +248,8 @@ extension FlatConfigIncludes on FlatConfig {
       if (trimmed.startsWith(Constants.quote) &&
           trimmed.endsWith(Constants.quote)) {
         trimmed = trimmed.substring(1, trimmed.length - 1);
+        // Decode escape sequences in quoted paths (e.g., "C:\\foo\\bar.conf" -> C:\foo\bar.conf)
+        trimmed = unescapeQuotesAndBackslashes(trimmed);
       }
 
       final includedFile = _resolveChild(baseFile.parent, trimmed);
