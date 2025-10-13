@@ -15,7 +15,7 @@ This example shows how to use `flatconfig` in a Flutter web app. It loads a flat
 
 ### Run (web)
 ```bash
-cd example/flutter_web
+cd example/flatconfig_flutter
 flutter pub get
 flutter run -d chrome
 ```
