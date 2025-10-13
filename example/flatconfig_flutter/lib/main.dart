@@ -57,17 +57,13 @@ class MyApp extends StatelessWidget {
 }
 
 class AppScope extends InheritedWidget {
-  const AppScope({
-    super.key,
-    required this.config,
-    required super.child,
-  });
+  const AppScope({super.key, required this.config, required super.child});
 
   final FlatDocument config;
 
   static AppScope of(BuildContext context) {
-    final AppScope? scope =
-        context.dependOnInheritedWidgetOfExactType<AppScope>();
+    final AppScope? scope = context
+        .dependOnInheritedWidgetOfExactType<AppScope>();
     assert(scope != null, 'AppScope.of() called with no AppScope in context.');
 
     return scope!;
