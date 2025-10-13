@@ -34,33 +34,59 @@ class MyApp extends StatelessWidget {
         final isDark = config.getBoolOr('dark-mode', false);
         final seedHex = config.getHexColor('primary-color');
         final seedColor = seedHex != null ? Color(seedHex) : Colors.blue;
+        final debug = config.getBoolOr('debug', false);
 
-        return MaterialApp(
-          title: appTitle,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: seedColor,
-              brightness: isDark ? Brightness.dark : Brightness.light,
+        return AppScope(
+          config: config,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: debug,
+            title: appTitle,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: seedColor,
+                brightness: isDark ? Brightness.dark : Brightness.light,
+              ),
+              useMaterial3: true,
             ),
-            useMaterial3: true,
+            home: const ConfigHome(),
           ),
-          home: ConfigHome(config: config),
         );
       },
     );
   }
 }
 
-class ConfigHome extends StatelessWidget {
-  const ConfigHome({super.key, required this.config});
+class AppScope extends InheritedWidget {
+  const AppScope({
+    super.key,
+    required this.config,
+    required super.child,
+  });
 
   final FlatDocument config;
 
+  static AppScope of(BuildContext context) {
+    final AppScope? scope =
+        context.dependOnInheritedWidgetOfExactType<AppScope>();
+    assert(scope != null, 'AppScope.of() called with no AppScope in context.');
+
+    return scope!;
+  }
+
+  @override
+  bool updateShouldNotify(AppScope oldWidget) {
+    return !identical(config, oldWidget.config);
+  }
+}
+
+class ConfigHome extends StatelessWidget {
+  const ConfigHome({super.key});
+
   @override
   Widget build(BuildContext context) {
+    final config = AppScope.of(context).config;
     final padding = config.getIntOr('padding', 16).toDouble();
     final welcome = config.getStringOr('welcome-message', 'Hello from assets!');
-    final debug = config.getBoolOr('debug', false);
     final bgHex = config.getHexColor('background-color');
     final backgroundColor = bgHex != null
         ? Color(bgHex)
@@ -105,17 +131,6 @@ class ConfigHome extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _KV extends StatelessWidget {
-  const _KV(this.k, this.v);
-  final String k;
-  final String v;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(dense: true, title: Text(k), subtitle: Text(v));
   }
 }
 
