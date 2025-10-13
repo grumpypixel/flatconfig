@@ -208,7 +208,7 @@ final sync = File('config.conf').parseFlatSync();
 
 flatconfig supports **recursive includes** using the `config-file` key, just like [Ghostty](https://ghostty.org/docs/config).
 
-Use `File.parseWithIncludes()` or `parseFileWithIncludes()` to automatically load and merge related config files.
+Use `File.parseWithIncludes()` or `parseFileWithIncludes()` to automatically load and merge related configuration files.
 
 This lets you split your configuration into smaller files that are loaded automatically — with support for **optional includes**, **nested includes**, and **cycle detection**.
 
@@ -228,6 +228,15 @@ background = 343028
 foreground = f3d735
 ```
 
+```text
+# reset.conf (example of null value blocking)
+background =  # resets background to null
+theme = light
+```
+
+When `reset.conf` is included, the empty `background =` line sets the background to `null`.
+This means any later `background = ...` entries in the main file are blocked — effectively resetting the background value inherited from includes.
+
 ```dart
 import 'dart:io';
 import 'package:flatconfig/flatconfig.dart';
@@ -235,20 +244,30 @@ import 'package:flatconfig/flatconfig.dart';
 Future<void> main() async {
   final doc = await File('main.conf').parseWithIncludes();
   print(doc['theme']);       // → dark
-  print(doc['user-name']);  // from optional include
+  print(doc['background']);  // → null (reset by reset.conf)
+  print(doc['user-name']);   // from optional include
 }
 ```
 
-### Behavior
+### Include Semantics
 
-- **Includes** are processed *after* the current file → later entries won’t override included ones
-- When multiple included files set the same key, the later include wins
-- Includes are processed with a defensive maximum depth (default 64)
-- `?path` makes an include **optional**
-- **Relative paths** are resolved to the including file
-- **Cycles** raise a `CircularIncludeException`
+- **One include per line** — each `config-file = ...` line may reference exactly one file path. Comma-separated or space-separated include lists (e.g. `config-file = a.conf, b.conf`) are *not supported* and will be treated as a single literal path.
+- **Includes are processed after the current file**, so later lines in the current file do *not override* keys from included files.
+- **Null values from includes block later entries** — when an included file sets a key to `null` (empty value like `key =`), any later entries in the main file with the same key are blocked. This is part of the "Tail does not override includes" semantics and allows includes to explicitly reset configuration values.
+- **Multiple includes** are allowed. When several included files define the same key, *the later include wins*.
+- Includes are **recursive**, with a defensive maximum depth (`maxIncludeDepth`, default *64*). The root file starts at depth 0.
+- A leading `?` marks an include as *optional* (`config-file = ?user.conf`) — missing optional files are silently skipped.
+- Relative include paths are resolved relative to the including file's directory.
+- Absolute paths are used as-is.
+- Circular includes raise a `CircularIncludeException`.
 
-> Customize the key via `FlatParseOptions(includeKey: 'include')`
+> Customize the key name via `FlatParseOptions(includeKey: 'include')`.
+
+### Notes
+
+- On *Windows* (and optionally macOS), include cycle detection uses *case-insensitive paths*.
+- Quoted include paths (e.g. `config-file = "path/to/theme.conf"`) are supported. Escapes inside quotes (like `\"` or `\\`) are not decoded unless explicitly implemented.
+- Web builds are supported for in-memory parsing (`FlatConfig.parse()`), but *file includes* require `dart:io` and are not available in Flutter Web.
 
 ## Encoding & Round-Tripping
 
@@ -332,6 +351,20 @@ final effects = doc.getListOfDocuments('shaders');
 
 // Host[:port]
 final hp = doc.getHostPort('listen'); // "127.0.0.1:8080" → ('127.0.0.1', 8080)
+```
+
+> **🧠 Note:**
+> `getMap()` performs a simple, non-quoted split by commas and equals signs — it is _not quote-aware_.
+> For parsing quoted key-value pairs (e.g. `name="My App", version="1.0"`), use `getDocument()` or `getListOfDocuments()`, which are quote-aware and handle escaped quotes correctly.
+
+```dart
+// getMap() - NOT quote-aware (simple splitting)
+final map = doc.getMap('data'); // "key1="value, with, commas", key2=normal"
+// Result: {'key1': '"value', 'key2': 'normal'} // Wrong! Missing middle part
+
+// getDocument() - IS quote-aware (respects quotes)
+final sub = doc.getDocument('data'); // "key1="value, with, commas", key2=normal"
+// Result: [FlatEntry('key1', 'value, with, commas'), FlatEntry('key2', 'normal')]
 ```
 
 ### Other Convenience Methods
