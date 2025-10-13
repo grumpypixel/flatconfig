@@ -128,6 +128,22 @@ extension FlatConfigIO on File {
         readOptions: readOptions,
       );
 
+  /// Parses this file synchronously with automatic include processing.
+  ///
+  /// Synchronous counterpart to [parseWithIncludes]. Mirrors Ghostty semantics
+  /// and uses the same options and behaviors.
+  FlatDocument parseWithIncludesSync({
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+    Map<String, FlatDocument>? cache,
+  }) =>
+      FlatConfigIncludes.parseWithIncludesSync(
+        this,
+        options: options,
+        readOptions: readOptions,
+        cache: cache,
+      );
+
   /// Writes a [FlatDocument] to this file asynchronously.
   ///
   /// This method encodes the document to text and writes it to the file.
