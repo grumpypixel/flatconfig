@@ -103,6 +103,57 @@ class TrailingCharactersAfterQuoteException extends FlatParseException {
   }) : super(errorTrailingAfterQuote, lineNumber, rawLine, column: column);
 }
 
+/// Thrown when a config file include fails.
+///
+/// This exception is thrown when there's an error processing a `config-file`
+/// directive, such as a missing required file or a circular include.
+class ConfigIncludeException extends FormatException {
+  /// Creates a new [ConfigIncludeException].
+  ConfigIncludeException(
+    super.message,
+    this.filePath, {
+    this.includePath,
+  });
+
+  /// The path of the file that was being processed when the error occurred.
+  final String filePath;
+
+  /// The path of the include that caused the error, if applicable.
+  final String? includePath;
+}
+
+/// Thrown when a circular include is detected.
+///
+/// This exception is thrown when the config file include chain creates a cycle,
+/// which would lead to infinite recursion.
+class CircularIncludeException extends ConfigIncludeException {
+  /// Creates a new [CircularIncludeException].
+  CircularIncludeException(
+    String filePath,
+    String includePath,
+  ) : super(
+          'Circular include detected: $includePath is already being processed',
+          filePath,
+          includePath: includePath,
+        );
+}
+
+/// Thrown when a required config file include is missing.
+///
+/// This exception is thrown when a `config-file` directive references a file
+/// that doesn't exist and the include is not marked as optional (no `?` prefix).
+class MissingIncludeException extends ConfigIncludeException {
+  /// Creates a new [MissingIncludeException].
+  MissingIncludeException(
+    String filePath,
+    String includePath,
+  ) : super(
+          'Required include file not found: $includePath',
+          filePath,
+          includePath: includePath,
+        );
+}
+
 @internal
 extension FormatExceptionCopyWith on FormatException {
   /// Creates a new [FormatException] with a custom message,

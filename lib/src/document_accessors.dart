@@ -358,7 +358,7 @@ extension FlatDocumentAccessors on FlatDocument {
     }
 
     // Remove leading '#'
-    if (s.startsWith('#')) {
+    if (s.startsWith(Constants.commentPrefix)) {
       s = s.substring(1);
     }
 

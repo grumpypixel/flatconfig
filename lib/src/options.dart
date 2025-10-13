@@ -11,7 +11,7 @@ typedef OnErrorHandler = void Function(int lineNumber, String line);
 /// Options that control how configuration files are parsed.
 ///
 /// These options allow you to customize the parsing behavior, including comment
-/// handling, escape sequence processing, and error handling strategies.
+/// handling, escape sequence processing, include processing, and error handling strategies.
 class FlatParseOptions {
   /// Creates parser options with the specified configuration.
   ///
@@ -21,6 +21,7 @@ class FlatParseOptions {
     this.commentPrefix = Constants.commentPrefix,
     this.decodeEscapesInQuoted = false,
     this.strict = false,
+    this.includeKey = Constants.includeKey,
     this.onMissingEquals,
     this.onEmptyKey,
   });
@@ -43,6 +44,22 @@ class FlatParseOptions {
   /// exceptions. When false, invalid lines are silently ignored. Defaults to false.
   final bool strict;
 
+  /// Key used to identify include directives in configuration files.
+  ///
+  /// When parsing with includes, lines with this key are treated as include
+  /// directives. The value should be a path to another configuration file.
+  /// Defaults to [Constants.includeKey] (`config-file`) for Ghostty compatibility.
+  ///
+  /// Example:
+  /// ```dart
+  /// // With default includeKey = Constants.includeKey
+  /// config-file = theme.conf
+  ///
+  /// // With includeKey = 'include'
+  /// include = theme.conf
+  /// ```
+  final String includeKey;
+
   /// Handler called when a line is missing the `=` separator.
   ///
   /// This is only called when [strict] is false. If null, invalid lines are
@@ -63,6 +80,7 @@ class FlatParseOptions {
     String? commentPrefix,
     bool? decodeEscapesInQuoted,
     bool? strict,
+    String? includeKey,
     OnErrorHandler? onMissingEquals,
     OnErrorHandler? onEmptyKey,
   }) =>
@@ -71,6 +89,7 @@ class FlatParseOptions {
         decodeEscapesInQuoted:
             decodeEscapesInQuoted ?? this.decodeEscapesInQuoted,
         strict: strict ?? this.strict,
+        includeKey: includeKey ?? this.includeKey,
         onMissingEquals: onMissingEquals ?? this.onMissingEquals,
         onEmptyKey: onEmptyKey ?? this.onEmptyKey,
       );
@@ -120,7 +139,7 @@ class FlatStreamWriteOptions {
   /// Creates stream write options with the specified configuration.
   const FlatStreamWriteOptions({
     this.encoding = utf8,
-    this.lineTerminator = '\n',
+    this.lineTerminator = Constants.newline,
     this.ensureTrailingNewline = false,
   });
 

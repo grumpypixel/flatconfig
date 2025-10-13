@@ -54,7 +54,7 @@ class FlatConfig {
     FlatParseOptions options = const FlatParseOptions(),
     LineSplitter lineSplitter = const LineSplitter(),
   }) {
-    assert(!options.commentPrefix.contains('\n'));
+    assert(!options.commentPrefix.contains(Constants.newline));
 
     if (source.trim().isEmpty) {
       return FlatDocument.empty();
@@ -86,7 +86,7 @@ class FlatConfig {
     List<String> lines, {
     FlatParseOptions options = const FlatParseOptions(),
   }) {
-    assert(!options.commentPrefix.contains('\n'));
+    assert(!options.commentPrefix.contains(Constants.newline));
 
     final out = <FlatEntry>[];
     var lineNumber = 0;
@@ -139,7 +139,7 @@ class FlatConfig {
     Stream<String> stream, {
     FlatParseOptions options = const FlatParseOptions(),
   }) async {
-    assert(!options.commentPrefix.contains('\n'));
+    assert(!options.commentPrefix.contains(Constants.newline));
 
     final out = <FlatEntry>[];
 
@@ -198,7 +198,7 @@ class FlatConfig {
     Stream<String> stream, {
     FlatParseOptions options = const FlatParseOptions(),
   }) async* {
-    assert(!options.commentPrefix.contains('\n'));
+    assert(!options.commentPrefix.contains(Constants.newline));
 
     var lineNumber = 0;
     await for (var raw in stream) {
