@@ -45,7 +45,7 @@ void main() {
       expect(doc['k'], r'He said: "hi" \ o/');
     });
 
-    test('parseFlatWithIncludes parses file with includes', () async {
+    test('parseWithIncludes parses file with includes', () async {
       final mainFile = File('test/tmp_io_parse_flat_with_includes.conf');
       final includeFile = File('test/tmp_io_include_file.conf');
       addTearDown(() {
@@ -65,14 +65,14 @@ key2 = value2
 included_key = included_value
 ''');
 
-      // Test the parseFlatWithIncludes method
-      final doc = await mainFile.parseFlatWithIncludes();
+      // Test the parseWithIncludes method
+      final doc = await mainFile.parseWithIncludes();
       expect(doc['key1'], 'value1');
       expect(doc['included_key'], 'included_value');
       expect(doc['key2'], 'value2');
     });
 
-    test('parseFlatWithIncludes with custom options', () async {
+    test('parseWithIncludes with custom options', () async {
       final mainFile = File('test/tmp_io_parse_flat_with_includes_opts.conf');
       final includeFile = File('test/tmp_io_include_file_opts.conf');
       addTearDown(() {
@@ -92,7 +92,7 @@ included_key = included_value
 ''');
 
       // Test with custom include key
-      final doc = await mainFile.parseFlatWithIncludes(
+      final doc = await mainFile.parseWithIncludes(
         options: const FlatParseOptions(includeKey: 'include'),
       );
       expect(doc['key1'], 'value1');
@@ -240,8 +240,8 @@ included_key = included_value
     });
   });
 
-  group('parseFlatFileWithIncludes function', () {
-    test('parses file with includes using parseFlatFileWithIncludes function',
+  group('parseFileWithIncludes function', () {
+    test('parses file with includes using parseFileWithIncludes function',
         () async {
       final mainFile = File('test/tmp_parse_flat_file_with_includes.conf');
       final includeFile = File('test/tmp_include_file.conf');
@@ -262,15 +262,15 @@ key2 = value2
 included_key = included_value
 ''');
 
-      // Test the actual parseFlatFileWithIncludes function
-      final doc = await parseFlatFileWithIncludes(
+      // Test the actual parseFileWithIncludes function
+      final doc = await parseFileWithIncludes(
           'test/tmp_parse_flat_file_with_includes.conf');
       expect(doc['key1'], 'value1');
       expect(doc['included_key'], 'included_value');
       expect(doc['key2'], 'value2');
     });
 
-    test('parseFlatFileWithIncludes with custom options', () async {
+    test('parseFileWithIncludes with custom options', () async {
       final mainFile = File('test/tmp_parse_flat_file_with_includes_opts.conf');
       final includeFile = File('test/tmp_include_file_opts.conf');
       addTearDown(() {
@@ -290,7 +290,7 @@ included_key = included_value
 ''');
 
       // Test with custom include key
-      final doc = await parseFlatFileWithIncludes(
+      final doc = await parseFileWithIncludes(
         'test/tmp_parse_flat_file_with_includes_opts.conf',
         options: const FlatParseOptions(includeKey: 'include'),
       );
