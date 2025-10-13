@@ -357,7 +357,9 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// This preserves the order of entries as they appeared in the original file.
   Iterable<FlatEntry> whereKey(String key) sync* {
     for (final e in entries) {
-      if (e.key == key) yield e;
+      if (e.key == key) {
+        yield e;
+      }
     }
   }
 
@@ -367,7 +369,9 @@ class FlatDocument extends Iterable<FlatEntry> {
   Iterable<FlatEntry> whereKeys(Iterable<String> keys) sync* {
     final set = keys.toSet();
     for (final e in entries) {
-      if (set.contains(e.key)) yield e;
+      if (set.contains(e.key)) {
+        yield e;
+      }
     }
   }
 
@@ -376,7 +380,9 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// This preserves the order of entries as they appeared in the original file.
   Iterable<FlatEntry> whereValue(String? value) sync* {
     for (final e in entries) {
-      if (e.value == value) yield e;
+      if (e.value == value) {
+        yield e;
+      }
     }
   }
 
@@ -435,22 +441,22 @@ class FlatDocument extends Iterable<FlatEntry> {
 
   @override
   bool get isNotEmpty => entries.isNotEmpty;
-}
 
-bool _listEquals<T>(List<T> a, List<T> b) {
-  if (identical(a, b)) {
-    return true;
-  }
+  bool _listEquals<T>(List<T> a, List<T> b) {
+    if (identical(a, b)) {
+      return true;
+    }
 
-  if (a.length != b.length) {
-    return false;
-  }
-
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) {
+    if (a.length != b.length) {
       return false;
     }
-  }
 
-  return true;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }

@@ -308,7 +308,7 @@ class FlatConfig {
     final idx = line.indexOf(sep);
     if (idx < 0) {
       if (strict) {
-        throw MissingEqualsException(ln, raw);
+        throw MissingEqualsException(ln, raw, column: line.length);
       }
       onMissingEquals?.call(ln, raw);
 
@@ -319,7 +319,7 @@ class FlatConfig {
     final trimmedKey = line.substring(0, idx).trimRight();
     if (trimmedKey.isEmpty) {
       if (strict) {
-        throw EmptyKeyException(ln, raw);
+        throw EmptyKeyException(ln, raw, column: idx + 1);
       }
       onEmptyKey?.call(ln, raw);
 

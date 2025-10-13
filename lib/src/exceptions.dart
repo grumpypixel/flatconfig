@@ -129,13 +129,23 @@ class ConfigIncludeException extends FormatException {
 class CircularIncludeException extends ConfigIncludeException {
   /// Creates a new [CircularIncludeException].
   CircularIncludeException(
-    String filePath,
-    String includePath,
+    this.includingFile,
+    this.canonicalPath,
   ) : super(
-          'Circular include detected: $includePath is already being processed',
-          filePath,
-          includePath: includePath,
+          'Circular include detected: cycle at "$canonicalPath" (included by "$includingFile")',
+          includingFile,
+          includePath: canonicalPath,
         );
+
+  /// The file that was trying to include the circular reference.
+  final String includingFile;
+
+  /// The canonical path that was already being processed.
+  final String canonicalPath;
+
+  @override
+  String toString() =>
+      'CircularIncludeException: cycle at "$canonicalPath" (included by "$includingFile")';
 }
 
 /// Thrown when a required config file include is missing.
@@ -145,13 +155,23 @@ class CircularIncludeException extends ConfigIncludeException {
 class MissingIncludeException extends ConfigIncludeException {
   /// Creates a new [MissingIncludeException].
   MissingIncludeException(
-    String filePath,
-    String includePath,
+    this.includingFile,
+    this.missingPath,
   ) : super(
-          'Required include file not found: $includePath',
-          filePath,
-          includePath: includePath,
+          'Required include file not found: "$missingPath" (required by "$includingFile")',
+          includingFile,
+          includePath: missingPath,
         );
+
+  /// The file that was trying to include the missing file.
+  final String includingFile;
+
+  /// The path of the missing include file.
+  final String missingPath;
+
+  @override
+  String toString() =>
+      'MissingIncludeException: "$missingPath" (required by "$includingFile")';
 }
 
 @internal

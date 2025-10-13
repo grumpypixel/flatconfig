@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:meta/meta.dart';
+import 'package:path/path.dart' as p;
 
 import 'constants.dart';
 import 'document.dart';
@@ -57,12 +58,14 @@ class FlatConfigIncludes {
     File file, {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+    Map<String, FlatDocument>? cache,
   }) async =>
       parseWithIncludesRecursive(
         file,
         options: options,
         readOptions: readOptions,
         visited: <String>{},
+        cache: cache ?? <String, FlatDocument>{},
       );
 
   /// Parses a configuration file with includes from a file path.
@@ -78,12 +81,37 @@ class FlatConfigIncludes {
     String path, {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+    Map<String, FlatDocument>? cache,
   }) async =>
       parseWithIncludes(
         File(path),
         options: options,
         readOptions: readOptions,
+        cache: cache,
       );
+
+  /// Resolves a canonical path for a file, handling symbolic links.
+  ///
+  /// This method attempts to resolve symbolic links to get the canonical path.
+  /// If symbolic link resolution fails, it falls back to the absolute path.
+  static Future<String> _canonical(File file) async {
+    try {
+      return await file.resolveSymbolicLinks();
+    } catch (_) {
+      return file.absolute.path;
+    }
+  }
+
+  /// Resolves a child file path relative to a base directory.
+  ///
+  /// This method properly handles both absolute and relative paths using
+  /// the path package for cross-platform compatibility.
+  static File _resolveChild(Directory base, String includePath) {
+    final String abs = p.isAbsolute(includePath)
+        ? includePath
+        : p.normalize(p.join(base.path, includePath));
+    return File(abs);
+  }
 
   /// Processes a list of include paths and returns the combined entries.
   ///
@@ -97,11 +125,15 @@ class FlatConfigIncludes {
     FlatParseOptions options,
     FlatStreamReadOptions readOptions,
     Set<String> visited,
-    Set<String> keysSetByIncludes,
+    Map<String, FlatDocument> cache,
   ) async {
     final includeEntries = <FlatEntry>[];
     for (final include in includePaths) {
       var path = include.trim();
+      if (path.isEmpty) {
+        continue; // ignore empty include values
+      }
+
       final optional = path.startsWith(Constants.optionalIncludePrefix);
       if (optional) {
         path = path.substring(1).trim();
@@ -113,11 +145,7 @@ class FlatConfigIncludes {
       }
 
       // Resolve the include path
-      final includedFile = File(
-        path.startsWith(Platform.pathSeparator)
-            ? path // absolute path
-            : '${baseFile.parent.path}/$path', // relative path
-      );
+      final includedFile = _resolveChild(baseFile.parent, path);
 
       // Check if the included file exists
       if (!await includedFile.exists()) {
@@ -134,12 +162,8 @@ class FlatConfigIncludes {
         options: options,
         readOptions: readOptions,
         visited: visited,
+        cache: cache,
       );
-
-      // Track keys set by includes
-      for (final entry in subDoc.entries) {
-        keysSetByIncludes.add(entry.key);
-      }
 
       // Add sub-document entries
       includeEntries.addAll(subDoc.entries);
@@ -158,18 +182,27 @@ class FlatConfigIncludes {
     required FlatParseOptions options,
     required FlatStreamReadOptions readOptions,
     required Set<String> visited,
+    required Map<String, FlatDocument> cache,
   }) async {
     // Canonicalize the path for cycle detection
-    final canonicalPath = file.absolute.path;
+    final canonicalPath = await _canonical(file);
 
     // Check for circular includes
     if (!visited.add(canonicalPath)) {
-      throw CircularIncludeException(canonicalPath, canonicalPath);
+      throw CircularIncludeException(file.path, canonicalPath);
     }
 
     // Check if file exists
     if (!await file.exists()) {
-      throw MissingIncludeException(canonicalPath, canonicalPath);
+      throw MissingIncludeException(file.path, file.path);
+    }
+
+    // Return cached parse if available
+    final cached = cache[canonicalPath];
+    if (cached != null) {
+      visited.remove(canonicalPath);
+
+      return cached;
     }
 
     // Parse the current file
@@ -180,63 +213,91 @@ class FlatConfigIncludes {
     );
 
     // Process the file according to Ghostty semantics:
-    // 1. Process all entries in order, but defer includes until the end
-    // 2. Entries after config-file directives do not override included entries
-    // 3. Process all includes at the end, in order
+    // 1. Collect includes and entries before first include
+    // 2. Process all includes at the end, in order
+    // 3. Filter entries after first include to not override included keys
 
-    final entries = <FlatEntry>[];
-    final includes = <String>[];
-    final keysSetByIncludes = <String>{};
+    // 1) Collect includes (in order), remember all non-include entries
+    final includeValues = <String>[];
+    final preIncludeEntries = <FlatEntry>[];
+    var seenAnyInclude = false;
 
-    // First pass: collect entries and includes
-    for (final entry in doc.entries) {
-      if (entry.key == options.includeKey && entry.value != null) {
-        includes.add(entry.value!);
-      } else {
-        entries.add(entry);
+    for (final e in doc.entries) {
+      if (e.key == options.includeKey) {
+        if (e.value != null) {
+          final trimmedValue = e.value!.trim();
+          if (trimmedValue.isNotEmpty) {
+            includeValues.add(trimmedValue);
+            seenAnyInclude = true;
+          }
+        }
+        // Don't add the include directive itself to any entries list (including empty ones)
+        continue;
+      } else if (!seenAnyInclude) {
+        // Only add entries that come before the first include
+        preIncludeEntries.add(e);
       }
+      // Entries after the first include will be handled in the filtering step
     }
 
-    // Second pass: process all includes at the end
+    // 2) Resolve includes
     final includeEntries = await processIncludes(
-      includes,
+      includeValues,
       file,
       canonicalPath,
       options,
       readOptions,
       visited,
-      keysSetByIncludes,
+      cache,
     );
 
-    // Third pass: filter out entries that come after config-file directives
-    // if the key was already set by an include
-    final filteredEntries = <FlatEntry>[];
-    var foundConfigFile = false;
+    // 3) Ghostty: Entries **after** the first include directive must not
+    // override keys that were set in includes.
+    // -> therefore we need to know which keys the includes set:
+    final keysFromIncludes = includeEntries.map((e) => e.key).toSet();
 
-    for (final entry in doc.entries) {
-      if (entry.key == options.includeKey) {
-        foundConfigFile = true;
-        continue;
+    // 4) Now filter the **late** original entries (after the first include):
+    final filteredTail = <FlatEntry>[];
+    if (seenAnyInclude) {
+      var afterFirstInclude = false;
+      for (final e in doc.entries) {
+        if (e.key == options.includeKey) {
+          afterFirstInclude = true;
+          // Skip empty include directives
+          if (e.value == null || e.value!.trim().isEmpty) {
+            continue;
+          }
+          continue;
+        }
+        if (!afterFirstInclude) {
+          continue; // we only consider the "tail"
+        }
+        if (keysFromIncludes.contains(e.key)) {
+          continue; // must not override
+        }
+        filteredTail.add(e);
       }
-
-      if (foundConfigFile && keysSetByIncludes.contains(entry.key)) {
-        // Skip this entry because it comes after a config-file directive
-        // and the key was already set by an include
-        continue;
-      }
-
-      filteredEntries.add(entry);
     }
 
-    // Build final result: filtered entries + includes
-    entries.clear();
-    entries.addAll(filteredEntries);
-    entries.addAll(includeEntries);
+    // 5) Final order:
+    //    - all entries **before** first include directive
+    //    - then **all include entries**
+    //    - then the filtered tail entries (that do not override any key from includes)
+    final all = <FlatEntry>[
+      ...preIncludeEntries,
+      ...includeEntries,
+      ...filteredTail,
+    ];
 
     // Remove the current file from visited set to allow it to be included again
     // in different contexts (e.g., if it's included from different files)
     visited.remove(canonicalPath);
 
-    return FlatDocument(entries);
+    final result = FlatDocument(all);
+
+    // Cache the parsed document for future use
+    cache[canonicalPath] = result;
+
+    return result;
   }
 }
