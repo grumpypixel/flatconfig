@@ -174,6 +174,32 @@ class MissingIncludeException extends ConfigIncludeException {
       'MissingIncludeException: "$missingPath" (required by "$includingFile")';
 }
 
+/// Thrown when the maximum include depth is exceeded.
+///
+/// This defensive guard prevents unbounded recursion in cases where
+/// path canonicalization fails or the include graph is excessively deep.
+class MaxIncludeDepthExceededException extends ConfigIncludeException {
+  /// Creates a new [MaxIncludeDepthExceededException].
+  MaxIncludeDepthExceededException(
+    String filePath,
+    this.depth,
+    this.maxDepth,
+  ) : super(
+          'Maximum include depth exceeded at "$filePath" (depth=$depth, max=$maxDepth)',
+          filePath,
+        );
+
+  /// The current include depth at the time of failure.
+  final int depth;
+
+  /// The configured maximum allowed include depth.
+  final int maxDepth;
+
+  @override
+  String toString() =>
+      'MaxIncludeDepthExceededException: depth=$depth (max=$maxDepth) at "$filePath"';
+}
+
 @internal
 extension FormatExceptionCopyWith on FormatException {
   /// Creates a new [FormatException] with a custom message,

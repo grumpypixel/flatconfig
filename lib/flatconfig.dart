@@ -51,6 +51,7 @@ export 'src/exceptions.dart'
         CircularIncludeException,
         ConfigIncludeException,
         EmptyKeyException,
+        MaxIncludeDepthExceededException,
         MissingEqualsException,
         MissingIncludeException,
         TrailingCharactersAfterQuoteException,

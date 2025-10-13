@@ -34,6 +34,8 @@ extension FlatConfigIncludes on FlatConfig {
   /// Include processing follows Ghostty semantics:
   /// - Include directives are processed at the end of the current file
   /// - Later entries in the current file do not override entries from included files
+  /// - If multiple included files define the same key, the later include wins
+  /// - Defensive guard: includes have a maximum recursion depth (default 64)
   /// - Optional includes are prefixed with `?` and are silently ignored if missing
   /// - Relative paths are resolved relative to the including file's directory
   /// - Absolute paths are used as-is
@@ -95,9 +97,13 @@ extension FlatConfigIncludes on FlatConfig {
   /// If symbolic link resolution fails, it falls back to the absolute path.
   static Future<String> _canonical(File file) async {
     try {
-      return await file.resolveSymbolicLinks();
+      final resolved = await file.resolveSymbolicLinks();
+      // Normalize case on Windows (case-insensitive FS) for stable canonical keys
+      return normalizeCanonicalPath(resolved);
     } catch (_) {
-      return file.absolute.path;
+      final abs = file.absolute.path;
+      // Normalize case on Windows (case-insensitive FS) for stable canonical keys
+      return normalizeCanonicalPath(abs);
     }
   }
 
@@ -118,14 +124,14 @@ extension FlatConfigIncludes on FlatConfig {
   /// and recursive parsing of included files.
   @visibleForTesting
   static Future<List<FlatEntry>> processIncludes(
-    List<String> includePaths,
-    File baseFile,
-    String canonicalPath,
-    FlatParseOptions options,
-    FlatStreamReadOptions readOptions,
-    Set<String> visited,
-    Map<String, FlatDocument> cache,
-  ) async {
+      List<String> includePaths,
+      File baseFile,
+      String canonicalPath,
+      FlatParseOptions options,
+      FlatStreamReadOptions readOptions,
+      Set<String> visited,
+      Map<String, FlatDocument> cache,
+      {int depth = 0}) async {
     final includeEntries = <FlatEntry>[];
     for (final include in includePaths) {
       var path = include.trim();
@@ -162,6 +168,7 @@ extension FlatConfigIncludes on FlatConfig {
         readOptions: readOptions,
         visited: visited,
         cache: cache,
+        depth: depth + 1,
       );
 
       // Add sub-document entries
@@ -182,7 +189,13 @@ extension FlatConfigIncludes on FlatConfig {
     required FlatStreamReadOptions readOptions,
     required Set<String> visited,
     required Map<String, FlatDocument> cache,
+    int depth = 0,
   }) async {
+    // Enforce maximum include depth
+    if (depth > options.maxIncludeDepth) {
+      throw MaxIncludeDepthExceededException(
+          file.path, depth, options.maxIncludeDepth);
+    }
     // Canonicalize the path for cycle detection
     final canonicalPath = await _canonical(file);
 
@@ -248,6 +261,7 @@ extension FlatConfigIncludes on FlatConfig {
       readOptions,
       visited,
       cache,
+      depth: depth,
     );
 
     // 3) Ghostty: Entries **after** the first include directive must not
@@ -262,11 +276,7 @@ extension FlatConfigIncludes on FlatConfig {
       for (final e in doc.entries) {
         if (e.key == options.includeKey) {
           afterFirstInclude = true;
-          // Skip empty include directives
-          if (e.value == null || e.value!.trim().isEmpty) {
-            continue;
-          }
-          continue;
+          continue; // skip include directives entirely
         }
         if (!afterFirstInclude) {
           continue; // we only consider the "tail"
@@ -299,6 +309,14 @@ extension FlatConfigIncludes on FlatConfig {
 
     return result;
   }
+
+  /// Normalizes a canonical path for Windows-like systems.
+  ///
+  /// This method ensures that the path is normalized and converted to lowercase
+  /// on Windows systems to ensure consistent canonical paths.
+  @visibleForTesting
+  static String normalizeCanonicalPath(String path) =>
+      Platform.isWindows ? path.toLowerCase() : path;
 }
 
 /// Extensions on [File] for parsing flat configuration files with includes.
@@ -317,6 +335,8 @@ extension FileIncludes on File {
   /// Include processing follows Ghostty semantics:
   /// - Include directives are processed at the end of the current file
   /// - Later entries in the current file do not override entries from included files
+  /// - If multiple included files define the same key, the later include wins
+  /// - Defensive guard: includes have a maximum recursion depth (default 64)
   /// - Optional includes are prefixed with `?` and are silently ignored if missing
   /// - Relative paths are resolved relative to the including file's directory
   /// - Absolute paths are used as-is
