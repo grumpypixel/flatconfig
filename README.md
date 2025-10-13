@@ -217,8 +217,8 @@ This lets you split your configuration into smaller files that are loaded automa
 app-name = MyFlutterApp
 version = 1.0.1
 config-file = theme.conf
-config-file = ?user.conf  # optional
-theme = custom  # won't override included theme
+config-file = ?user.conf  → optional
+theme = custom  → won't override included theme
 ```
 
 ```text
@@ -230,7 +230,7 @@ foreground = f3d735
 
 ```text
 # reset.conf (example of null value blocking)
-background =  # resets background to null
+background =  → resets background to null
 theme = light
 ```
 
