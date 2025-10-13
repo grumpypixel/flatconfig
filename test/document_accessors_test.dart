@@ -1101,6 +1101,51 @@ void main() {
       expect(d.getMapOrEmpty('map'), isEmpty);
     });
 
+    test('getMap vs getDocument quote-awareness difference', () {
+      // This test demonstrates the key difference between getMap() and getDocument():
+      // getMap() is NOT quote-aware, getDocument() IS quote-aware
+
+      final d = docOf({'data': 'key1="value with = sign", key2=normal value'});
+
+      // getMap() uses simple string splitting - NOT quote-aware
+      // It will incorrectly split on the = inside the quoted value
+      final map = d.getMap('data', itemSep: ',', pairSep: '=');
+      expect(map, {
+        'key1': '"value with = sign"',
+        'key2': 'normal value'
+      }); // Wrong parsing!
+
+      // getDocument() uses quote-aware parsing - IS quote-aware
+      // It correctly handles the = inside the quoted value
+      final doc = d.getDocument('data', itemSep: ',');
+      expect(doc.entries, [
+        const FlatEntry('key1', 'value with = sign'),
+        const FlatEntry('key2', 'normal value'),
+      ]);
+    });
+
+    test('getMap vs getDocument quote-awareness with comma in quoted value',
+        () {
+      // Another example showing the difference with commas inside quoted values
+
+      final d =
+          docOf({'data': 'key1="value, with, commas", key2=normal value'});
+
+      // getMap() will incorrectly split on commas inside the quoted value
+      final map = d.getMap('data', itemSep: ',', pairSep: '=');
+      expect(map, {
+        'key1': '"value',
+        'key2': 'normal value'
+      }); // Wrong! Missing middle part
+
+      // getDocument() correctly handles commas inside quoted values
+      final doc = d.getDocument('data', itemSep: ',');
+      expect(doc.entries, [
+        const FlatEntry('key1', 'value, with, commas'),
+        const FlatEntry('key2', 'normal value'),
+      ]);
+    });
+
     test('getMapOrEmpty ignores items without pair separator', () {
       final d = docOf({'map': 'a:1, invalid, b:2'});
       expect(d.getMapOrEmpty('map'), {'a': '1', 'b': '2'});

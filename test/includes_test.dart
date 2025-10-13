@@ -1086,6 +1086,49 @@ foreground = f3d735
       // This test verifies the escape decoding functionality works as intended
     });
 
+    test('include with null values blocks later entries (Ghostty semantics)',
+        () async {
+      // This test demonstrates the behavior mentioned by ChatGPT:
+      // When an include sets a key to null, it blocks later values of the same key
+      // This is part of the "Tail does not override includes" semantics
+
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+background = 343028
+config-file = reset.conf
+background = 000000
+new-key = new-value
+''');
+
+      // Create included config file that sets background to null (reset)
+      final resetFile = File('${tempDir.path}/reset.conf');
+      await resetFile.writeAsString('''
+background =
+foreground = 000000
+''');
+
+      // Parse with includes
+      final doc = await mainFile.parseWithIncludes();
+
+      // Verify that the null value from the include blocks the later background = 000000
+      // The background should remain null (reset) from the include
+      expect(doc['background'], isNull);
+      expect(doc['foreground'], equals('000000')); // From include
+      expect(doc['new-key'],
+          equals('new-value')); // This should work as it's not in includes
+
+      // Verify the order: pre-include entries, then include entries, then filtered tail
+      final entries = doc.entries.toList();
+      expect(entries[0].key, equals('background'));
+      expect(entries[0].value, equals('343028')); // Pre-include value
+      expect(entries[1].key, equals('background'));
+      expect(entries[1].value, isNull); // Reset from include
+      expect(entries[2].key, equals('foreground'));
+      expect(entries[2].value, equals('000000')); // From include
+      expect(entries[3].key, equals('new-key'));
+      expect(entries[3].value, equals('new-value')); // From tail (not blocked)
+    });
+
     test('sync optional includes and quoted paths', () async {
       // Create main config file with optional and quoted includes
       final mainFile = File('${tempDir.path}/main.conf');
