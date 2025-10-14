@@ -193,8 +193,11 @@ config-file = missing.conf
       expect(doc2['font-size'], equals('16'));
 
       final canonical = sharedFile.resolveSymbolicLinksSync();
-      expect(cache.containsKey(canonical), isTrue);
-      expect(cache[canonical]!['theme'], equals('dark'));
+      final normalizedCanonical = (Platform.isWindows || Platform.isMacOS)
+          ? canonical.toLowerCase()
+          : canonical;
+      expect(cache.containsKey(normalizedCanonical), isTrue);
+      expect(cache[normalizedCanonical]!['theme'], equals('dark'));
     });
 
     test('sync custom include key', () async {
@@ -1494,8 +1497,11 @@ config-file = shared.conf
 
       // The cache should contain the shared file
       final canonicalPath = await sharedFile.resolveSymbolicLinks();
-      expect(cache.containsKey(canonicalPath), isTrue);
-      expect(cache[canonicalPath]!['theme'], equals('dark'));
+      final normalizedCanonicalPath = (Platform.isWindows || Platform.isMacOS)
+          ? canonicalPath.toLowerCase()
+          : canonicalPath;
+      expect(cache.containsKey(normalizedCanonicalPath), isTrue);
+      expect(cache[normalizedCanonicalPath]!['theme'], equals('dark'));
     });
 
     test('parseWithIncludes cache works with nested includes', () async {
