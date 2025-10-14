@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:provider/provider.dart';
 import 'package:flatconfig/flatconfig.dart';
 
 void main() {
@@ -36,8 +37,8 @@ class MyApp extends StatelessWidget {
         final seedColor = seedHex != null ? Color(seedHex) : Colors.blue;
         final debug = config.getBoolOr('debug', false);
 
-        return AppScope(
-          config: config,
+        return ChangeNotifierProvider(
+          create: (_) => ConfigProvider(config),
           child: MaterialApp(
             debugShowCheckedModeBanner: debug,
             title: appTitle,
@@ -56,22 +57,16 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AppScope extends InheritedWidget {
-  const AppScope({super.key, required this.config, required super.child});
+class ConfigProvider extends ChangeNotifier {
+  ConfigProvider(this._config);
 
-  final FlatDocument config;
+  FlatDocument _config;
 
-  static AppScope of(BuildContext context) {
-    final AppScope? scope = context
-        .dependOnInheritedWidgetOfExactType<AppScope>();
-    assert(scope != null, 'AppScope.of() called with no AppScope in context.');
+  FlatDocument get config => _config;
 
-    return scope!;
-  }
-
-  @override
-  bool updateShouldNotify(AppScope oldWidget) {
-    return !identical(config, oldWidget.config);
+  void updateConfig(FlatDocument newConfig) {
+    _config = newConfig;
+    notifyListeners();
   }
 }
 
@@ -80,7 +75,7 @@ class ConfigHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final config = AppScope.of(context).config;
+    final config = Provider.of<ConfigProvider>(context).config;
     final padding = config.getIntOr('padding', 16).toDouble();
     final welcome = config.getStringOr('welcome-message', 'Hello from assets!');
     final bgHex = config.getHexColor('background-color');
