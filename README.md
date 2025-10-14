@@ -71,7 +71,7 @@ void main() {
 }
 ```
 
-## Syntax 🧩
+## Syntax
 
 flatconfig uses a minimal `key = value` syntax, designed to be easy to read and edit by hand.
 
@@ -91,13 +91,16 @@ shader = vignette
 texture =
 ```
 
-### Notes
+Notes:
+
 - Keys are case-sensitive: background ≠ Background
 - Values can be quoted or unquoted:
+
 ```text
 font-family = "FiraCode Nerd Font"
 font-family = FiraCode Nerd Font
 ```
+
 - Quoted values preserve inner whitespace and `=`
 - Empty (unquoted) values are interpreted as explicit resets (`null`)
 - Lines without = are ignored unless `strict: true` is enabled
@@ -204,7 +207,7 @@ final sync = File('config.conf').parseFlatSync();
 - Supports `\n`, `\r\n`, and `\r` line endings
 - Works with async and sync file I/O
 
-## Splitting into Multiple Files 💾
+## Splitting into Multiple Files
 
 flatconfig supports **recursive includes** using the `config-file` key, just like [Ghostty](https://ghostty.org/docs/config).
 
@@ -263,7 +266,7 @@ Future<void> main() async {
 
 > Customize the key name via `FlatParseOptions(includeKey: 'include')`.
 
-### Notes
+Notes:
 
 - On *Windows* (and optionally macOS), include cycle detection uses *case-insensitive paths*.
 - Quoted include paths (e.g. `config-file = "path/to/theme.conf"`) are supported. Escapes inside quotes (like `\"` or `\\`) are not decoded unless explicitly implemented.
