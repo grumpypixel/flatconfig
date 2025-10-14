@@ -75,7 +75,7 @@ void main() {
 
 flatconfig uses a minimal `key = value` syntax, designed to be easy to read and edit by hand.
 
-```text
+```conf
 # The syntax is "key = value".
 # Whitespace around "=" is ignored.
 background = 343028
@@ -96,7 +96,7 @@ Notes:
 - Keys are case-sensitive: background ≠ Background
 - Values can be quoted or unquoted:
 
-```text
+```conf
 font-family = "FiraCode Nerd Font"
 font-family = FiraCode Nerd Font
 ```
@@ -215,7 +215,7 @@ Use `File.parseWithIncludes()` or `parseFileWithIncludes()` to automatically loa
 
 This lets you split your configuration into smaller files that are loaded automatically — with support for **optional includes**, **nested includes**, and **cycle detection**.
 
-```text
+```conf
 # main.conf
 app-name = MyFlutterApp
 version = 1.0.1
@@ -224,14 +224,14 @@ config-file = ?user.conf  → optional
 theme = custom  → won't override included theme
 ```
 
-```text
+```conf
 # theme.conf
 theme = dark
 background = 343028
 foreground = f3d735
 ```
 
-```text
+```conf
 # reset.conf (example of null value blocking)
 background =  → resets background to null
 theme = light
