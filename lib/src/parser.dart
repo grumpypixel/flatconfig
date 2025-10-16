@@ -20,6 +20,14 @@ import 'parser_utils.dart';
 /// print(doc['background']); // 343028
 /// ```
 class FlatConfig {
+  /// Creates a new [FlatConfig] instance.
+  ///
+  /// This constructor is provided for completeness, though [FlatConfig] is
+  /// primarily used through its static methods for parsing configuration data.
+  /// Instances of this class don't hold any state and are typically not needed
+  /// for normal usage.
+  const FlatConfig();
+
   /// Parses a configuration string into a [FlatDocument].
   ///
   /// This method processes a multi-line configuration string and returns a
