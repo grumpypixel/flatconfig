@@ -20,7 +20,7 @@ checkit:
 # Check code
 doit:
 	dart fix --apply
-	dart format --output=none --set-exit-if-changed .
+	dart format .
 	dart analyze --fatal-infos --fatal-warnings
 	dart test
 
