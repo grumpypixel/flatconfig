@@ -1,5 +1,3 @@
-// test/options_test.dart
-
 import 'dart:convert';
 import 'package:flatconfig/src/options.dart';
 import 'package:test/test.dart';

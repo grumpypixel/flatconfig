@@ -1,5 +1,3 @@
-// test/exceptions_test.dart
-
 import 'package:flatconfig/src/exceptions.dart';
 import 'package:test/test.dart';
 
