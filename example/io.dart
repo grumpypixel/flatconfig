@@ -1,13 +1,3 @@
-// example/io.dart
-//
-// Run with: dart run example/io.dart
-//
-// This demo shows:
-//  - parseFlatFile("path") helper
-//  - File.parseFlat() and File.writeFlat()
-//  - FlatDocument.saveToFile()/saveToFileSync()
-//  - Stream read/write options (encoding, line endings)
-
 import 'dart:io';
 import 'dart:convert';
 import 'package:flatconfig/flatconfig.dart';

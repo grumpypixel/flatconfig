@@ -1,11 +1,3 @@
-// example/accessors.dart
-//
-// Run with:
-//   dart example/accessors.dart
-//
-// Requires:
-//   import 'package:flatconfig/flatconfig.dart';
-
 import 'package:flatconfig/flatconfig.dart';
 
 void main() {

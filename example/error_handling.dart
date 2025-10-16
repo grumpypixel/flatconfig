@@ -1,10 +1,3 @@
-// example/error_handling.dart
-//
-// Run with: dart run example/error_handling.dart
-//
-// This example demonstrates the improved error handling with
-// column information and clear error messages.
-
 import 'package:flatconfig/flatconfig.dart';
 
 void main() {

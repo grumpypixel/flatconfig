@@ -1,7 +1,3 @@
-// example/basic.dart
-//
-// Run with: dart run example/basic.dart
-
 import 'package:flatconfig/flatconfig.dart';
 
 void main() {
