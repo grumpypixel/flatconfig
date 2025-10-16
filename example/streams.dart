@@ -1,12 +1,3 @@
-// example/streams.dart
-//
-// Run:
-//   dart example/streams.dart
-//   cat example/data.conf | dart example/streams.dart --stdin
-//
-// Requires:
-//   import 'package:flatconfig/flatconfig.dart';
-
 import 'dart:async';
 import 'dart:convert' show LineSplitter, utf8;
 import 'dart:io';

@@ -2,10 +2,6 @@ import 'dart:io';
 
 import 'package:flatconfig/flatconfig.dart';
 
-/// Example demonstrating config file includes functionality.
-///
-/// This example shows how to use the new config file includes feature
-/// that follows Ghostty semantics for processing `config-file` directives.
 void main() async {
   // Create a temporary directory for our example
   final tempDir =
