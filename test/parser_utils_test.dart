@@ -1,5 +1,3 @@
-// test/parser_utils_test.dart
-
 import 'package:flatconfig/flatconfig.dart';
 import 'package:flatconfig/src/constants.dart';
 import 'package:flatconfig/src/parser_utils.dart';

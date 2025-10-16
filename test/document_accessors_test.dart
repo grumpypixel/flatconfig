@@ -1,5 +1,3 @@
-// test/document_accessors_test.dart
-
 import 'package:flatconfig/flatconfig.dart';
 import 'package:test/test.dart';
 
