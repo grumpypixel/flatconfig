@@ -13,12 +13,21 @@ analyze:
 format:
 	dart format .
 
+# Check for outdated dependencies
+checkit:
+	dart pub outdated --no-dev-dependencies --up-to-date --no-dependency-overrides
+
 # Check code
 doit:
 	dart fix --apply
-	dart format .
-	dart analyze .
+	dart format --output=none --set-exit-if-changed .
+	dart analyze --fatal-infos --fatal-warnings
 	dart test
+
+dothecoverage:
+	just coverage-full
+	just coverage-html
+	open coverage/html/index.html
 
 # Generate coverage (lcov)
 coverage:
@@ -87,11 +96,6 @@ coverage-full:
 	rm -f "$OUT_DIR/coverage.json" || true
 
 	echo "Wrote $LCOV_FILE"
-
-dothecoverage:
-	just coverage-full
-	just coverage-html
-	open coverage/html/index.html
 
 # Run micro-benchmark (optional arg: iterations)
 bench ITERATIONS="1000" ENTRIES="2000":
