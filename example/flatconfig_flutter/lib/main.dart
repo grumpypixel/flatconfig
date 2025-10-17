@@ -165,7 +165,7 @@ class _Header extends StatelessWidget {
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: onPrimary.withOpacity(0.9),
+                color: onPrimary.withValues(alpha: 0.9),
               ),
             ),
           ],

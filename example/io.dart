@@ -1,6 +1,8 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/src/io.dart' as io;
 
 Future<void> main() async {
   // Create a temp working folder for this example
