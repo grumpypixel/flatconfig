@@ -19,6 +19,7 @@ checkit:
 
 # Check code
 doit:
+	dart pub get
 	dart fix --apply
 	dart format .
 	dart analyze --fatal-infos --fatal-warnings
