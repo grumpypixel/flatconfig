@@ -324,28 +324,6 @@ included_key = included_value
     });
   });
 
-  group('deprecated includes APIs (backcompat)', () {
-    test('File.parseFlatWithIncludes still works (deprecated)', () async {
-      final mainFile = File('test/tmp_io_parse_flat_with_includes_depr.conf');
-      final includeFile = File('test/tmp_io_include_file_depr.conf');
-      addTearDown(() {
-        if (mainFile.existsSync()) mainFile.deleteSync();
-        if (includeFile.existsSync()) includeFile.deleteSync();
-      });
-
-      mainFile.writeAsStringSync('''
-key1 = value1
-config-file = tmp_io_include_file_depr.conf
-''');
-      includeFile.writeAsStringSync('included_key = included_value\n');
-
-      // ignore: deprecated_member_use_from_same_package
-      final doc = await mainFile.parseFlatWithIncludes();
-      expect(doc['key1'], 'value1');
-      expect(doc['included_key'], 'included_value');
-    });
-  });
-
   group('FlatDocumentIO extension', () {
     test('saveToFile saves document to file', () async {
       final file = File('test/tmp_save_to_file.conf');
