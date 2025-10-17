@@ -9,9 +9,6 @@ analyzer:
     - "build/**"
     - ".dart_tool/**"
     - "coverage/**"
-    # If your example/ is a full app and noisy in CI, exclude it.
-    # Otherwise, feel free to remove the next line to analyze examples too.
-    - "example/**"
   language:
     strict-casts: true
     strict-inference: true
