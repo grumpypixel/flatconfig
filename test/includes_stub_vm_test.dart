@@ -1,6 +1,5 @@
-import 'package:test/test.dart';
-
 import 'package:flatconfig/src/includes_stub.dart' as inc;
+import 'package:test/test.dart';
 
 void main() {
   test('includes_stub parseWithIncludes throws (VM import)', () async {

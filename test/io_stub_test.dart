@@ -1,7 +1,8 @@
 @TestOn('browser')
-import 'package:test/test.dart';
+library io_stub_test;
 
 import 'package:flatconfig/src/io_stub.dart' as io;
+import 'package:test/test.dart';
 
 void main() {
   test('parseFlatFile throws UnsupportedError on web/wasm', () async {

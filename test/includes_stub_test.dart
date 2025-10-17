@@ -1,7 +1,8 @@
 @TestOn('browser')
-import 'package:test/test.dart';
+library includes_stub_test;
 
 import 'package:flatconfig/src/includes_stub.dart' as inc;
+import 'package:test/test.dart';
 
 void main() {
   group('FlatConfigIncludes (web/wasm stubs)', () {
