@@ -1408,4 +1408,10 @@ shader = vignette=soft
       });
     });
   });
+
+  group('FlatConfig API extras', () {
+    test('const constructor can be instantiated', () {
+      expect(const FlatConfig(), isA<FlatConfig>());
+    });
+  });
 }
