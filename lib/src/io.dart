@@ -101,33 +101,6 @@ extension FlatConfigIO on File {
     );
   }
 
-  /// Parses this file with automatic include processing.
-  ///
-  /// This method parses the file and automatically processes any include
-  /// directives found within it. The include key is configurable via
-  /// [options.includeKey] (defaults to `config-file` for Ghostty compatibility).
-  /// The includes are processed recursively with cycle detection and support
-  /// for optional includes.
-  ///
-  /// Example:
-  /// ```dart
-  /// final file = File('main.conf');
-  /// // Prefer: await file.parseWithIncludes();
-  /// ```
-  ///
-  /// Throws [CircularIncludeException] if a circular include is detected.
-  /// Throws [MissingIncludeException] if a required include file is missing.
-  @Deprecated('Use File.parseWithIncludes instead')
-  Future<FlatDocument> parseFlatWithIncludes({
-    FlatParseOptions options = const FlatParseOptions(),
-    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) async =>
-      FlatConfigIncludes.parseWithIncludes(
-        this,
-        options: options,
-        readOptions: readOptions,
-      );
-
   /// Parses this file synchronously with automatic include processing.
   ///
   /// Synchronous counterpart to [parseWithIncludes]. Mirrors Ghostty semantics
