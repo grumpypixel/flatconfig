@@ -1,11 +1,7 @@
-// tool/bench.dart
-//
-// Extended micro-benchmark for flatconfig.
-// Run with: dart run tool/bench.dart [iterations] [entries] [repeats]
-
 import 'dart:async';
 import 'dart:io';
 import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/src/io.dart' as io;
 
 void main(List<String> args) async {
   final iterations = args.isNotEmpty ? int.parse(args[0]) : 1000;
@@ -237,7 +233,7 @@ void main(List<String> args) async {
     iterations: iterations,
     repeats: repeats,
     body: () async {
-      final d = await file.parseFlat();
+      final d = await io.parseFlatFile(file.path);
       _sink ^= d.length;
     },
   ));
@@ -292,7 +288,8 @@ feature-b = off
     iterations: iterations,
     repeats: repeats,
     body: () async {
-      final d = await mainInc.parseWithIncludes();
+      final d = await FlatConfigIncludes.parseWithIncludes(mainInc,
+          cache: <String, FlatDocument>{});
       _sink ^= d.length;
     },
   ));
@@ -303,7 +300,8 @@ feature-b = off
     iterations: iterations,
     repeats: repeats,
     body: () async {
-      final d = await mainInc.parseWithIncludes(cache: includesCache);
+      final d = await FlatConfigIncludes.parseWithIncludes(mainInc,
+          cache: includesCache);
       _sink ^= d.length;
     },
   ));

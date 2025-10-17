@@ -1,6 +1,10 @@
+@TestOn('vm')
+library includes_test;
+
 import 'dart:io';
 
 import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/src/includes.dart' as inc;
 import 'package:flatconfig/src/parser_utils.dart';
 import 'package:test/test.dart';
 
@@ -44,7 +48,7 @@ void main() {
       // it lowercases, and on case-sensitive filesystems it returns input unchanged.
       // We cannot change Platform here, so check current behavior is consistent.
       const input = 'C:/Some/Path/File.CONF';
-      final out = FlatConfigIncludes.normalizeCanonicalPath(input);
+      final out = inc.FlatConfigIncludes.normalizeCanonicalPath(input);
       if (Platform.isWindows || Platform.isMacOS) {
         expect(out, equals(input.toLowerCase()));
       } else {
@@ -112,7 +116,7 @@ cursor = 00ff00
 ''');
 
       // Parse with includes (sync)
-      final doc = mainFile.parseWithIncludesSync();
+      final doc = inc.FlatConfigIncludes.parseWithIncludesSync(mainFile);
 
       // Verify all entries are present
       expect(doc['background'], equals('343028'));
@@ -135,7 +139,7 @@ config-file = main.conf
 ''');
 
       expect(
-        () => mainFile.parseWithIncludesSync(),
+        () => inc.FlatConfigIncludes.parseWithIncludesSync(mainFile),
         throwsA(isA<CircularIncludeException>()),
       );
     });
@@ -148,7 +152,7 @@ config-file = missing.conf
 ''');
 
       expect(
-        () => mainFile.parseWithIncludesSync(),
+        () => inc.FlatConfigIncludes.parseWithIncludesSync(mainFile),
         throwsA(isA<MissingIncludeException>()),
       );
     });
@@ -165,7 +169,8 @@ config-file = missing.conf
       await c.writeAsString('key = value\n');
 
       expect(
-        () => mainFile.parseWithIncludesSync(
+        () => inc.FlatConfigIncludes.parseWithIncludesSync(
+          mainFile,
           options: const FlatParseOptions(maxIncludeDepth: 2),
         ),
         throwsA(isA<MaxIncludeDepthExceededException>()),
@@ -184,8 +189,10 @@ config-file = missing.conf
           .writeAsString('foreground = f3d735\nconfig-file = shared.conf\n');
 
       final cache = <String, FlatDocument>{};
-      final doc1 = main1.parseWithIncludesSync(cache: cache);
-      final doc2 = main2.parseWithIncludesSync(cache: cache);
+      final doc1 =
+          inc.FlatConfigIncludes.parseWithIncludesSync(main1, cache: cache);
+      final doc2 =
+          inc.FlatConfigIncludes.parseWithIncludesSync(main2, cache: cache);
 
       expect(doc1['background'], equals('343028'));
       expect(doc1['theme'], equals('dark'));
@@ -210,7 +217,8 @@ include = theme.conf
       final themeFile = File('${tempDir.path}/theme.conf');
       await themeFile.writeAsString('foreground = f3d735\n');
 
-      final doc = mainFile.parseWithIncludesSync(
+      final doc = inc.FlatConfigIncludes.parseWithIncludesSync(
+        mainFile,
         options: const FlatParseOptions(includeKey: 'include'),
       );
       expect(doc['background'], equals('343028'));
@@ -223,7 +231,7 @@ include = theme.conf
 
       final baseFile = File('${tempDir.path}/base.conf');
 
-      final entries = FlatConfigIncludes.processIncludesSync(
+      final entries = inc.FlatConfigIncludes.processIncludesSync(
         ['included.conf'],
         baseFile,
         baseFile.absolute.path,
@@ -243,7 +251,7 @@ include = theme.conf
     test('processIncludesSync handles optional includes', () async {
       final baseFile = File('${tempDir.path}/base.conf');
 
-      final entries = FlatConfigIncludes.processIncludesSync(
+      final entries = inc.FlatConfigIncludes.processIncludesSync(
         ['?missing.conf'],
         baseFile,
         baseFile.absolute.path,
@@ -262,7 +270,7 @@ include = theme.conf
 
       final baseFile = File('${tempDir.path}/base.conf');
 
-      final entries = FlatConfigIncludes.processIncludesSync(
+      final entries = inc.FlatConfigIncludes.processIncludesSync(
         ['"included.conf"'],
         baseFile,
         baseFile.absolute.path,
@@ -281,7 +289,7 @@ include = theme.conf
       final baseFile = File('${tempDir.path}/base.conf');
 
       expect(
-        () => FlatConfigIncludes.processIncludesSync(
+        () => inc.FlatConfigIncludes.processIncludesSync(
           ['', '  ', 'valid.conf'],
           baseFile,
           baseFile.absolute.path,
@@ -300,7 +308,7 @@ include = theme.conf
       await testFile
           .writeAsString('background = 343028\nforeground = f3d735\n');
 
-      final doc = FlatConfigIncludes.parseWithIncludesRecursiveSync(
+      final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
         testFile,
         options: const FlatParseOptions(),
         readOptions: const FlatStreamReadOptions(),
@@ -321,7 +329,7 @@ config-file = cycle.conf
 ''');
 
       expect(
-        () => FlatConfigIncludes.parseWithIncludesRecursiveSync(
+        () => inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           testFile,
           options: const FlatParseOptions(),
           readOptions: const FlatStreamReadOptions(),
@@ -336,7 +344,7 @@ config-file = cycle.conf
       final testFile = File('${tempDir.path}/nonexistent.conf');
 
       expect(
-        () => FlatConfigIncludes.parseWithIncludesRecursiveSync(
+        () => inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           testFile,
           options: const FlatParseOptions(),
           readOptions: const FlatStreamReadOptions(),
@@ -362,7 +370,7 @@ foreground = f3d735
 font-size = 14
 ''');
 
-      final doc = FlatConfigIncludes.parseWithIncludesRecursiveSync(
+      final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
         mainFile,
         options: const FlatParseOptions(),
         readOptions: const FlatStreamReadOptions(),
@@ -386,7 +394,7 @@ include = theme.conf
       final themeFile = File('${tempDir.path}/theme.conf');
       await themeFile.writeAsString('foreground = f3d735\n');
 
-      final doc = FlatConfigIncludes.parseWithIncludesRecursiveSync(
+      final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
         mainFile,
         options: const FlatParseOptions(includeKey: 'include'),
         readOptions: const FlatStreamReadOptions(),
@@ -406,7 +414,7 @@ background = 343028
 config-file = ?optional.conf
 ''');
 
-      final doc = FlatConfigIncludes.parseWithIncludesRecursiveSync(
+      final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
         mainFile,
         options: const FlatParseOptions(),
         readOptions: const FlatStreamReadOptions(),
@@ -433,7 +441,7 @@ new-key = new-value
 foreground = f3d735
 ''');
 
-      final doc = FlatConfigIncludes.parseWithIncludesRecursiveSync(
+      final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
         mainFile,
         options: const FlatParseOptions(),
         readOptions: const FlatStreamReadOptions(),
@@ -1147,7 +1155,7 @@ config-file = "themes/dark.conf"
       final darkThemeFile = File('${themesDir.path}/dark.conf');
       await darkThemeFile.writeAsString('foreground = f3d735\n');
 
-      final doc = mainFile.parseWithIncludesSync();
+      final doc = inc.FlatConfigIncludes.parseWithIncludesSync(mainFile);
       expect(doc['background'], equals('343028'));
       expect(doc['foreground'], equals('f3d735'));
     });
@@ -1159,7 +1167,7 @@ config-file = "themes/dark.conf"
       await file.writeAsString('key = v\n');
 
       // Smoke-call the sync parser to ensure _canonicalSync fallback is exercised
-      final doc = file.parseWithIncludesSync();
+      final doc = inc.FlatConfigIncludes.parseWithIncludesSync(file);
       expect(doc['key'], equals('v'));
     });
 
@@ -1188,7 +1196,7 @@ font-size = 16
       final baseFile = File('${tempDir.path}/base.conf');
 
       // Test the processIncludes method directly
-      final entries = await FlatConfigIncludes.processIncludes(
+      final entries = await inc.FlatConfigIncludes.processIncludes(
         ['included.conf'], // relative path
         baseFile,
         baseFile.absolute.path,
@@ -1211,7 +1219,7 @@ font-size = 16
       final baseFile = File('${tempDir.path}/base.conf');
 
       // Test with optional include that doesn't exist
-      final entries = await FlatConfigIncludes.processIncludes(
+      final entries = await inc.FlatConfigIncludes.processIncludes(
         ['?missing.conf'], // optional include
         baseFile,
         baseFile.absolute.path,
@@ -1236,7 +1244,7 @@ theme = light
       final baseFile = File('${tempDir.path}/base.conf');
 
       // Test with quoted path
-      final entries = await FlatConfigIncludes.processIncludes(
+      final entries = await inc.FlatConfigIncludes.processIncludes(
         ['"included.conf"'], // quoted path
         baseFile,
         baseFile.absolute.path,
@@ -1262,7 +1270,7 @@ foreground = f3d735
 ''');
 
       // Test the parseWithIncludesRecursive method directly
-      final doc = await FlatConfigIncludes.parseWithIncludesRecursive(
+      final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
         testFile,
         options: const FlatParseOptions(),
         readOptions: const FlatStreamReadOptions(),
@@ -1286,7 +1294,7 @@ config-file = cycle.conf
 
       // Test that circular include is detected
       try {
-        await FlatConfigIncludes.parseWithIncludesRecursive(
+        await inc.FlatConfigIncludes.parseWithIncludesRecursive(
           testFile,
           options: const FlatParseOptions(),
           readOptions: const FlatStreamReadOptions(),
@@ -1305,7 +1313,7 @@ config-file = cycle.conf
 
       // Test that missing file throws exception
       try {
-        await FlatConfigIncludes.parseWithIncludesRecursive(
+        await inc.FlatConfigIncludes.parseWithIncludesRecursive(
           testFile,
           options: const FlatParseOptions(),
           readOptions: const FlatStreamReadOptions(),
@@ -1335,7 +1343,7 @@ font-size = 14
 ''');
 
       // Test the parseWithIncludesRecursive method directly
-      final doc = await FlatConfigIncludes.parseWithIncludesRecursive(
+      final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
         mainFile,
         options: const FlatParseOptions(),
         readOptions: const FlatStreamReadOptions(),
@@ -1366,7 +1374,7 @@ foreground = f3d735
 ''');
 
       // Test with custom include key
-      final doc = await FlatConfigIncludes.parseWithIncludesRecursive(
+      final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
         mainFile,
         options: const FlatParseOptions(includeKey: 'include'),
         readOptions: const FlatStreamReadOptions(),
@@ -1391,7 +1399,7 @@ config-file = ?optional.conf
       // Don't create optional.conf - it should be silently ignored
 
       // Test the parseWithIncludesRecursive method directly
-      final doc = await FlatConfigIncludes.parseWithIncludesRecursive(
+      final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
         mainFile,
         options: const FlatParseOptions(),
         readOptions: const FlatStreamReadOptions(),

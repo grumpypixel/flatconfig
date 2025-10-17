@@ -2,7 +2,7 @@ import 'package:flatconfig/flatconfig.dart';
 
 void main() {
   // Sample configuration (could come from a file or network)
-const configText = '''
+  const configText = '''
 # FlatConfig Example - Game Settings
 fullscreen = true
 resolution = 1920x1080
@@ -23,7 +23,6 @@ auto-save = true
 difficulty = "normal"
 ''';
 
-
   // Parse configuration text into a FlatDocument
   final doc = FlatConfig.parse(configText);
 
@@ -34,14 +33,13 @@ difficulty = "normal"
   // Access as Map using `toMap()`
   final map = doc.toMap();
 
-  // Convenience accessors (mit Fallbacks)
+  // Convenience accessors (with fallbacks)
   final fullscreen = doc.getBool('fullscreen') ?? false;
   final resolution = map['resolution'] ?? 'unknown';
   final volume = doc.getInt('volume') ?? 0;
   final playerName = map['player.name'] ?? 'Unknown';
   final score = doc.getInt('player.score') ?? 0;
-  final musicTracks =
-      (doc.valuesOf('music.tracks') ?? const []).join(', '); // join für Lesbarkeit
+  final musicTracks = (doc.valuesOf('music.tracks') ?? const []).join(', ');
   final autoSave = doc.getBool('auto-save') ?? false;
   final difficulty = map['difficulty'] ?? 'normal';
 

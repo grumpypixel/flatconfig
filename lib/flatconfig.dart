@@ -1,7 +1,13 @@
+// Main barrel file for the flatconfig package.
+//
+// This entrypoint is Web- and WASM-safe:
+// - Pure parsing APIs (FlatConfig, FlatDocument, etc.) are always available.
+// - File and include APIs are conditionally exported only on dart:io platforms.
 export 'src/document.dart' show FlatDocument, FlatEntry;
 export 'src/document_accessors.dart' show FlatDocumentAccessors;
 export 'src/document_extensions.dart'
     show CollapseOrder, FlatDocumentExtensions;
+
 export 'src/exceptions.dart'
     show
         CircularIncludeException,
@@ -12,9 +18,13 @@ export 'src/exceptions.dart'
         MissingIncludeException,
         TrailingCharactersAfterQuoteException,
         UnterminatedQuoteException;
-export 'src/includes.dart' show FileIncludes, FlatConfigIncludes;
-export 'src/io.dart'
-    show FlatConfigIO, FlatDocumentIO, parseFileWithIncludes, parseFlatFile;
+
+// Conditional export: includes (export the whole file, otherwise the Extensions won't work)
+export 'src/includes_stub.dart' if (dart.library.io) 'src/includes.dart';
+
+// Conditional export: file I/O (export the whole file)
+export 'src/io_stub.dart' if (dart.library.io) 'src/io.dart';
+
 export 'src/options.dart'
     show
         FlatEncodeOptions,
@@ -22,4 +32,5 @@ export 'src/options.dart'
         FlatStreamReadOptions,
         FlatStreamWriteOptions,
         OnErrorHandler;
+
 export 'src/parser.dart' show FlatConfig;
