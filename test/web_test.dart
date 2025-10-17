@@ -1,4 +1,6 @@
 @TestOn('browser')
+library web_test;
+
 import 'package:flatconfig/flatconfig.dart';
 import 'package:test/test.dart';
 

@@ -1,6 +1,5 @@
-import 'package:test/test.dart';
-
 import 'package:flatconfig/src/io_stub.dart' as io;
+import 'package:test/test.dart';
 
 void main() {
   test('io_stub.parseFlatFile throws UnsupportedError (VM import)', () async {
