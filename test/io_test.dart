@@ -1,8 +1,10 @@
-// test/io_test.dart
+@TestOn('vm')
+library io_test;
 
 import 'dart:io';
 
 import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/src/io.dart' as io;
 import 'package:test/test.dart';
 
 void main() {
@@ -66,7 +68,7 @@ included_key = included_value
 ''');
 
       // Test the parseWithIncludes method
-      final doc = await mainFile.parseWithIncludes();
+      final doc = await io.parseFileWithIncludes(mainFile.path);
       expect(doc['key1'], 'value1');
       expect(doc['included_key'], 'included_value');
       expect(doc['key2'], 'value2');
@@ -92,7 +94,8 @@ included_key = included_value
 ''');
 
       // Test with custom include key
-      final doc = await mainFile.parseWithIncludes(
+      final doc = await io.parseFileWithIncludes(
+        mainFile.path,
         options: const FlatParseOptions(includeKey: 'include'),
       );
       expect(doc['key1'], 'value1');
