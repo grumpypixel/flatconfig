@@ -39,7 +39,7 @@ difficulty = "normal"
   final volume = doc.getInt('volume') ?? 0;
   final playerName = map['player.name'] ?? 'Unknown';
   final score = doc.getInt('player.score') ?? 0;
-  final musicTracks = (doc.valuesOf('music.tracks') ?? const []).join(', ');
+  final musicTracks = (doc.valuesOf('music.tracks')).join(', ');
   final autoSave = doc.getBool('auto-save') ?? false;
   final difficulty = map['difficulty'] ?? 'normal';
 

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/src/includes.dart' as includes;
 
 void main() async {
   // Create a temporary directory for our example
