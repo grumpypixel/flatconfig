@@ -199,6 +199,28 @@ included_key = included_value
       expect(doc['ok'], 'A');
       expect(doc.keys.toList(), ['ok']);
     });
+
+    test('parseWithIncludesSync parses file with includes synchronously', () {
+      final mainFile = File('test/tmp_io_sync_includes_main.conf');
+      final includeFile = File('test/tmp_io_sync_includes_child.conf');
+      addTearDown(() {
+        if (mainFile.existsSync()) mainFile.deleteSync();
+        if (includeFile.existsSync()) includeFile.deleteSync();
+      });
+
+      // main references child via default include key 'config-file'
+      mainFile.writeAsStringSync('''
+key1 = value1
+config-file = tmp_io_sync_includes_child.conf
+key2 = value2
+''');
+      includeFile.writeAsStringSync('included_key = included_value\n');
+
+      final doc = io.FlatConfigIO(mainFile).parseWithIncludesSync();
+      expect(doc['key1'], 'value1');
+      expect(doc['included_key'], 'included_value');
+      expect(doc['key2'], 'value2');
+    });
   });
 
   group('FlatConfIO encode quoting extras', () {

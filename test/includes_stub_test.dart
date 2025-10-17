@@ -1,0 +1,41 @@
+@TestOn('browser')
+import 'package:test/test.dart';
+
+import 'package:flatconfig/src/includes_stub.dart' as inc;
+
+void main() {
+  group('FlatConfigIncludes (web/wasm stubs)', () {
+    test('parseWithIncludes throws UnsupportedError', () async {
+      expect(
+        inc.FlatConfigIncludes.parseWithIncludes(Object()),
+        throwsA(isA<UnsupportedError>()),
+      );
+    });
+
+    test('parseWithIncludesSync throws UnsupportedError', () {
+      expect(
+        () => inc.FlatConfigIncludes.parseWithIncludesSync(Object()),
+        throwsA(isA<UnsupportedError>()),
+      );
+    });
+
+    test('parseWithIncludesFromPath throws UnsupportedError', () async {
+      expect(
+        inc.FlatConfigIncludes.parseWithIncludesFromPath('path'),
+        throwsA(isA<UnsupportedError>()),
+      );
+    });
+
+    test('parseWithIncludesFromPathSync throws UnsupportedError', () {
+      expect(
+        () => inc.FlatConfigIncludes.parseWithIncludesFromPathSync('path'),
+        throwsA(isA<UnsupportedError>()),
+      );
+    });
+  });
+
+  test('FileIncludes placeholder type is constructible', () {
+    final f = inc.FileIncludes(Object());
+    expect(f, isA<inc.FileIncludes>());
+  });
+}
