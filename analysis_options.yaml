@@ -9,6 +9,7 @@ analyzer:
     - "build/**"
     - ".dart_tool/**"
     - "coverage/**"
+    - "example/flatconfig_flutter/**"
   language:
     strict-casts: true
     strict-inference: true
