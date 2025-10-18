@@ -43,6 +43,34 @@ Then import it in your Dart code:
 import 'package:flatconfig/flatconfig.dart';
 ```
 
+### Platform notes
+
+`flatconfig` is fully **Web/WASM-safe** – all core parsing and document features
+(`FlatConfig`, `FlatDocument`, accessors, encoding, etc.) work on every platform.
+
+🖥️ **File & Include APIs (I/O only):**
+`parseFlatFile(...)`, `parseFileWithIncludes(...)`, `File.parseFlat()` etc.
+require `dart:io` and **are not available on Flutter Web or WASM.**
+
+#### Works everywhere
+
+Use the in-memory API for web and WASM environments:
+
+```dart
+const raw = 'theme = dark';
+final doc = FlatConfig.parse(raw);
+print(doc['theme']); // dark
+```
+
+#### Works on Dart VM / Flutter Desktop / CLI
+
+File helpers and include processing are available on platforms that support the `dart:io` library:
+
+```dart
+final doc = await parseFlatFile('config.conf');
+final merged = await parseFileWithIncludes('main.conf');
+```
+
 ## Quick Start 🚀
 
 ```dart
@@ -68,6 +96,30 @@ void main() {
   print(doc.has('shader'));         // → true
   print(doc['texture']);            // → null (explicit reset)
   print(doc.hasNonNull('texture')); // → false
+}
+```
+
+## Optional Sugar (File extensions, I/O only)
+
+```dart
+import 'dart:io';
+import 'package:flatconfig/flatconfig.dart';
+
+Future<void> main() async {
+  final doc = await File('config.conf').parseFlat();
+  final inc = await File('main.conf').parseWithIncludes();
+}
+```
+
+## Web/WASM usage (in-memory)
+
+```dart
+import 'package:flatconfig/flatconfig.dart';
+
+void main() {
+  const raw = 'theme = dark';
+  final doc = FlatConfig.parse(raw);
+  print(doc['theme']); // dark
 }
 ```
 
