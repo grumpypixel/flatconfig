@@ -68,3 +68,27 @@ class FileIncludes {
   // There are intentionally no methods here; on the web the extension method
   // `File.parseWithIncludes()` would not be usable anyway, because `File` is missing.
 }
+
+/// Analyzer-friendly stub to make File('...').parseWithIncludes() resolvable
+/// on web/wasm; this mirrors the IO extension method name, but throws.
+extension FileIncludesStub on Object {
+  /// Parses a configuration file with include support.
+  ///
+  /// Always throws [UnsupportedError] on web/wasm.
+  Future<FlatDocument> parseWithIncludes({
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+    Map<String, FlatDocument>? cache,
+  }) async =>
+      _unsupported('File.parseWithIncludes');
+
+  /// Synchronous variant of [parseWithIncludes].
+  ///
+  /// Always throws [UnsupportedError] on web/wasm.
+  FlatDocument parseWithIncludesSync({
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+    Map<String, FlatDocument>? cache,
+  }) =>
+      _unsupported('File.parseWithIncludesSync');
+}
