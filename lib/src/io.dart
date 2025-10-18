@@ -27,6 +27,17 @@ Future<FlatDocument> parseFlatFile(
       readOptions: readOptions,
     );
 
+/// Reads and parses a configuration file synchronously from [path].
+FlatDocument parseFlatFileSync(
+  String path, {
+  FlatParseOptions options = const FlatParseOptions(),
+  FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+}) =>
+    File(path).parseFlatSync(
+      options: options,
+      readOptions: readOptions,
+    );
+
 /// Reads a configuration file with includes and parses it into a [FlatDocument].
 ///
 /// Preferred alias for reading with includes from a path.
@@ -40,12 +51,48 @@ Future<FlatDocument> parseFileWithIncludes(
   String path, {
   FlatParseOptions options = const FlatParseOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+  Map<String, FlatDocument>? cache,
 }) async =>
     FlatConfigIncludes.parseWithIncludesFromPath(
       path,
       options: options,
       readOptions: readOptions,
+      cache: cache,
     );
+
+/// Writes a [FlatDocument] to a file asynchronously.
+///
+/// Top-level variant to match the web/wasm stub and barrel export.
+Future<void> writeFlat(
+  String path,
+  FlatDocument doc, {
+  FlatEncodeOptions options = const FlatEncodeOptions(),
+  FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
+}) async {
+  await File(path).writeAsBytes(
+    doc.encodeToBytesWithWriteOptions(
+      options: options,
+      writeOptions: writeOptions,
+    ),
+  );
+}
+
+/// Writes a [FlatDocument] to a file synchronously.
+///
+/// Top-level variant to match the web/wasm stub and barrel export.
+void writeFlatSync(
+  String path,
+  FlatDocument doc, {
+  FlatEncodeOptions options = const FlatEncodeOptions(),
+  FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
+}) {
+  File(path).writeAsBytesSync(
+    doc.encodeToBytesWithWriteOptions(
+      options: options,
+      writeOptions: writeOptions,
+    ),
+  );
+}
 
 /// File-based helpers for reading and writing flat configuration files.
 ///
