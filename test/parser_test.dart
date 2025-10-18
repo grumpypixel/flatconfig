@@ -553,7 +553,7 @@ shader = vignette=soft
 ''';
       file.writeAsStringSync(src);
 
-      final doc = await parseFlatFile(file.path);
+      final doc = await io.parseFlatFile(file.path);
       expect(doc['background'], '343028');
       expect(doc['font-family'], isNull);
       expect(doc.valuesOf('shader'), ['vignette=soft']);

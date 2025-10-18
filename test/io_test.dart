@@ -31,6 +31,30 @@ void main() {
     });
   });
 
+  group('Top-level IO helpers', () {
+    test('writeFlat writes document to path (async)', () async {
+      final path = 'test/tmp_io_toplevel_async.conf';
+      final file = File(path);
+      addTearDown(() => file.existsSync() ? file.deleteSync() : null);
+
+      final doc = FlatDocument(const [FlatEntry('k', 'v')]);
+      await io.writeFlat(path, doc);
+      expect(file.existsSync(), isTrue);
+      expect(file.readAsStringSync().trim(), 'k = v');
+    });
+
+    test('writeFlatSync writes document to path (sync)', () {
+      final path = 'test/tmp_io_toplevel_sync.conf';
+      final file = File(path);
+      addTearDown(() => file.existsSync() ? file.deleteSync() : null);
+
+      final doc = FlatDocument(const [FlatEntry('x', 'y')]);
+      io.writeFlatSync(path, doc);
+      expect(file.existsSync(), isTrue);
+      expect(file.readAsStringSync().trim(), 'x = y');
+    });
+  });
+
   group('FlatConfIO parseFile (extras)', () {
     test('decodeEscapesInQuoted=true unescapes quoted content', () async {
       final file = File('test/tmp_io_decode.conf');
@@ -262,6 +286,18 @@ key2 = value2
       );
       expect(doc['key'], 'value');
       expect(doc.keys.length, 1);
+    });
+  });
+
+  group('parseFlatFileSync function', () {
+    test('parses file using parseFlatFileSync function', () {
+      final file = File('test/tmp_parse_flat_file_sync.conf');
+      addTearDown(() => file.existsSync() ? file.deleteSync() : null);
+
+      file.writeAsStringSync('key = value\n');
+
+      final doc = io.parseFlatFileSync('test/tmp_parse_flat_file_sync.conf');
+      expect(doc['key'], 'value');
     });
   });
 

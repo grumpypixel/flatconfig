@@ -31,4 +31,15 @@ void main() {
     final f = inc.FileIncludes(Object());
     expect(f, isA<inc.FileIncludes>());
   });
+
+  group('Object extension include stubs (VM import)', () {
+    test('Object.parseWithIncludes throws UnsupportedError', () async {
+      expect(Object().parseWithIncludes(), throwsA(isA<UnsupportedError>()));
+    });
+
+    test('Object.parseWithIncludesSync throws UnsupportedError', () {
+      expect(() => Object().parseWithIncludesSync(),
+          throwsA(isA<UnsupportedError>()));
+    });
+  });
 }

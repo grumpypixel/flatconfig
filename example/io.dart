@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flatconfig/flatconfig.dart';
-import 'package:flatconfig/src/io.dart' as io;
 
 Future<void> main() async {
   // Create a temp working folder for this example
@@ -85,7 +84,7 @@ servers = host=a,port=8080 | host=b,port=9090
 
   print('💾 Wrote collapsed config (UTF-8, CRLF, always quoted): $outWinPath');
 
-  // 6) Use FlatDocument.saveToFile (same as File.writeFlat but from doc side)
+  // 6) Merge with a new document and write back
   final merged = collapsed.merge(
     FlatConfig.fromMap({
       'generated.by': 'example/io.dart',
@@ -94,13 +93,10 @@ servers = host=a,port=8080 | host=b,port=9090
   );
 
   final savedPath = '${tmpDir.path}/merged.conf';
-  await merged.saveToFile(
-    savedPath,
+  await File(savedPath).writeFlat(
+    merged,
     options: const FlatEncodeOptions(escapeQuoted: true),
-    writeOptions: const FlatStreamWriteOptions(
-      lineTerminator: '\n',
-      ensureTrailingNewline: true,
-    ),
+    writeOptions: const FlatStreamWriteOptions(lineTerminator: '\n'),
   );
 
   print('💾 Saved merged config: $savedPath');
