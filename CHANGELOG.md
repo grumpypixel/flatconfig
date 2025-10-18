@@ -1,3 +1,26 @@
+## 0.1.4
+
+### Added
+- **Web/WASM Stubs:** Added `includes_stub.dart` and `io_stub.dart` to safely
+  throw `UnsupportedError` on non-IO platforms. The package now loads cleanly
+  in Flutter Web / WASM projects (core parsing remains available).
+
+### Changed
+- **Barrel Exports:** Simplified conditional exports — the full units for
+  `io.dart` and `includes.dart` are exported so that all extensions are
+  visible on IO platforms.
+- **README & Example:** Updated to use the recommended path-based helpers:
+  `parseFlatFile`, `parseFlatFileSync`, `parseFileWithIncludes`,
+  `writeFlat`, `writeFlatSync` (no more `src/` imports).
+  File-based extensions remain available as ergonomic sugar.
+
+### Fixed
+- Pub.dev analysis warning: Missing `lints` dependency in `example/` package.
+- Web/WASM analysis: no longer fails due to missing `dart:io` references.
+
+### Notes
+- This release is **non-breaking** (`0.1.x` → `0.1.4`).
+
 ## 0.1.3
 
 Added:
@@ -12,7 +35,6 @@ Added:
 Improved:
 - Internal include handling now normalizes paths and detects circular dependencies more robustly.
 - Minor parser cleanups and docstring refinements for consistency.
-
 
 ## 0.1.2
 
