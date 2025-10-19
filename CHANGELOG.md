@@ -1,3 +1,24 @@
+## 0.2.0
+
+### Added
+- Generic & context-aware accessors:
+  - `getAs<T>(key, converter)` – lenient “try” variant; returns `null` on missing/empty/invalid.
+  - `getAsOr<T>(key, converter, default)` – lenient with fallback.
+  - `requireAs<T>(key, converter)` – strict; throws `FormatException` with context.
+  - `getAsWith<T>(key, (raw, key, doc) => T?)` – advanced, document-aware converter.
+  - `requireAsWith<T>(...)` – strict variant for advanced converters.
+  - `getAllAs<T>(key, converter)` – lazy, lenient conversion for duplicate keys.
+  - `requireAllAs<T>(key, converter)` – strict conversion for all values.
+- README: New **Custom Converters** section with examples.
+- README: **Comparison to INI/TOML** and **Design Philosophy** sections.
+
+### Improved
+- Consistent, idiomatic error semantics:
+  - Lenient `get*` accessors never throw; strict `require*` accessors throw with `.explain(key, got, cause)` context.
+
+### Notes
+- No breaking changes. Web/WASM-safe core remains unchanged; I/O helpers are still VM-only.
+
 ## 0.1.4
 
 ### Added
@@ -23,7 +44,8 @@
 
 ## 0.1.3
 
-Added:
+### Added
+
 - Added full support for *recursive* `config-file` *includes* (Ghostty-compatible).
   - Supports optional includes (`?path`), nested includes, relative paths, and cycle detection.
   - Defensive maximum include depth (`maxIncludeDepth`, default 64).
@@ -32,24 +54,27 @@ Added:
 - Clarified behavior for *one include per line* — comma-separated paths are treated as a single literal.
 - Improved README with clear *include semantics*, usage examples, and quote-awareness notes (`getMap()` vs `getDocument()`).
 
-Improved:
+### Improved
 - Internal include handling now normalizes paths and detects circular dependencies more robustly.
 - Minor parser cleanups and docstring refinements for consistency.
 
 ## 0.1.2
 
-Documentation & metadata improvements
+### Documentation & metadata improvements
+
 - Updated dependency constraints and topics for pub.dev
 - Updated README with slightly clearer description
 
 ## 0.1.1
 
-Added:
+### Added
+
 - `FlatEntry.validated` factory for safe key creation
 - Strict factories (`fromMap`, `fromEntries`, `merge`, `single`) with `strict` toggle
 - Updated README with validation and factory examples
 
-Improved:
+### Improved
+
 - Internal key validation logic
 - Documentation clarity and formatting
 
