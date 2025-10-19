@@ -1,5 +1,5 @@
 # flatconfig
-*A minimal `Ghostty`-style `key = value` configuration parser for Dart and Flutter.*
+*A minimal `key = value` configuration parser for Dart and Flutter.*
 
 [![Pub Version](https://img.shields.io/pub/v/flatconfig.svg)](https://pub.dev/packages/flatconfig)
 [![Tests](https://github.com/grumpypixel/flatconfig/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/grumpypixel/flatconfig/actions/workflows/test.yml)
@@ -7,10 +7,11 @@
 [![Dart Version](https://img.shields.io/badge/dart-%3E%3D3.0.0-blue.svg)](https://dart.dev)
 [![Pub Points](https://img.shields.io/pub/points/flatconfig?label=pub%20points)](https://pub.dev/packages/flatconfig/score)
 
-flatconfig is a flat, minimal `key = value` configuration format for Dart and Flutter — easy to read, trivial to hand-edit, and simple to round-trip.
-Inspired by 👻 [Ghostty](https://ghostty.org)-style configuration files.
+> Flat, human-friendly `key=value` configuration format for Dart & Flutter — inspired by 👻 [Ghostty](https://ghostty.org), simpler than INI or TOML.
 
-It offers a clean, predictable alternative to verbose formats like YAML or JSON,
+**flatconfig** offers a flat, minimal `key = value` format for Dart and Flutter — easy to read, trivial to hand-edit, and simple to round-trip.
+
+It provides a clean, predictable alternative to verbose formats like YAML or JSON,
 with support for duplicate keys, comments, and empty values (`key =`) that act as explicit (null) resets.
 Perfect for tools, CLIs, and Flutter apps that need structured settings without heavy dependencies.
 
@@ -157,6 +158,25 @@ font-family = FiraCode Nerd Font
 - Empty (unquoted) values are interpreted as explicit resets (`null`)
 - Lines without = are ignored unless `strict: true` is enabled
 - The comment prefix (`#`) and the key-value separator (`=`) can be customized
+
+## Comparison to INI and TOML
+
+While `flatconfig` looks familiar if you’ve used INI or TOML, it’s intentionally **simpler** — focused on readability, portability, and minimal dependencies.
+
+| Feature | INI / TOML | flatconfig |
+| ------- | ---------- | ---------- |
+| Sections / Tables | ✅ `[section]` or `[table]` | 🚫 none — single flat namespace |
+| Nested data | ✅ via tables or dotted keys | 🚫 flat only |
+| Comments | `#` or `;` | `#` only |
+| Arrays / Lists | ✅ `[1, 2, 3]` etc. | ✅ via `getList()` / `getSet()` helpers |
+| Data types | explicit (bool, int, float, etc.)	| string-based + typed accessors |
+| Includes | ❌ (TOML only via preprocessors) | ✅ built-in recursive `config-file` support |
+| Complexity |	moderate	| minimal & predictable |
+
+`flatconfig` intentionally omits sections and nested scopes — every key exists in a single flat namespace.
+This makes merging, overriding, and diffing configurations trivial, and keeps files readable even for non-developers.
+
+> Think of it as “*the minimal, portable 20 % of INI/TOML that covers 90 % of real-world use cases.”*
 
 ## Validation & Strict Mode
 
@@ -539,6 +559,26 @@ Future<void> main() async {
 - Unquoted values are trimmed; quoted values preserve whitespace and `=`
 - Empty unquoted values become `null` (explicit reset)
 - Encoding is lossy (comments and blank lines are dropped)
+
+## Design Philosophy
+
+`flatconfig` follows a single guiding idea:
+**flat, simple, predictable.**
+
+No nested scopes, no hidden semantics, no parser magic.
+Every line means exactly what it says — `key = value`.
+
+This makes configuration files:
+
+- easy to hand-edit and diff,
+- trivial to merge and override,
+- and safe to parse in any environment (Flutter, CLI, Web, or server).
+
+The goal isn’t to replace JSON, YAML, or TOML —
+but to offer a lightweight middle ground: human-friendly like INI,
+yet strict and structured enough for automated tools.
+
+> `flatconfig` keeps your config files boring — in the best possible way. 😌
 
 ## See Also
 
