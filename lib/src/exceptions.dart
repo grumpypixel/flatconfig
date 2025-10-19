@@ -219,9 +219,12 @@ extension FormatExceptionExplain on FormatException {
   /// This extension method is used internally to provide more detailed error
   /// messages that include the configuration key and the actual value that
   /// caused the error.
-  FormatException explain({required String key, String? got}) {
+  FormatException explain({required String key, String? got, Object? cause}) {
     final suffix = got == null ? '' : " (got: '$got')";
-    return FormatException('$message for "$key"$suffix', source, offset);
+    final causeSuffix = cause == null ? '' : " (cause: $cause)";
+
+    return FormatException(
+        '$message for "$key"$suffix$causeSuffix', source, offset);
   }
 }
 

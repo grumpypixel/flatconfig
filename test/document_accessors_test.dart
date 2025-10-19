@@ -8,6 +8,195 @@ void main() {
       FlatDocument([for (final e in m.entries) FlatEntry(e.key, e.value)]);
 
   group('FlatDocumentAccessors', () {
+    test('getAs returns converted value, null on missing/empty/invalid', () {
+      final d = docOf({
+        'i1': ' 42 ',
+        'i2': 'x',
+        'empty_quoted': '',
+      });
+
+      expect(d.getAs('i1', int.parse), 42);
+      expect(d.getAs('i2', int.parse), isNull); // converter throws → null
+      expect(d.getAs('missing', int.parse), isNull);
+      expect(d.getAs('empty_quoted', int.parse), isNull); // ignoreEmpty=true
+    });
+
+    test('getAs with whitespace and trim=false does not treat as empty', () {
+      final d = docOf({'ws': '   '});
+      // ignoreEmpty=true, but trim=false → s is not empty, converter is called
+      expect(d.getAs('ws', (s) => s, trim: false), '   ');
+      // with trim=true → s becomes empty → null
+      expect(d.getAs('ws', (s) => s, trim: true), isNull);
+    });
+
+    test('getAs with ignoreEmpty=false attempts conversion on empty string',
+        () {
+      final d = docOf({'empty': ''});
+      expect(d.getAs('empty', int.parse, ignoreEmpty: false), isNull);
+    });
+
+    test('getAsOr returns converted value or default on missing/empty/invalid',
+        () {
+      final d = docOf({
+        'i1': '7',
+        'i2': 'x',
+        'empty_quoted': '',
+      });
+
+      expect(d.getAsOr('i1', int.parse, 0), 7);
+      expect(d.getAsOr('i2', int.parse, 0), 0);
+      expect(d.getAsOr('missing', int.parse, 5), 5);
+      expect(d.getAsOr('empty_quoted', int.parse, 9), 9);
+    });
+
+    test('requireAs returns value or throws with context', () {
+      final d = docOf({
+        'ok': ' 100 ',
+        'bad': 'x',
+        'empty_quoted': '',
+      });
+
+      expect(d.requireAs('ok', int.parse), 100);
+      expect(() => d.requireAs('missing', int.parse), throwsFormatException);
+      expect(() => d.requireAs('bad', int.parse), throwsFormatException);
+      expect(
+          () => d.requireAs('empty_quoted', int.parse), throwsFormatException);
+    });
+
+    test('requireAs throws on converter error (invalid number)', () {
+      final d = docOf({'n': 'x'});
+      expect(() => d.requireAs('n', int.parse), throwsFormatException);
+    });
+
+    test('getAsWith uses advanced converter and honors trim/ignoreEmpty', () {
+      // Converter returns length of the raw string; null only when raw is null
+      int? conv(String? raw, String key, FlatDocument d) {
+        if (raw == null) return null;
+        return raw.length; // empty string -> 0
+      }
+
+      final d = docOf({
+        'a': ' x ',
+        'b': '',
+      });
+
+      // Default trim=false, ignoreEmpty=false: raw preserved
+      expect(d.getAsWith<int>('a', conv), 3); // ' x ' length 3
+      expect(
+          d.getAsWith<int>('b', conv), 0); // empty string length 0 -> not null
+
+      // With trim=true, the length becomes 1
+      expect(d.getAsWith<int>('a', conv, trim: true), 1);
+
+      // With ignoreEmpty=true, empty becomes null
+      expect(d.getAsWith<int>('b', conv, ignoreEmpty: true), isNull);
+
+      // Missing key -> null
+      expect(d.getAsWith<int>('missing', conv), isNull);
+    });
+
+    test('getAsWith: empty string + ignoreEmpty toggles result', () {
+      int? conv(String? raw, String key, FlatDocument d) => raw?.length;
+
+      final d = docOf({'e': ''});
+      expect(d.getAsWith('e', conv), 0); // default ignoreEmpty=false → 0
+      expect(d.getAsWith('e', conv, ignoreEmpty: true), isNull); // skipped
+    });
+
+    test('requireAsWith returns value or throws on missing/empty/invalid', () {
+      // Converter parses ratio "w:h" to double, else null
+      double? conv(String? raw, String key, FlatDocument d) {
+        if (raw == null) return null;
+        final parts = raw.split(':');
+        if (parts.length != 2) return null;
+        final w = double.tryParse(parts[0].trim());
+        final h = double.tryParse(parts[1].trim());
+        if (w == null || h == null || h == 0) return null;
+        return w / h;
+      }
+
+      final d = docOf({
+        'ok': ' 16 : 9 ',
+        'bad': 'x',
+        'empty_quoted': '',
+      });
+
+      expect(d.requireAsWith<double>('ok', conv, trim: true),
+          closeTo(16 / 9, 1e-9));
+      expect(() => d.requireAsWith<double>('missing', conv),
+          throwsFormatException);
+      expect(() => d.requireAsWith<double>('bad', conv), throwsFormatException);
+      expect(
+        () => d.requireAsWith<double>('empty_quoted', conv, ignoreEmpty: true),
+        throwsFormatException,
+      );
+    });
+
+    test(
+        'getAllAs yields converted values and skips invalid/empty when configured',
+        () {
+      final d = FlatDocument(const [
+        FlatEntry('port', '8080'),
+        FlatEntry('port', 'bad'),
+        FlatEntry('port', null), // unquoted empty
+        FlatEntry('port', ''), // quoted empty
+        FlatEntry('port', '  7070  '),
+      ]);
+
+      final it = d.getAllAs('port', int.parse).toList();
+      expect(it, [8080, 7070]); // bad/null/empty skipped, whitespace trimmed
+
+      // Without trimming, whitespace is still accepted by int.parse
+      final itNoTrim = d.getAllAs('port', int.parse, trim: false).toList();
+      expect(itNoTrim, [8080, 7070]);
+
+      // With ignoreEmpty=false, empty quoted is attempted (int.parse('') throws) -> skipped
+      final itNoIgnoreEmpty =
+          d.getAllAs('port', int.parse, ignoreEmpty: false).toList();
+      expect(itNoIgnoreEmpty, [8080, 7070]);
+    });
+
+    test('requireAllAs returns list or throws on first invalid number', () {
+      final ok = FlatDocument(const [
+        FlatEntry('n', '1'),
+        FlatEntry('n', ' 2 '),
+        FlatEntry('n', '3'),
+      ]);
+      expect(ok.requireAllAs('n', int.parse), [1, 2, 3]);
+
+      final withNull = FlatDocument(const [
+        FlatEntry('n', '1'),
+        FlatEntry('n', null),
+      ]);
+      expect(
+          () => withNull.requireAllAs('n', int.parse), throwsFormatException);
+
+      final withEmpty = FlatDocument(const [FlatEntry('n', '')]);
+      expect(
+          () => withEmpty.requireAllAs('n', int.parse), throwsFormatException);
+
+      final withBad = FlatDocument(const [FlatEntry('n', 'x')]);
+      expect(() => withBad.requireAllAs('n', int.parse), throwsFormatException);
+    });
+
+    test('requireAllAs stops at first invalid number', () {
+      final seen = <String>[];
+      final d = FlatDocument(const [
+        FlatEntry('n', '1'),
+        FlatEntry('n', 'x'), // invalid
+        FlatEntry('n', '3'), // should not be converted anymore
+      ]);
+
+      expect(
+        () => d.requireAllAs('n', (s) {
+          seen.add(s);
+          return int.parse(s);
+        }),
+        throwsFormatException,
+      );
+      expect(seen, ['1', 'x']);
+    });
+
     test('getDuration parses ms/s/m/h/d', () {
       final d = docOf({
         'a': '150ms',

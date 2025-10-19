@@ -4,6 +4,45 @@ import 'document.dart';
 import 'exceptions.dart';
 import 'parser_utils.dart';
 
+/// Converter function that transforms a non-null string into a typed value `T`.
+///
+/// Contract:
+/// - Must throw on invalid input (do not return null).
+/// - May assume the input has already been optionally trimmed by the caller.
+///
+/// Used by: `getAs`, `getAsOr`, `requireAs`.
+///
+/// Example:
+/// ```dart
+/// final port = doc.getAs('port', int.parse);
+/// ```
+typedef FlatConverter<T> = T Function(String value);
+
+/// Advanced, context-aware converter.
+///
+/// Receives:
+/// - [raw]: the raw (optionally trimmed) string value, or `null` if the key is missing,
+/// - [key]: the configuration key,
+/// - [doc]: the entire document (for cross-field logic).
+///
+/// Return `null` to signal conversion failure (treated like “no value” in lenient
+/// APIs; `requireAsWith` will throw).
+///
+/// Used by: `getAsWith`, `requireAsWith`.
+///
+/// Example:
+/// ```dart
+/// final size = doc.getAsWith<int>('size', (raw, key, d) {
+///   if (raw == null) return null;
+///   return int.tryParse(raw); // null → conversion failure
+/// });
+/// ```
+typedef FlatAdvancedConverter<T> = T? Function(
+  String? raw,
+  String key,
+  FlatDocument doc,
+);
+
 /// Extensions for [FlatDocument] providing additional accessor and parsing helpers.
 ///
 /// This extension adds convenient methods for accessing configuration values
@@ -1134,5 +1173,258 @@ extension FlatDocumentAccessors on FlatDocument {
     }
 
     return documents;
+  }
+
+  /// Tries to convert the latest value for [key] using [convert].
+  ///
+  /// Returns `null` if:
+  /// - the key is missing,
+  /// - the (optionally trimmed) value is empty (when [ignoreEmpty] is true), or
+  /// - the converter throws.
+  ///
+  /// Example:
+  /// ```dart
+  /// final timeout = doc.getAs('timeout', Duration.parse);
+  /// ```
+  T? getAs<T>(
+    String key,
+    FlatConverter<T> convert, {
+    bool trim = true,
+    bool ignoreEmpty = true,
+  }) {
+    final raw = this[key];
+    if (raw == null) {
+      return null;
+    }
+
+    final s = trim ? raw.trim() : raw;
+    if (s.isEmpty && ignoreEmpty) {
+      return null;
+    }
+
+    try {
+      return convert(s);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Converts the latest value for [key] using [convert], or returns [defaultValue]
+  /// when the key is missing, the (optionally trimmed) value is empty
+  /// (when [ignoreEmpty] is true), or the converter throws.
+  ///
+  /// Never throws.
+  ///
+  /// Example:
+  /// ```dart
+  /// final port = doc.getAsOr('port', int.parse, 8080);
+  /// ```
+  T getAsOr<T>(
+    String key,
+    FlatConverter<T> convert,
+    T defaultValue, {
+    bool trim = true,
+    bool ignoreEmpty = true,
+  }) {
+    final v = getAs<T>(
+      key,
+      convert,
+      trim: trim,
+      ignoreEmpty: ignoreEmpty,
+    );
+
+    return v ?? defaultValue;
+  }
+
+  /// Strictly converts the latest value for [key] using [convert].
+  ///
+  /// Throws a [FormatException] with context when:
+  /// - the key is missing,
+  /// - the (optionally trimmed) value is empty (when [ignoreEmpty] is true), or
+  /// - the converter throws.
+  ///
+  /// Uses `.explain(key: ..., got: ...)` to attach context.
+  ///
+  /// Example:
+  /// ```dart
+  /// final timeout = doc.requireAs('timeout', Duration.parse);
+  /// ```
+  T requireAs<T>(
+    String key,
+    FlatConverter<T> convert, {
+    bool trim = true,
+    bool ignoreEmpty = true,
+  }) {
+    final raw = this[key];
+    if (raw == null) {
+      throw const FormatException('Missing value').explain(key: key, got: null);
+    }
+
+    final s = trim ? raw.trim() : raw;
+    if (ignoreEmpty && s.isEmpty) {
+      throw const FormatException('Empty value').explain(key: key, got: raw);
+    }
+
+    try {
+      return convert(s);
+    } catch (e) {
+      throw FormatException('Invalid value')
+          .explain(key: key, got: raw, cause: e);
+    }
+  }
+
+  /// Tries to convert the latest value for [key] using a context-aware [converter].
+  ///
+  /// Returns `null` if:
+  /// - the key is missing,
+  /// - the (optionally trimmed) value is empty (when [ignoreEmpty] is true), or
+  /// - the [converter] returns `null`.
+  ///
+  /// Use [requireAsWith] for a strict variant.
+  ///
+  /// Example:
+  /// ```dart
+  /// final db = doc.getAsWith('db', (raw, key, d) {
+  ///   if (raw == null) return null;
+  ///   // e.g. "host=localhost, port=5432"
+  ///   final sub = FlatConfig.parse(raw).toMap();
+  ///   final host = sub['host'];
+  ///   final port = int.tryParse(sub['port'] ?? '');
+  ///   return (host != null && port != null) ? (host, port) : null;
+  /// });
+  /// ```
+  T? getAsWith<T>(
+    String key,
+    FlatAdvancedConverter<T> converter, {
+    bool trim = false,
+    bool ignoreEmpty = false,
+  }) {
+    final raw = this[key];
+    final processed = raw == null ? null : (trim ? raw.trim() : raw);
+    if (ignoreEmpty && (processed?.isEmpty ?? true)) {
+      return null;
+    }
+
+    return converter(processed, key, this);
+  }
+
+  /// Strictly converts using a context-aware [converter]; throws on missing/empty/invalid.
+  ///
+  /// Throws a [FormatException] with context when:
+  /// - the key is missing,
+  /// - the (optionally trimmed) value is empty (when [ignoreEmpty] is true), or
+  /// - the [converter] returns `null`.
+  ///
+  /// Example:
+  /// ```dart
+  /// final ratio = doc.requireAsWith('video', (raw, key, d) {
+  ///   if (raw == null) return null;
+  ///   final parts = raw.split(':');
+  ///   if (parts.length != 2) return null;
+  ///   final w = double.tryParse(parts[0]);
+  ///   final h = double.tryParse(parts[1]);
+  ///   return (w != null && h != null && h != 0) ? (w / h) : null;
+  /// });
+  /// ```
+  T requireAsWith<T>(
+    String key,
+    FlatAdvancedConverter<T> converter, {
+    bool trim = false,
+    bool ignoreEmpty = false,
+    String message = 'Invalid value',
+  }) {
+    final raw = this[key];
+    if (raw == null) {
+      throw const FormatException('Missing value').explain(key: key, got: null);
+    }
+
+    final processed = trim ? raw.trim() : raw;
+    if (ignoreEmpty && processed.isEmpty) {
+      throw const FormatException('Empty value').explain(key: key, got: raw);
+    }
+
+    final result = converter(processed, key, this);
+    if (result == null) {
+      throw FormatException(message).explain(key: key, got: raw);
+    }
+
+    return result;
+  }
+
+  /// Lazily converts all values for [key] (see [valuesOf]) using [convert].
+  ///
+  /// Skips invalid items without throwing:
+  /// - null entries,
+  /// - (optionally trimmed) empty strings when [ignoreEmpty] is true,
+  /// - items whose [convert] throws.
+  ///
+  /// This is the permissive variant; use [requireAllAs] for strict mode.
+  ///
+  /// Example:
+  /// ```dart
+  /// final sizes = doc.getAllAs('size', (s) => int.parse(s)).toList();
+  /// ```
+  Iterable<T> getAllAs<T>(
+    String key,
+    FlatConverter<T> convert, {
+    bool trim = true,
+    bool ignoreEmpty = true,
+  }) sync* {
+    for (final raw in valuesOf(key)) {
+      if (raw == null) {
+        continue;
+      }
+
+      final s = trim ? raw.trim() : raw;
+      if (ignoreEmpty && s.isEmpty) {
+        continue;
+      }
+
+      try {
+        yield convert(s);
+      } catch (_) {
+        // skip invalid item
+      }
+    }
+  }
+
+  /// Strictly converts all values for [key]. Throws on the first invalid item:
+  /// - missing (null) entry,
+  /// - (optionally trimmed) empty value when [ignoreEmpty] is true,
+  /// - converter error.
+  ///
+  /// Returns a list with the converted values in input order.
+  ///
+  /// Example:
+  /// ```dart
+  /// final ports = doc.requireAllAs('port', int.parse);
+  /// ```
+  List<T> requireAllAs<T>(
+    String key,
+    FlatConverter<T> convert, {
+    bool trim = true,
+    bool ignoreEmpty = true,
+  }) {
+    final out = <T>[];
+    for (final raw in valuesOf(key)) {
+      if (raw == null) {
+        throw const FormatException('Missing value')
+            .explain(key: key, got: null);
+      }
+
+      final s = trim ? raw.trim() : raw;
+      if (ignoreEmpty && s.isEmpty) {
+        throw const FormatException('Empty value').explain(key: key, got: raw);
+      }
+
+      try {
+        out.add(convert(s));
+      } catch (e) {
+        throw FormatException('Invalid value')
+            .explain(key: key, got: raw, cause: e);
+      }
+    }
+
+    return out;
   }
 }
