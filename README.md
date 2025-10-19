@@ -388,6 +388,69 @@ final hex = doc.requireHexColor('color');
 final pct = doc.requirePercent('alpha');
 ```
 
+### Custom Converters
+
+`flatconfig` also lets you define your own typed accessors using generic converter callbacks.
+This makes it easy to handle custom value formats or structured strings.
+
+`getAs()` / `getAsOr()` / `requireAs()`
+
+Convert a single key using your own converter:
+
+```dart
+// Safe: returns null on invalid or missing value
+final port = doc.getAs('port', int.parse);
+
+// With default fallback
+final retries = doc.getAsOr('retries', int.parse, 3);
+
+// Strict: throws on missing or invalid value
+final timeout = doc.requireAs('timeout', Duration.parse);
+```
+
+You can combine these with `trim` and `ignoreEmpty` flags:
+
+```dart
+final title = doc.getAs('title', (s) => s.toUpperCase(), trim: true);
+```
+
+`getAsWith()` / `requireAsWith()`
+
+Pass the entire document to a context-aware converter — useful for multi-field logic or sub-documents:
+
+```dart
+final db = doc.getAsWith('db', (raw, key, d) {
+  if (raw == null) return null;
+  final sub = FlatConfig.parse(raw).toMap();
+  final host = sub['host'];
+  final port = int.tryParse(sub['port'] ?? '');
+  return (host != null && port != null) ? '$host:$port' : null;
+});
+```
+
+```dart
+final ratio = doc.requireAsWith('video', (raw, key, d) {
+  if (raw == null) return null;
+  final parts = raw.split(':');
+  if (parts.length != 2) return null;
+  final w = double.tryParse(parts[0]);
+  final h = double.tryParse(parts[1]);
+  return (w != null && h != null && h != 0) ? (w / h) : null;
+});
+```
+
+`getAllAs()` / `requireAllAs()`
+
+Convert all values for a key (see `valuesOf()`):
+
+```dart
+// Lenient: skips invalid items
+final sizes = doc.getAllAs('size', int.parse).toList();
+
+// Strict: throws if any item fails
+final ports = doc.requireAllAs('port', int.parse);
+```
+
 ### Mini-Documents & Pairs
 
 ```dart
