@@ -1,7 +1,6 @@
 // file: lib/src/from_map_data.dart
 
 import 'dart:convert' as convert;
-
 import 'document.dart';
 
 /// Controls how nested Map/List data are flattened into FlatEntries.
@@ -30,21 +29,20 @@ final class FlatMapDataOptions {
   final String csvSeparator;
 
   /// Token used when a CSV element is `null` and `dropNulls == false`.
-  /// Defaults to empty string for backwards-compat, but can be set to `NULL`, etc.
+  /// Defaults to empty string for backwards-compatibility, but can be set to `NULL`, etc.
   final String csvNullToken;
 
   /// Whether `null` values are dropped entirely (otherwise become explicit resets).
   final bool dropNulls;
 
-  /// Highest-priority encoder; if it returns non-null, it is used for ANY value
-  /// (including null, Map, List).
+  /// Highest-priority encoder; if it returns non-null, it is used for ANY value (including null, Map, List).
   final FlatValueEncoder? valueEncoder;
 
   /// Optional per-item encoder for CSV mode (quoting/escaping).
   /// If null, items are joined as-is (v1 behavior).
   final CsvItemEncoder? csvItemEncoder;
 
-  /// Optional escaper applied to each child key segment before concatenation.
+  /// Optional escaper applied to each key segment (including root) before concatenation.
   /// Example: (k) => k.replaceAll('.', r'\.').
   final KeyEscaper? keyEscaper;
 
@@ -57,22 +55,22 @@ final class FlatMapDataOptions {
 
 /// List encoding mode: multi-value entries vs CSV string.
 enum FlatListMode {
-  /// Multiple entries for each item in the list
+  /// Multiple entries for each item in the list.
   multi,
 
-  /// A single CSV string for the list
+  /// A single CSV string for the list.
   csv,
 }
 
 /// Strategy for non-scalar items inside lists.
 enum FlatUnsupportedListItem {
-  /// Encode the item as JSON
+  /// Encode the item as JSON.
   encodeJson,
 
-  /// Skip the item
+  /// Skip the item.
   skip,
 
-  /// Throw an error
+  /// Throw an error.
   error,
 }
 
@@ -82,7 +80,7 @@ typedef FlatValueEncoder = String? Function(Object? value, String keyPath);
 /// Encoder for CSV items (e.g., quoting/escaping).
 typedef CsvItemEncoder = String Function(String item, String keyPath);
 
-/// Escaper for path key segments before concatenation.
+/// Escaper for path key segments before concatenation (applied to root and child segments).
 typedef KeyEscaper = String Function(String rawKey);
 
 /// Extension methods for FlatDocument.
@@ -102,8 +100,11 @@ extension FlatDocumentFactories on FlatDocument {
     final entries = <FlatEntry>[];
 
     for (final e in data.entries) {
+      final root =
+          options.keyEscaper != null ? options.keyEscaper!(e.key) : e.key;
+
       flattenValue(
-        keyPath: e.key,
+        keyPath: root,
         value: e.value,
         options: options,
         out: entries,
@@ -124,18 +125,15 @@ void flattenValue({
   required List<FlatEntry> out,
 }) {
   // Highest priority: user-supplied encoder may force a specific representation for ANY value.
-  final forced = _tryValueOverride(
-    value: value,
-    keyPath: keyPath,
-    options: options,
-  );
+  final forced =
+      _tryValueOverride(value: value, keyPath: keyPath, options: options);
   if (forced != null) {
     out.add(FlatEntry(keyPath, forced));
 
     return;
   }
 
-  // Null handling (no override present)
+  // Null handling (no override present).
   if (value == null) {
     if (!options.dropNulls) {
       out.add(FlatEntry(keyPath, null));
@@ -144,69 +142,49 @@ void flattenValue({
     return;
   }
 
-  // Scalar branch
+  // Scalar branch.
   if (_isScalar(value)) {
-    final encoded = encodeValue(
-      value: value,
-      keyPath: keyPath,
-      options: options,
-    );
-
+    final encoded =
+        encodeValue(value: value, keyPath: keyPath, options: options);
     out.add(FlatEntry(keyPath, encoded));
 
     return;
   }
 
-  // Map traversal (accept any Map; convert keys to string paths)
+  // Map traversal (accept any Map; convert keys to string paths).
   if (value is Map) {
     final map = value;
-
     for (final entry in map.entries) {
-      final childKey = _toChildPath(
-        parent: keyPath,
-        child: entry.key.toString(),
-        options: options,
-      );
+      final rawChild = entry.key.toString();
+      final childKey =
+          _toChildPath(parent: keyPath, child: rawChild, options: options);
 
       flattenValue(
-        keyPath: childKey,
-        value: entry.value,
-        options: options,
-        out: out,
-      );
+          keyPath: childKey, value: entry.value, options: options, out: out);
     }
 
     return;
   }
 
-  // List handling
+  // List handling.
   if (value is List) {
     final list = value.cast<Object?>();
 
     if (options.listMode == FlatListMode.multi) {
       _emitListAsMulti(
-        keyPath: keyPath,
-        list: list,
-        options: options,
-        out: out,
-      );
+          keyPath: keyPath, list: list, options: options, out: out);
 
       return;
     }
 
     if (options.listMode == FlatListMode.csv) {
-      _emitListAsCsv(
-        keyPath: keyPath,
-        list: list,
-        options: options,
-        out: out,
-      );
+      _emitListAsCsv(keyPath: keyPath, list: list, options: options, out: out);
 
       return;
     }
   }
 
-  // Fallback for anything else → JSON string
+  // Fallback for anything else → JSON string.
   final json = encodeJson(value);
   out.add(FlatEntry(keyPath, json));
 }
@@ -226,7 +204,7 @@ String encodeValue({
     return value.toString();
   }
 
-  // Dart enums expose `.name`
+  // Dart enums expose `.name`.
   if (value is Enum) {
     return value.name;
   }
@@ -239,7 +217,7 @@ String encodeValue({
     return value.toString();
   }
 
-  // Default scalar encoding
+  // Default scalar encoding.
   return value.toString();
 }
 
@@ -260,6 +238,7 @@ String joinAsCsv({
     if (!first) {
       buffer.write(options.csvSeparator);
     }
+
     buffer.write(item);
     first = false;
   }
@@ -311,12 +290,8 @@ void _emitListAsMulti({
   required List<FlatEntry> out,
 }) {
   for (final item in list) {
-    // Highest priority: allow override even for null and composites
-    final forced = _tryValueOverride(
-      value: item,
-      keyPath: keyPath,
-      options: options,
-    );
+    final forced =
+        _tryValueOverride(value: item, keyPath: keyPath, options: options);
     if (forced != null) {
       out.add(FlatEntry(keyPath, forced));
 
@@ -332,26 +307,20 @@ void _emitListAsMulti({
     }
 
     if (_isScalar(item)) {
-      final encoded = encodeValue(
-        value: item,
-        keyPath: keyPath,
-        options: options,
-      );
-
+      final encoded =
+          encodeValue(value: item, keyPath: keyPath, options: options);
       out.add(FlatEntry(keyPath, encoded));
 
       continue;
     }
 
-    // Composite item handling according to policy
     if (options.onUnsupportedListItem == FlatUnsupportedListItem.skip) {
       continue;
     }
 
     if (options.onUnsupportedListItem == FlatUnsupportedListItem.error) {
       throw const FormatException(
-        'Composite item in list not supported in multi mode',
-      );
+          'Composite item in list not supported in multi mode');
     }
 
     final json = encodeJson(item);
@@ -368,12 +337,8 @@ void _emitListAsCsv({
   final items = <String>[];
 
   for (final item in list) {
-    // Highest priority: allow override for any item first
-    final forced = _tryValueOverride(
-      value: item,
-      keyPath: keyPath,
-      options: options,
-    );
+    final forced =
+        _tryValueOverride(value: item, keyPath: keyPath, options: options);
     if (forced != null) {
       items.add(forced);
 
@@ -389,26 +354,20 @@ void _emitListAsCsv({
     }
 
     if (_isScalar(item)) {
-      final encoded = encodeValue(
-        value: item,
-        keyPath: keyPath,
-        options: options,
-      );
-
+      final encoded =
+          encodeValue(value: item, keyPath: keyPath, options: options);
       items.add(encoded);
 
       continue;
     }
 
-    // Composite values in csv mode
     if (options.onUnsupportedListItem == FlatUnsupportedListItem.skip) {
       continue;
     }
 
     if (options.onUnsupportedListItem == FlatUnsupportedListItem.error) {
       throw const FormatException(
-        'Composite item in list not supported in csv mode',
-      );
+          'Composite item in list not supported in csv mode');
     }
 
     final json = encodeJson(item);
@@ -434,4 +393,34 @@ String? _tryValueOverride({
   }
 
   return overridden;
+}
+
+// ===== RFC-4180 CSV Utils =====
+
+/// Quotes one CSV item per RFC-4180:
+/// - Quote if it contains the separator, quotes, or newlines.
+/// - Escape quotes by doubling them ("").
+String rfc4180Quote(String item, String separator) {
+  final hasSep = separator.isNotEmpty && item.contains(separator);
+  final hasQuote = item.contains('"');
+  final hasNl = item.contains('\n') || item.contains('\r');
+
+  if (!hasSep && !hasQuote && !hasNl) {
+    return item;
+  }
+
+  final escaped = item.replaceAll('"', '""');
+
+  return '"$escaped"';
+}
+
+/// Returns a CsvItemEncoder that applies RFC-4180 quoting using the given separator.
+/// Example:
+/// ```dart
+/// csvItemEncoder: rfc4180CsvItemEncoder(',')
+/// ```
+CsvItemEncoder rfc4180CsvItemEncoder(String separator) {
+  String encode(String item, String keyPath) => rfc4180Quote(item, separator);
+
+  return encode;
 }
