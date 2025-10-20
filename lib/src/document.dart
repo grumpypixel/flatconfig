@@ -99,7 +99,10 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// When [strict] is `true` (default), an empty or whitespace-only key
   /// causes a [FormatException]. When `false`, such keys are silently
   /// ignored and not included in the resulting document.
-  factory FlatDocument.fromMap(Map<String, String?> map, {bool strict = true}) {
+  factory FlatDocument.fromMap(
+    Map<String, String?> map, {
+    bool strict = true,
+  }) {
     final out = <FlatEntry>[];
     map.forEach((k, v) {
       final kt = k.trim();
