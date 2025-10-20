@@ -5,6 +5,7 @@ import 'package:meta/meta.dart';
 import 'constants.dart';
 import 'document.dart';
 import 'exceptions.dart';
+import 'from_map_data.dart';
 import 'options.dart';
 import 'parser_utils.dart';
 
@@ -283,6 +284,19 @@ class FlatConfig {
 
     return FlatDocument(out);
   }
+
+  /// Builds a [FlatDocument] by flattening nested Map/List data into key paths.
+  ///
+  /// Semantics:
+  /// - Nested maps become `a.b.c = value` (configurable separator).
+  /// - Lists can emit multiple entries (`multi`) or a single CSV string (`csv`).
+  /// - `null` values become explicit resets (`key =`) unless `dropNulls == true`.
+  /// - `valueEncoder` has highest priority for ANY value.
+  static FlatDocument fromMapData(
+    Map<String, Object?> data, {
+    FlatMapDataOptions options = const FlatMapDataOptions(),
+  }) =>
+      flatDocumentFromMapData(data, options: options);
 
   /// Parses a single configuration line into a [FlatEntry].
   ///

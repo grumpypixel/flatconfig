@@ -19,6 +19,19 @@ export 'src/exceptions.dart'
         TrailingCharactersAfterQuoteException,
         UnterminatedQuoteException;
 
+// Map/List flattening → FlatDocument.fromMapData + options/hooks/utils
+export 'src/from_map_data.dart'
+    show
+        CsvItemEncoder,
+        FlatListMode,
+        FlatMapDataOptions,
+        FlatUnsupportedListItem,
+        FlatValueEncoder,
+        KeyEscaper,
+        flatDocumentFromMapData,
+        rfc4180CsvItemEncoder,
+        rfc4180Quote;
+
 // Conditional export: includes (export the whole file, otherwise the Extensions won't work)
 export 'src/includes_stub.dart' if (dart.library.io) 'src/includes.dart';
 

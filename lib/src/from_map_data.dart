@@ -83,36 +83,26 @@ typedef CsvItemEncoder = String Function(String item, String keyPath);
 /// Escaper for path key segments before concatenation (applied to root and child segments).
 typedef KeyEscaper = String Function(String rawKey);
 
-/// Extension methods for FlatDocument.
-extension FlatDocumentFactories on FlatDocument {
-  /// Flattens nested Map/List data into a FlatDocument.
-  ///
-  /// Contract:
-  /// - Maps are traversed recursively and joined with `options.separator`.
-  /// - Lists are emitted as multi-value or CSV depending on `options.listMode`.
-  /// - `null` becomes explicit reset unless `options.dropNulls == true`.
-  /// - `options.valueEncoder` has highest priority for ANY value.
-  /// - Strict behavior mirrors other factories via `options.strict`.
-  static FlatDocument fromMapData(
-    Map<String, Object?> data, {
-    FlatMapDataOptions options = const FlatMapDataOptions(),
-  }) {
-    final entries = <FlatEntry>[];
+/// Public top-level entrypoint used by FlatConfig.fromMapData.
+FlatDocument flatDocumentFromMapData(
+  Map<String, Object?> data, {
+  FlatMapDataOptions options = const FlatMapDataOptions(),
+}) {
+  final entries = <FlatEntry>[];
 
-    for (final e in data.entries) {
-      final root =
-          options.keyEscaper != null ? options.keyEscaper!(e.key) : e.key;
+  for (final e in data.entries) {
+    final root =
+        options.keyEscaper != null ? options.keyEscaper!(e.key) : e.key;
 
-      flattenValue(
-        keyPath: root,
-        value: e.value,
-        options: options,
-        out: entries,
-      );
-    }
-
-    return FlatDocument.fromEntries(entries, strict: options.strict);
+    flattenValue(
+      keyPath: root,
+      value: e.value,
+      options: options,
+      out: entries,
+    );
   }
+
+  return FlatDocument.fromEntries(entries, strict: options.strict);
 }
 
 // ===== Helper Implementations (top-level; no nested functions) =====
