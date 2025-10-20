@@ -567,6 +567,13 @@ final shallow = FlatDocument.fromMap({
   'font-size': '14',
 });
 
+// From a dynamic map (typed values converted to strings)
+final dynamicMap = FlatDocument.fromDynamicMap({
+  'version': 2.0,
+  'enabled': true,
+  'tags': ['alpha', 'beta'],
+});
+
 // From a list of entries
 final entries = FlatDocument.fromEntries([
   FlatEntry('theme', 'dark'),
