@@ -199,6 +199,13 @@ All factory constructors respect `strict`:
 - `FlatDocument.merge([...])`
 - `FlatDocument.single('key', value: 'x')`
 
+> **Note:**  
+> `FlatDocument.fromMap(...)` and `FlatConfig.fromDynamicMap(...)` are **shallow** factories.  
+> They convert only one level of key-value pairs and do not traverse nested maps or lists.  
+> For structured data that needs to be flattened into key paths (e.g. `window.width = 5120`),  
+> use [`FlatConfig.fromMapData`](#deep-flattening-with-frommapdata).
+
+
 ## Data Model
 
 ```dart
@@ -578,7 +585,7 @@ final single = FlatDocument.single('theme', value: 'dark');
 > Each map entry becomes exactly one key in the resulting document.
 > For structured or nested data, use `fromMapData` below.
 
-### Deep Flattening with fromMapData
+### Deep Flattening with `fromMapData`
 
 When you need to flatten nested `Map` / `List` structures into flat key-path pairs, use `FlatConfig.fromMapData`.
 It recursively traverses maps and lists, joining paths with `.` by default.
