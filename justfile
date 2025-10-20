@@ -27,6 +27,7 @@ doit:
 
 dothecoverage:
 	dart pub global activate coverage
+	dart pub global activate full_coverage
 	just coverage-full
 	just coverage-html
 	open coverage/html/index.html
