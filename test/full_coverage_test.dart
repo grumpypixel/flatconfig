@@ -5,6 +5,7 @@ import 'package:flatconfig/src/document.dart';
 import 'package:flatconfig/src/document_accessors.dart';
 import 'package:flatconfig/src/document_extensions.dart';
 import 'package:flatconfig/src/exceptions.dart';
+import 'package:flatconfig/src/from_map_data.dart';
 import 'package:flatconfig/src/includes.dart';
 import 'package:flatconfig/src/includes_stub.dart';
 import 'package:flatconfig/src/io.dart';

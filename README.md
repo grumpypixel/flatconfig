@@ -26,7 +26,7 @@ Perfect for tools, CLIs, and Flutter apps that need structured settings without 
 - 🧱 **Collapse helpers** to deduplicate keys (first occurrence or last write)
 - 🧰 **Pretty-print and debug dumps**
 - 🔁 **Round-tripping** with configurable quoting and escaping
-- 🧮 **Factories for easy creation** — build documents from maps, entries, or single pairs
+- 🧮 **Factories for easy creation** — build documents from maps, entries, or nested data (`fromMapData`)
 - ✅ **Strict validation** for non-empty keys, toggleable via `strict: false`
 
 ## Usage
@@ -44,7 +44,7 @@ Then import it in your Dart code:
 import 'package:flatconfig/flatconfig.dart';
 ```
 
-### Platform notes
+### Platform Notes
 
 `flatconfig` is fully **Web/WASM-safe** – all core parsing and document features
 (`FlatConfig`, `FlatDocument`, accessors, encoding, etc.) work on every platform.
@@ -108,7 +108,7 @@ import 'package:flatconfig/flatconfig.dart';
 
 Future<void> main() async {
   final doc = await File('config.conf').parseFlat();
-  final inc = await File('main.conf').parseWithIncludes();
+  final inc = await File('main.conf').parseWithIncludes(); // includes + merges recursively
 }
 ```
 
@@ -144,7 +144,7 @@ shader = vignette
 texture =
 ```
 
-Notes:
+**Notes:**
 
 - Keys are case-sensitive: background ≠ Background
 - Values can be quoted or unquoted:
@@ -199,6 +199,13 @@ All factory constructors respect `strict`:
 - `FlatDocument.merge([...])`
 - `FlatDocument.single('key', value: 'x')`
 
+> **Note:**  
+> `FlatDocument.fromMap(...)` and `FlatConfig.fromDynamicMap(...)` are **shallow** factories.  
+> They convert only one level of key-value pairs and do not traverse nested maps or lists.  
+> For structured data that needs to be flattened into key paths (e.g. `window.width = 5120`),  
+> use [`FlatConfig.fromMapData`](#deep-flattening-with-frommapdata).
+
+
 ## Data Model
 
 ```dart
@@ -220,27 +227,6 @@ class FlatDocument {
   bool has(String key);
   bool hasNonNull(String key);
 }
-```
-
-### Document Factories
-
-`FlatDocument` provides several constructors for flexible creation:
-
-```dart
-// From a Map
-final fromMap = FlatDocument.fromMap({'theme': 'dark', 'font-size': '14'});
-
-// From a list of entries
-final fromEntries = FlatDocument.fromEntries([
-  FlatEntry('theme', 'dark'),
-  FlatEntry('accent', 'mint'),
-]);
-
-// Merge multiple documents
-final merged = FlatDocument.merge([fromMap, fromEntries]);
-
-// Single key/value
-final single = FlatDocument.single('theme', value: 'dark');
 ```
 
 ## Parsing
@@ -338,7 +324,7 @@ Future<void> main() async {
 
 > Customize the key name via `FlatParseOptions(includeKey: 'include')`.
 
-Notes:
+**Notes:**
 
 - On *Windows* (and optionally macOS), include cycle detection uses *case-insensitive paths*.
 - Quoted include paths (e.g. `config-file = "path/to/theme.conf"`) are supported. Escapes inside quotes (like `\"` or `\\`) are not decoded unless explicitly implemented.
@@ -356,7 +342,7 @@ final out = doc.encode(
 );
 ```
 
-> Note: Encoding does not include a BOM and does not preserve comments or blank lines.
+> **Note:** Encoding does not include a BOM and does not preserve comments or blank lines.
 
 ### Writing to Files
 
@@ -559,6 +545,149 @@ Future<void> main() async {
 - Unquoted values are trimmed; quoted values preserve whitespace and `=`
 - Empty unquoted values become `null` (explicit reset)
 - Encoding is lossy (comments and blank lines are dropped)
+
+## Document Factories
+
+Once you're familiar with parsing, encoding, and format rules, you can also go the other way around —
+by building configuration documents programmatically from structured data.
+
+`flatconfig` provides flexible document factories that let you create
+`FlatDocument` instances directly from maps, lists, or custom data models.
+This is especially useful for tools, CLIs, or apps that need to export configuration files
+from in-memory settings or serialize deeply nested objects into flat key paths.
+
+### Shallow Factories
+
+`FlatDocument` exposes several simple constructors for one-level data:
+
+```dart
+// From a simple key-value map (one entry per key)
+final shallow = FlatDocument.fromMap({
+  'theme': 'dark',
+  'font-size': '14',
+});
+
+// From a list of entries
+final entries = FlatDocument.fromEntries([
+  FlatEntry('theme', 'dark'),
+  FlatEntry('accent', 'mint'),
+]);
+
+// Merge multiple documents
+final merged = FlatDocument.merge([shallow, entries]);
+
+// Single key/value pair
+final single = FlatDocument.single('theme', value: 'dark');
+```
+
+> **Note:**
+> `fromMap` and `fromDynamicMap` are *shallow* — they do not traverse nested maps or lists.
+> Each map entry becomes exactly one key in the resulting document.
+> For structured or nested data, use `fromMapData` below.
+
+### Deep Flattening with `fromMapData`
+
+When you need to flatten nested `Map` / `List` structures into flat key-path pairs, use `FlatConfig.fromMapData`.
+It recursively traverses maps and lists, joining paths with `.` by default.
+
+```dart
+final doc = FlatConfig.fromMapData({
+  'theme': 'dark',
+  'window': {
+    'width': 5120,
+    'height': 2160,
+  },
+  'features': ['a', 'b', 'c'],
+});
+
+print(doc.toMap());
+// {
+//   theme: dark,
+//   window.width: 5120,
+//   window.height: 2160,
+//   features: a,
+// }
+```
+
+### Configuration Options
+
+`fromMapData` is highly customizable through `FlatMapDataOptions`:
+
+| Option                  | Description                                                                  | Default              |
+| ----------------------- | ---------------------------------------------------------------------------- | -------------------- |
+| `separator`             | Path separator between nested keys                                           | `'.'`                |
+| `listMode`              | Encode lists as multiple entries (`multi`) or as a single CSV string (`csv`) | `FlatListMode.multi` |
+| `csvSeparator`          | Separator for CSV mode                                                       | `', '`               |
+| `csvNullToken`          | Token for `null` in CSV lists (when `dropNulls == false`)                    | `''`                 |
+| `dropNulls`             | Removes `null` values entirely                                               | `false`              |
+| `valueEncoder`          | Global override for *any* value (highest priority)                           | `null`               |
+| `onUnsupportedListItem` | How to handle composite items in lists (`encodeJson`, `skip`, `error`)       | `encodeJson`         |
+| `strict`                | Validates non-empty keys                                                     | `true`               |
+| `keyEscaper`            | Escapes keys containing the path separator                                   | `null`               |
+| `csvItemEncoder`        | Optional hook for quoting/escaping CSV items                                 | `null`               |
+
+Example with advanced options:
+
+```dart
+final doc = FlatConfig.fromMapData(
+  {
+    'window': {'w': 5120, 'h': 2160},
+    'colors': ['red', 'mint,green', 'blue'],
+  },
+  options: FlatMapDataOptions(
+    listMode: FlatListMode.csv,
+    csvSeparator: ',',
+    csvItemEncoder: rfc4180CsvItemEncoder(','), // RFC-4180 safe quoting
+    keyEscaper: (k) => k.replaceAll('.', r'\.'), // escape dots in keys
+  ),
+);
+
+print(doc.toMap());
+// {
+//   window.w: 5120,
+//   window.h: 2160,
+//   colors: "red","mint,green","blue"
+// }
+```
+
+### Helper: RFC-4180 CSV Quoting
+
+`flatconfig` includes a small utility for **safe CSV encoding**
+when working with `listMode: csv` or custom CSV formats.
+
+```dart
+final quoted = rfc4180Quote('value,with,commas', ',');
+// → "value,with,commas"
+
+final encoder = rfc4180CsvItemEncoder(',');
+print(encoder('text,with,comma')); // → "text,with,comma"
+```
+
+The encoder automatically escapes quotes (`" → ""`)
+and wraps any item containing the separator, quotes, or newlines in quotes.
+
+> **💡 Tip:**
+> Combine `fromMapData` with your app’s JSON models or structured settings
+> to directly generate `.conf` files — ideal for CLIs, build tools, and user-editable configs.
+
+### Round-Trip Workflow
+
+Together with `FlatConfig.parse` and `FlatDocument.encode`,
+`fromMapData` completes a full round-trip pipeline
+between structured data and human-editable config files:
+
+```text
+Structured object  ⇄  FlatDocument  ⇄  .conf file
+```
+
+This lets you:
+
+- Parse `.conf` files into maps and models.
+- Modify or merge them in code.
+- Re-emit them back to human-friendly flat files.
+
+Perfect for editors, generators, and configuration UIs
+that need to stay both **machine-readable** and **human-editable**.
 
 ## Design Philosophy
 
