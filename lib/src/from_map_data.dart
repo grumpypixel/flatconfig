@@ -1,5 +1,3 @@
-// file: lib/src/from_map_data.dart
-
 import 'dart:convert' as convert;
 import 'document.dart';
 
