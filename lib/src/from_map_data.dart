@@ -68,7 +68,6 @@ enum FlatUnsupportedListItem {
 /// Master encoder for values; returning `null` defers to default encoders.
 typedef FlatValueEncoder = String? Function(Object? value, String keyPath);
 
-
 /// Extension methods for FlatDocument.
 extension FlatDocumentFactories on FlatDocument {
   /// Flattens nested Map/List data into a FlatDocument.
