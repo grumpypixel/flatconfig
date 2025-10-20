@@ -11,9 +11,11 @@ final class FlatMapDataOptions {
     this.separator = '.',
     this.listMode = FlatListMode.multi,
     this.csvSeparator = ', ',
-    this.csvNullToken = '', // keep v1 behavior, but configurable
+    this.csvNullToken = '',
     this.dropNulls = false,
     this.valueEncoder,
+    this.csvItemEncoder,
+    this.keyEscaper,
     this.onUnsupportedListItem = FlatUnsupportedListItem.encodeJson,
     this.strict = true,
   });
@@ -28,14 +30,23 @@ final class FlatMapDataOptions {
   final String csvSeparator;
 
   /// Token used when a CSV element is `null` and `dropNulls == false`.
-  /// Defaults to empty string for backwards-compat, but can be set to `null`, `NULL`, etc.
+  /// Defaults to empty string for backwards-compat, but can be set to `NULL`, etc.
   final String csvNullToken;
 
   /// Whether `null` values are dropped entirely (otherwise become explicit resets).
   final bool dropNulls;
 
-  /// Highest-priority encoder; if it returns non-null, it is used for ANY value (including null, Map, List).
+  /// Highest-priority encoder; if it returns non-null, it is used for ANY value
+  /// (including null, Map, List).
   final FlatValueEncoder? valueEncoder;
+
+  /// Optional per-item encoder for CSV mode (quoting/escaping).
+  /// If null, items are joined as-is (v1 behavior).
+  final CsvItemEncoder? csvItemEncoder;
+
+  /// Optional escaper applied to each child key segment before concatenation.
+  /// Example: (k) => k.replaceAll('.', r'\.').
+  final KeyEscaper? keyEscaper;
 
   /// Behavior when a list contains composite items (Map/List).
   final FlatUnsupportedListItem onUnsupportedListItem;
@@ -67,6 +78,12 @@ enum FlatUnsupportedListItem {
 
 /// Master encoder for values; returning `null` defers to default encoders.
 typedef FlatValueEncoder = String? Function(Object? value, String keyPath);
+
+/// Encoder for CSV items (e.g., quoting/escaping).
+typedef CsvItemEncoder = String Function(String item, String keyPath);
+
+/// Escaper for path key segments before concatenation.
+typedef KeyEscaper = String Function(String rawKey);
 
 /// Extension methods for FlatDocument.
 extension FlatDocumentFactories on FlatDocument {
@@ -229,16 +246,21 @@ String encodeValue({
 /// Emits a CSV string for a list of scalar values.
 String joinAsCsv({
   required Iterable<String> items,
+  required String keyPath,
   required FlatMapDataOptions options,
 }) {
   final buffer = StringBuffer();
   var first = true;
 
   for (final s in items) {
+    final item = options.csvItemEncoder != null
+        ? options.csvItemEncoder!(s, keyPath)
+        : s;
+
     if (!first) {
       buffer.write(options.csvSeparator);
     }
-    buffer.write(s);
+    buffer.write(item);
     first = false;
   }
 
@@ -272,11 +294,14 @@ String _toChildPath({
   required String child,
   required FlatMapDataOptions options,
 }) {
+  final safeChild =
+      options.keyEscaper != null ? options.keyEscaper!(child) : child;
+
   if (parent.isEmpty) {
-    return child;
+    return safeChild;
   }
 
-  return parent + options.separator + child;
+  return parent + options.separator + safeChild;
 }
 
 void _emitListAsMulti({
@@ -390,7 +415,7 @@ void _emitListAsCsv({
     items.add(json);
   }
 
-  final joined = joinAsCsv(items: items, options: options);
+  final joined = joinAsCsv(items: items, keyPath: keyPath, options: options);
   out.add(FlatEntry(keyPath, joined));
 }
 
