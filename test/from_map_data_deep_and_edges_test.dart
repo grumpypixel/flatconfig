@@ -7,6 +7,17 @@ class _Nope {
   final int x = 7;
 }
 
+class _OkRoot {
+  final String v = 'x';
+  Map<String, Object?> toJson() => {'v': v};
+}
+
+class _OkVal {
+  _OkVal(this.n);
+  final int n;
+  Map<String, Object?> toJson() => {'n': n};
+}
+
 enum Mode { off, on }
 
 void main() {
@@ -63,6 +74,18 @@ void main() {
   });
 
   group('Key/path edge cases', () {
+    test('child non-string map key is stringified', () {
+      final doc = FlatConfig.fromMapData(
+        {
+          'a': {
+            42: 1,
+          },
+        },
+      );
+
+      expect(doc['a.42'], '1');
+    });
+
     test('root non-string map key is stringified', () {
       final doc = FlatConfig.fromMapData(
         {
@@ -186,6 +209,24 @@ void main() {
     });
   });
 
+  group('Root null handling (dropNulls)', () {
+    test('dropNulls=false creates explicit reset entry', () {
+      final doc = FlatConfig.fromMapData({'k': null});
+      expect(doc.valuesOf('k'), [null]);
+      expect(doc['k'], isNull);
+    });
+
+    test('dropNulls=true omits the key entirely', () {
+      final doc = FlatConfig.fromMapData(
+        {'k': null},
+        options: const FlatMapDataOptions(dropNulls: true),
+      );
+      expect(doc.valuesOf('k'), isEmpty);
+      expect(doc['k'], isNull);
+      expect(doc.keys.contains('k'), isFalse);
+    });
+  });
+
   group('JSON fallback behavior', () {
     test('non-encodable custom class throws JsonUnsupportedObjectError', () {
       expect(
@@ -203,6 +244,21 @@ void main() {
         throwsA(isA<JsonUnsupportedObjectError>()),
       );
     });
+
+    test('custom object with toJson() is JSON-encodable (root)', () {
+      final doc = FlatConfig.fromMapData({'obj': _OkRoot()});
+      expect(doc['obj'], '{"v":"x"}');
+    });
+
+    test('custom object with toJson() in list encodes via JSON', () {
+      final doc = FlatConfig.fromMapData(
+        {
+          'l': [_OkVal(1), _OkVal(2)],
+        },
+        options: const FlatMapDataOptions(listMode: FlatListMode.multi),
+      );
+      expect(doc.valuesOf('l'), ['{"n":1}', '{"n":2}']);
+    });
   });
 
   group('rfc4180Quote corner cases', () {
@@ -219,6 +275,10 @@ void main() {
     test('multiple-char separator', () {
       expect(rfc4180Quote('a; b', '; '), '"a; b"');
       expect(rfc4180Quote('plain', '; '), 'plain');
+    });
+
+    test('carriage return triggers quoting', () {
+      expect(rfc4180Quote('has\rcr', ','), '"has\rcr"');
     });
   });
 
@@ -251,6 +311,39 @@ void main() {
       expect(keys.first, 'k0');
       expect(keys[100], 'k100');
       expect(keys.last, 'k199');
+    });
+  });
+
+  group('CSV raw join without encoder', () {
+    test('no quoting is applied when csvItemEncoder is null', () {
+      final doc = FlatConfig.fromMapData(
+        {
+          'csv': ['a,b', 'x'],
+        },
+        options: const FlatMapDataOptions(
+          listMode: FlatListMode.csv,
+          csvSeparator: ',',
+        ),
+      );
+      expect(doc['csv'], 'a,b,x');
+    });
+  });
+
+  group('KeyEscaper with double-colon separator at root', () {
+    test('root and child containing :: are both escaped', () {
+      final doc = FlatConfig.fromMapData(
+        {
+          'root::part': {
+            'child::part': 1,
+          }
+        },
+        options: FlatMapDataOptions(
+          separator: '::',
+          keyEscaper: (k) => k.replaceAll('::', r'\:\:'),
+        ),
+      );
+
+      expect(doc[r'root\:\:part::child\:\:part'], '1');
     });
   });
 }
