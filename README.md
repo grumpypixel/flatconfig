@@ -1,4 +1,5 @@
 # flatconfig
+
 *A minimal `key = value` configuration parser for Dart and Flutter.*
 
 [![Pub Version](https://img.shields.io/pub/v/flatconfig.svg)](https://pub.dev/packages/flatconfig)
@@ -169,9 +170,9 @@ While `flatconfig` looks familiar if you’ve used INI or TOML, it’s intention
 | Nested data | ✅ via tables or dotted keys | 🚫 flat only |
 | Comments | `#` or `;` | `#` only |
 | Arrays / Lists | ✅ `[1, 2, 3]` etc. | ✅ via `getList()` / `getSet()` helpers |
-| Data types | explicit (bool, int, float, etc.)	| string-based + typed accessors |
+| Data types | explicit (bool, int, float, etc.) | string-based + typed accessors |
 | Includes | ❌ (TOML only via preprocessors) | ✅ built-in recursive `config-file` support |
-| Complexity |	moderate	| minimal & predictable |
+| Complexity | moderate | minimal & predictable |
 
 `flatconfig` intentionally omits sections and nested scopes — every key exists in a single flat namespace.
 This makes merging, overriding, and diffing configurations trivial, and keeps files readable even for non-developers.
@@ -204,7 +205,6 @@ All factory constructors respect `strict`:
 > They convert only one level of key-value pairs and do not traverse nested maps or lists.  
 > For structured data that needs to be flattened into key paths (e.g. `window.width = 5120`),  
 > use [`FlatConfig.fromMapData`](#deep-flattening-with-frommapdata).
-
 
 ## Data Model
 
@@ -478,7 +478,7 @@ final hp = doc.getHostPort('listen'); // "127.0.0.1:8080" → ('127.0.0.1', 8080
 ```
 
 > **🧠 Note:**
-> `getMap()` performs a simple, non-quoted split by commas and equals signs — it is _not quote-aware_.
+> `getMap()` performs a simple, non-quoted split by commas and equals signs — it is *not quote-aware*.
 > For parsing quoted key-value pairs (e.g. `name="My App", version="1.0"`), use `getDocument()` or `getListOfDocuments()`, which are quote-aware and handle escaped quotes correctly.
 
 ```dart
@@ -601,12 +601,17 @@ final doc = FlatConfig.fromMapData({
 });
 
 print(doc.toMap());
-// {
-//   theme: dark,
-//   window.width: 5120,
-//   window.height: 2160,
-//   features: a,
-// }
+// {theme: dark, window.width: 5120, window.height: 2160, features: c}
+
+for (final e in doc.entries) {
+  print('${e.key} = ${e.value}');
+}
+// theme = dark
+// window.width = 5120
+// window.height = 2160
+// features = a
+// features = b
+// features = c
 ```
 
 ### Configuration Options
