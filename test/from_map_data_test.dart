@@ -433,5 +433,46 @@ void main() {
 
       expect(doc.keys.toList(), ['z', 'a', 'm']);
     });
+
+    test('fallback: non-JSON-encodable object throws (root)', () {
+      expect(
+        () => FlatConfig.fromMapData({
+          'x': {1, 2}, // Set is not JSON-encodable → jsonEncode throws
+        }),
+        throwsA(isA<Object>()), // jsonEncode error (JsonUnsupportedObjectError)
+      );
+    });
+  });
+
+  group('fromMapData – per-item valueEncoder overrides', () {
+    test('multi mode: overrides individual items (not root list)', () {
+      final doc = FlatConfig.fromMapData(
+        {
+          'l': [1, 2],
+        },
+        options: FlatMapDataOptions(
+          listMode: FlatListMode.multi,
+          // Return null for root list; override items only
+          valueEncoder: (v, k) => (v is List) ? null : 'I',
+        ),
+      );
+
+      expect(doc.valuesOf('l'), ['I', 'I']);
+    });
+
+    test('csv mode: overrides individual items (not root list)', () {
+      final doc = FlatConfig.fromMapData(
+        {
+          'l': [1, 2],
+        },
+        options: FlatMapDataOptions(
+          listMode: FlatListMode.csv,
+          csvSeparator: ',',
+          valueEncoder: (v, k) => (v is List) ? null : 'I',
+        ),
+      );
+
+      expect(doc['l'], 'I,I');
+    });
   });
 }
