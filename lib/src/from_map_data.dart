@@ -2,7 +2,6 @@
 
 import 'dart:convert' as convert;
 
-// TODO: import your actual types
 import 'document.dart';
 
 /// Controls how nested Map/List data are flattened into FlatEntries.
@@ -12,6 +11,7 @@ final class FlatMapDataOptions {
     this.separator = '.',
     this.listMode = FlatListMode.multi,
     this.csvSeparator = ', ',
+    this.csvNullToken = '', // keep v1 behavior, but configurable
     this.dropNulls = false,
     this.valueEncoder,
     this.onUnsupportedListItem = FlatUnsupportedListItem.encodeJson,
@@ -27,10 +27,14 @@ final class FlatMapDataOptions {
   /// Separator used when `listMode == csv`.
   final String csvSeparator;
 
+  /// Token used when a CSV element is `null` and `dropNulls == false`.
+  /// Defaults to empty string for backwards-compat, but can be set to `null`, `NULL`, etc.
+  final String csvNullToken;
+
   /// Whether `null` values are dropped entirely (otherwise become explicit resets).
   final bool dropNulls;
 
-  /// Highest-priority encoder; if it returns non-null, it is used.
+  /// Highest-priority encoder; if it returns non-null, it is used for ANY value (including null, Map, List).
   final FlatValueEncoder? valueEncoder;
 
   /// Behavior when a list contains composite items (Map/List).
@@ -64,6 +68,7 @@ enum FlatUnsupportedListItem {
 /// Master encoder for values; returning `null` defers to default encoders.
 typedef FlatValueEncoder = String? Function(Object? value, String keyPath);
 
+
 /// Extension methods for FlatDocument.
 extension FlatDocumentFactories on FlatDocument {
   /// Flattens nested Map/List data into a FlatDocument.
@@ -72,7 +77,7 @@ extension FlatDocumentFactories on FlatDocument {
   /// - Maps are traversed recursively and joined with `options.separator`.
   /// - Lists are emitted as multi-value or CSV depending on `options.listMode`.
   /// - `null` becomes explicit reset unless `options.dropNulls == true`.
-  /// - `options.valueEncoder` has highest priority for value encoding.
+  /// - `options.valueEncoder` has highest priority for ANY value.
   /// - Strict behavior mirrors other factories via `options.strict`.
   static FlatDocument fromMapData(
     Map<String, Object?> data, {
@@ -81,12 +86,9 @@ extension FlatDocumentFactories on FlatDocument {
     final entries = <FlatEntry>[];
 
     for (final e in data.entries) {
-      final rootKey = e.key;
-      final value = e.value;
-
       flattenValue(
-        keyPath: rootKey,
-        value: value,
+        keyPath: e.key,
+        value: e.value,
         options: options,
         out: entries,
       );
@@ -105,7 +107,19 @@ void flattenValue({
   required FlatMapDataOptions options,
   required List<FlatEntry> out,
 }) {
-  // Null handling
+  // Highest priority: user-supplied encoder may force a specific representation for ANY value.
+  final forced = _tryValueOverride(
+    value: value,
+    keyPath: keyPath,
+    options: options,
+  );
+  if (forced != null) {
+    out.add(FlatEntry(keyPath, forced));
+
+    return;
+  }
+
+  // Null handling (no override present)
   if (value == null) {
     if (!options.dropNulls) {
       out.add(FlatEntry(keyPath, null));
@@ -114,9 +128,9 @@ void flattenValue({
     return;
   }
 
-  // Custom encoder has highest priority for non-composite values
+  // Scalar branch
   if (_isScalar(value)) {
-    final encoded = _encodeWithOverride(
+    final encoded = encodeValue(
       value: value,
       keyPath: keyPath,
       options: options,
@@ -187,18 +201,7 @@ String encodeValue({
   required String keyPath,
   required FlatMapDataOptions options,
 }) {
-  // Allow valueEncoder to override any behavior
-  if (options.valueEncoder != null) {
-    final overridden = options.valueEncoder!(value, keyPath);
-    if (overridden != null) {
-      return overridden;
-    }
-  }
-
-  if (value == null) {
-    return '';
-  }
-
+  // This path is only reached when _tryValueOverride returned null and value is non-null.
   if (value is bool) {
     return value ? 'true' : 'false';
   }
@@ -243,8 +246,8 @@ String joinAsCsv({
   return buffer.toString();
 }
 
-/// Returns a JSON-encoded representation of the object.
-String encodeJson(Object value) => convert.jsonEncode(value);
+/// Returns a JSON-encoded representation of the object (null-safe).
+String encodeJson(Object? value) => convert.jsonEncode(value);
 
 // ===== Private helpers =====
 
@@ -284,6 +287,18 @@ void _emitListAsMulti({
   required List<FlatEntry> out,
 }) {
   for (final item in list) {
+    // Highest priority: allow override even for null and composites
+    final forced = _tryValueOverride(
+      value: item,
+      keyPath: keyPath,
+      options: options,
+    );
+    if (forced != null) {
+      out.add(FlatEntry(keyPath, forced));
+
+      continue;
+    }
+
     if (item == null) {
       if (!options.dropNulls) {
         out.add(FlatEntry(keyPath, null));
@@ -293,7 +308,7 @@ void _emitListAsMulti({
     }
 
     if (_isScalar(item)) {
-      final encoded = _encodeWithOverride(
+      final encoded = encodeValue(
         value: item,
         keyPath: keyPath,
         options: options,
@@ -329,16 +344,28 @@ void _emitListAsCsv({
   final items = <String>[];
 
   for (final item in list) {
+    // Highest priority: allow override for any item first
+    final forced = _tryValueOverride(
+      value: item,
+      keyPath: keyPath,
+      options: options,
+    );
+    if (forced != null) {
+      items.add(forced);
+
+      continue;
+    }
+
     if (item == null) {
       if (!options.dropNulls) {
-        items.add('');
+        items.add(options.csvNullToken);
       }
 
       continue;
     }
 
     if (_isScalar(item)) {
-      final encoded = _encodeWithOverride(
+      final encoded = encodeValue(
         value: item,
         keyPath: keyPath,
         options: options,
@@ -368,13 +395,19 @@ void _emitListAsCsv({
   out.add(FlatEntry(keyPath, joined));
 }
 
-String _encodeWithOverride({
+String? _tryValueOverride({
   required Object? value,
   required String keyPath,
   required FlatMapDataOptions options,
 }) {
-  // Delegate to public encoder to centralize behavior
-  final s = encodeValue(value: value, keyPath: keyPath, options: options);
+  if (options.valueEncoder == null) {
+    return null;
+  }
 
-  return s;
+  final overridden = options.valueEncoder!(value, keyPath);
+  if (overridden == null) {
+    return null;
+  }
+
+  return overridden;
 }
