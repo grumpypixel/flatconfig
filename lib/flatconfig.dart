@@ -7,7 +7,6 @@ export 'src/document.dart' show FlatDocument, FlatEntry;
 export 'src/document_accessors.dart' show FlatDocumentAccessors;
 export 'src/document_extensions.dart'
     show CollapseOrder, FlatDocumentExtensions;
-
 export 'src/exceptions.dart'
     show
         CircularIncludeException,
@@ -18,7 +17,6 @@ export 'src/exceptions.dart'
         MissingIncludeException,
         TrailingCharactersAfterQuoteException,
         UnterminatedQuoteException;
-
 // Map/List flattening → FlatDocument.fromMapData + options/hooks/utils
 export 'src/from_map_data.dart'
     show
@@ -32,12 +30,22 @@ export 'src/from_map_data.dart'
         rfc4180CsvItemEncoder,
         rfc4180Quote;
 
+/// Include resolver core types and interfaces
+export 'src/include_resolver_core.dart'
+    show
+        CompositeIncludeResolver,
+        IncludeResolver,
+        IncludeUnit,
+        MemoryIncludeResolver,
+        Resolvers;
+// If we're on the web (dart:html), use the stub; otherwise use the IO version.
+export 'src/include_resolver_io.dart'
+    if (dart.library.html) 'src/include_resolver_stub.dart'
+    show FileIncludeResolver;
 // Conditional export: includes (export the whole file, otherwise the Extensions won't work)
 export 'src/includes_stub.dart' if (dart.library.io) 'src/includes.dart';
-
 // Conditional export: file I/O (export the whole file)
 export 'src/io_stub.dart' if (dart.library.io) 'src/io.dart';
-
 export 'src/options.dart'
     show
         FlatEncodeOptions,
@@ -45,5 +53,6 @@ export 'src/options.dart'
         FlatStreamReadOptions,
         FlatStreamWriteOptions,
         OnErrorHandler;
-
+// Resolver-based include support (web-safe core + conditional IO resolver)
+export 'src/parse_with_resolver.dart' show FlatConfigResolverIncludes;
 export 'src/parser.dart' show FlatConfig;

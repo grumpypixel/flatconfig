@@ -87,6 +87,16 @@ extension FlatConfigIOStub on Object {
   }) =>
       _unsupported('File.parseFlatSync');
 
+  /// Parses a configuration file with include support synchronously.
+  ///
+  /// Mirrors VM API placement for analyzer parity; throws on web/wasm.
+  FlatDocument parseWithIncludesSync({
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+    Map<String, FlatDocument>? cache,
+  }) =>
+      _unsupported('File.parseWithIncludesSync');
+
   /// Writes a FlatDocument to a file asynchronously.
   ///
   /// Always throws [UnsupportedError] on web/wasm.

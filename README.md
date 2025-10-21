@@ -22,13 +22,13 @@ Perfect for tools, CLIs, and Flutter apps that need structured settings without 
 - 📦 **Pure Dart**, minimal dependencies (`meta`; `path` for includes)  
 - 📝 **Supports duplicates**, preserves entry order  
 - 🔐 **Strict or lenient parsing**, optional callbacks for invalid lines  
+- ✅ **Strict validation** for non-empty keys, toggleable via `strict: false`  
 - 📁 **Async/sync file I/O**, handles UTF-8 BOM and any line endings  
 - 🧠 **Typed accessors** for durations, bytes, colors, URIs, JSON, enums, ratios, percents, lists, sets, maps, and ranges  
 - 🧱 **Collapse helpers** to deduplicate keys (first occurrence or last write)  
-- 🧰 **Pretty-print and debug dumps**  
 - 🔁 **Round-tripping** with configurable quoting and escaping  
 - 🧮 **Factories for easy creation** — build documents from maps, entries, or nested data (`fromMapData`)  
-- ✅ **Strict validation** for non-empty keys, toggleable via `strict: false`  
+- 🧰 **Pretty-print and debug dumps**  
 
 ## Usage
 
@@ -63,6 +63,8 @@ const raw = 'theme = dark';
 final doc = FlatConfig.parse(raw);
 print(doc['theme']); // dark
 ```
+
+> For includes on Web/WASM, use `MemoryIncludeResolver` with `FlatConfigResolverIncludes.parseStringWithIncludes()`.
 
 #### Works on Dart VM / Flutter Desktop / CLI
 
@@ -267,24 +269,25 @@ final sync = File('config.conf').parseFlatSync();
 
 ## Splitting into Multiple Files
 
-flatconfig supports **recursive includes** using the `config-file` key, similar to [Ghostty](https://ghostty.org/docs/config).
+flatconfig supports **recursive includes** using the `config-file` key, similar to Ghostty.
 
-- Files are processed **top-to-bottom**.  
-- Each `config-file = path.conf` is merged **immediately** at that position (depth-first).  
-- **Later entries override earlier ones** (“later wins”).  
-- Use `config-file = ?path.conf` for **optional includes** — missing files are ignored.  
-- An empty right-hand side (`key =`) is an **explicit null reset**: it clears the current value but does **not block** later assignments (non-blocking by default).  
-- Includes support **nesting**, **optionals**, and **cycle detection**.  
+- Files are processed **top-to-bottom**, but include directives are expanded **at the end of the current file** (depth-first).
+- **Later includes override earlier includes** (“later include wins”).
+- **Tail entries after the first include cannot override keys set by includes**.
+- Use `config-file = ?path.conf` for **optional includes** — missing files are ignored.
+- An empty right-hand side (`key =`) is an **explicit null reset**: it clears the current value but does **not** block later assignments (non-blocking by default).
+- Includes support **nesting**, **optionals**, and **cycle detection**.
 
 ```conf
 # main.conf
-app-name = MyFlutterApp
+app-name = MyApp
 version = 1.0.1
 
 config-file = theme.conf
 config-file = ?user.conf   # optional
 
-theme = custom             # overrides the earlier value from theme.conf
+# NOTE: Tail entries after the first include cannot override keys set by includes:
+theme = custom             # this will be ignored if 'theme' was set by an include
 ```
 
 ```conf
@@ -294,7 +297,13 @@ background = 343028
 foreground = f3d735
 ```
 
-**Null resets are non-blocking (default):**
+**Result for main.conf:**
+
+- `theme` → `dark` (from `theme.conf`; tail `theme = custom` is ignored)
+- `background` → `343028`
+- `foreground` → `f3d735`
+
+**Explicit null resets are non-blocking:**
 
 ```conf
 # reset.conf
@@ -302,7 +311,7 @@ background =              # explicit null reset
 theme = light
 ```
 
-When `reset.conf` is included **before** a later assignment, it clears the previous value but does **not** prevent later values from being set again.
+When `reset.conf` is included before a later assignment, it clears the previous value but does **not** prevent later values from being set again by **later includes** (or by tail entries that don’t conflict with include keys).
 
 ```conf
 # main-with-reset.conf
@@ -312,40 +321,81 @@ config-file = reset.conf
 background = 101010       # later wins (non-blocking reset)
 ```
 
-**Result:**
+**Result for main-with-reset.conf:**
 
-- `theme` → `custom` (later in main.conf)  
-- `background` → `101010` (overrides reset)  
-- `foreground` → `f3d735` (from theme.conf)  
+- `theme` → `light` (from `reset.conf`, later include wins)
+- `background` → `101010` (tail overrides the reset)
+- `foreground` → `f3d735` (from `theme.conf`)
 
-> If you ever need blocking resets (rare), you can enable them explicitly through merge options:
->
-> ```dart
-> parseWithIncludes(merge: FlatMergeOptions(blockingNulls: true))
-> ```
->
-> In that mode, `key =` permanently deletes the key and ignores any later assignments.
-> The default mode always uses **non-blocking resets** for predictable “later wins” merging.
+Define local overrides **before** any include if you want them to take effect:
+
+```conf
+# main-pre-override.conf
+theme = custom            # placed before includes → allowed
+config-file = theme.conf  # later include could still override if it sets theme
+```
+
+In that case, whether `custom` survives depends on whether a later include sets `theme` (later include wins).
 
 ### Include Semantics
 
 - **One include per line** — each `config-file = ...` line may reference exactly one file path. Comma-separated or space-separated include lists (e.g. `config-file = a.conf, b.conf`) are *not supported* and will be treated as a single literal path.  
 - **Includes are processed after the current file**, so later lines in the current file do *not override* keys from included files.  
-- **Null values from includes block later entries** — when an included file sets a key to `null` (empty value like `key =`), any later entries in the main file with the same key are blocked. This is part of the "Tail does not override includes" semantics and allows includes to explicitly reset configuration values.  
+- **Explicit null resets are non-blocking** — when an included file sets a key to an empty value (`key =`), it clears the current value but does *not* prevent later entries from reassigning it. This allows includes to reset or clear configuration values without permanently blocking overrides.  
 - **Multiple includes** are allowed. When several included files define the same key, *the later include wins*.  
 - Includes are **recursive**, with a defensive maximum depth (`maxIncludeDepth`, default *64*). The root file starts at depth 0.  
 - A leading `?` marks an include as *optional* (`config-file = ?user.conf`) — missing optional files are silently skipped.  
-- Relative include paths are resolved relative to the including file's directory.  
+- Relative include paths are resolved relative to the including file’s directory.  
 - Absolute paths are used as-is.  
 - Circular includes raise a `CircularIncludeException`.  
+  - For in-memory resolver parsing, cycle detection uses each unit’s canonical ID (`originId` / `IncludeUnit.id`). Prefer `mem:...` IDs for in-memory content; these are used for cycle detection.
 
-> Customize the key name via `FlatParseOptions(includeKey: 'include')`.
+#### Resolver Order (`CompositeIncludeResolver`)
+
+When using a `CompositeIncludeResolver`, resolution follows a **first-hit-wins** strategy.  
+Resolvers are tried in the order provided; the first resolver that returns a non-null `IncludeUnit` is used.
+
+> Customize the include key via `FlatParseOptions(includeKey: 'include')`.
 
 **Notes:**
 
-- On *Windows* (and optionally macOS), include cycle detection uses *case-insensitive paths*.  
-- Quoted include paths (e.g. `config-file = "path/to/theme.conf"`) are supported. Escapes inside quotes (like `\"` or `\\`) are not decoded unless explicitly implemented.  
-- Web builds are supported for in-memory parsing (`FlatConfig.parse()`), but *file includes* require `dart:io` and are not available in Flutter Web.  
+- On *Windows* (and optionally macOS), include cycle detection uses *case-insensitive* paths.  
+- **Include paths:** Quoted paths (e.g. `config-file = "path/with\\ spaces.conf"`) are supported, and simple escapes for quotes/backslashes are **decoded** for paths.  
+- **Values:** Decoding of escapes inside quoted **values** is controlled by `FlatParseOptions.decodeEscapesInQuoted`.  
+- Web builds are supported for in-memory parsing (`FlatConfig.parse()` and resolver-based includes), but *file includes* require `dart:io` and are not available in Flutter Web.
+
+### In-Memory and Hybrid Includes
+
+flatconfig also supports **in-memory include resolution**, allowing you to merge configurations without touching the filesystem.
+
+Use `FlatConfigResolverIncludes.parseStringWithIncludes()` together with an `IncludeResolver`:
+
+```dart
+final resolver = MemoryIncludeResolver({
+  'mem:base.conf': 'theme = dark',
+  'mem:user.conf': 'theme = mint',
+}, prefix: 'mem:');
+
+final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+  'config-file = mem:base.conf\nconfig-file = ?mem:user.conf',
+  resolver: resolver,
+  originId: 'mem:main.conf',
+);
+
+print(doc['theme']); // mint
+```
+
+**Available resolvers:**
+
+- `FileIncludeResolver()` — loads includes from the filesystem
+- `MemoryIncludeResolver()` — reads from an in-memory map (Web/WASM-safe)
+- `CompositeIncludeResolver([...])` — combines multiple sources (first-hit-wins)
+
+This makes it easy to:
+
+- write fully in-memory tests (no temp files)
+- mix memory + filesystem configs (hybrid mode)
+- or implement your own resolver (network, database, etc.)
 
 ## Encoding & Round-Tripping
 

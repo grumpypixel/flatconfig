@@ -3,12 +3,13 @@ import 'dart:io';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
-import 'constants.dart';
 import 'document.dart';
 import 'exceptions.dart';
+import 'ghostty_semantics.dart';
+import 'include_path_utils.dart';
 import 'options.dart';
 import 'parser.dart';
-import 'parser_utils.dart';
+import 'path_utils.dart' as path_utils;
 
 /// Extensions on [FlatConfig] for parsing configuration files with includes.
 ///
@@ -178,30 +179,18 @@ extension FlatConfigIncludes on FlatConfig {
       {int depth = 0}) async {
     final includeEntries = <FlatEntry>[];
     for (final include in includePaths) {
-      var path = include.trim();
-      if (path.isEmpty) {
+      final processed = processIncludePath(include);
+      if (processed.isEmpty) {
         continue; // ignore empty include values
       }
 
-      final optional = path.startsWith(Constants.optionalIncludePrefix);
-      if (optional) {
-        path = path.substring(1).trim();
-      }
-
-      // Handle quoted paths (for paths that actually start with [Constants.quote])
-      if (path.startsWith(Constants.quote) && path.endsWith(Constants.quote)) {
-        path = path.substring(1, path.length - 1);
-        // Decode escape sequences in quoted paths (e.g., "C:\\foo\\bar.conf" -> C:\foo\bar.conf)
-        path = unescapeQuotesAndBackslashes(path);
-      }
-
       // Resolve the include path
-      final includedFile = _resolveChild(baseFile.parent, path);
+      final includedFile = _resolveChild(baseFile.parent, processed.path);
 
       // Check if the included file exists
       if (!await includedFile.exists()) {
-        if (!optional) {
-          throw MissingIncludeException(canonicalPath, path);
+        if (!processed.isOptional) {
+          throw MissingIncludeException(canonicalPath, processed.path);
         }
         // Skip optional missing files
         continue;
@@ -236,26 +225,16 @@ extension FlatConfigIncludes on FlatConfig {
     int depth = 0,
   }) {
     final includeEntries = <FlatEntry>[];
-    for (var path in includePaths) {
-      var trimmed = path.trim();
-      if (trimmed.isEmpty) {
+    for (final include in includePaths) {
+      final processed = processIncludePath(include);
+      if (processed.isEmpty) {
         continue;
       }
-      final optional = trimmed.startsWith(Constants.optionalIncludePrefix);
-      if (optional) {
-        trimmed = trimmed.substring(1).trim();
-      }
-      if (trimmed.startsWith(Constants.quote) &&
-          trimmed.endsWith(Constants.quote)) {
-        trimmed = trimmed.substring(1, trimmed.length - 1);
-        // Decode escape sequences in quoted paths (e.g., "C:\\foo\\bar.conf" -> C:\foo\bar.conf)
-        trimmed = unescapeQuotesAndBackslashes(trimmed);
-      }
 
-      final includedFile = _resolveChild(baseFile.parent, trimmed);
+      final includedFile = _resolveChild(baseFile.parent, processed.path);
       if (!includedFile.existsSync()) {
-        if (!optional) {
-          throw MissingIncludeException(canonicalPath, trimmed);
+        if (!processed.isOptional) {
+          throw MissingIncludeException(canonicalPath, processed.path);
         }
         continue;
       }
@@ -319,37 +298,12 @@ extension FlatConfigIncludes on FlatConfig {
       readOptions: readOptions,
     );
 
-    // Process the file according to Ghostty semantics:
-    // 1. Collect includes and entries before first include
-    // 2. Process all includes at the end, in order
-    // 3. Filter entries after first include to not override included keys
+    // First pass: collect include directives and pre-include entries
+    final collected = collectIncludesAndPreEntries(doc, options);
 
-    // 1) Collect includes (in order), remember all non-include entries
-    final includeValues = <String>[];
-    final preIncludeEntries = <FlatEntry>[];
-    var seenAnyInclude = false;
-
-    for (final e in doc.entries) {
-      if (e.key == options.includeKey) {
-        if (e.value != null) {
-          final trimmedValue = e.value!.trim();
-          if (trimmedValue.isNotEmpty) {
-            includeValues.add(trimmedValue);
-            seenAnyInclude = true;
-          }
-        }
-        // Don't add the include directive itself to any entries list (including empty ones)
-        continue;
-      } else if (!seenAnyInclude) {
-        // Only add entries that come before the first include
-        preIncludeEntries.add(e);
-      }
-      // Entries after the first include will be handled in the filtering step
-    }
-
-    // 2) Resolve includes
+    // Resolve includes
     final includeEntries = await processIncludes(
-      includeValues,
+      collected.includeValues,
       file,
       canonicalPath,
       options,
@@ -359,45 +313,20 @@ extension FlatConfigIncludes on FlatConfig {
       depth: depth,
     );
 
-    // 3) Ghostty: Entries **after** the first include directive must not
-    // override keys that were set in includes.
-    // -> therefore we need to know which keys the includes set:
+    // Process document with Ghostty semantics to get filtered tail entries
     final keysFromIncludes = includeEntries.map((e) => e.key).toSet();
+    final filteredTail = filterTailEntries(doc, options, keysFromIncludes);
 
-    // 4) Now filter the **late** original entries (after the first include):
-    final filteredTail = <FlatEntry>[];
-    if (seenAnyInclude) {
-      var afterFirstInclude = false;
-      for (final e in doc.entries) {
-        if (e.key == options.includeKey) {
-          afterFirstInclude = true;
-          continue; // skip include directives entirely
-        }
-        if (!afterFirstInclude) {
-          continue; // we only consider the "tail"
-        }
-        if (keysFromIncludes.contains(e.key)) {
-          continue; // must not override
-        }
-        filteredTail.add(e);
-      }
-    }
-
-    // 5) Final order:
-    //    - all entries **before** first include directive
-    //    - then **all include entries**
-    //    - then the filtered tail entries (that do not override any key from includes)
-    final all = <FlatEntry>[
-      ...preIncludeEntries,
-      ...includeEntries,
-      ...filteredTail,
-    ];
+    // Build final document according to Ghostty semantics
+    final result = buildGhosttyDocument(
+      collected.preIncludeEntries,
+      includeEntries,
+      filteredTail,
+    );
 
     // Remove the current file from visited set to allow it to be included again
     // in different contexts (e.g., if it's included from different files)
     visited.remove(canonicalPath);
-
-    final result = FlatDocument(all);
 
     // Cache the parsed document for future use
     cache[canonicalPath] = result;
@@ -439,26 +368,12 @@ extension FlatConfigIncludes on FlatConfig {
       lineSplitter: readOptions.lineSplitter,
     );
 
-    final includeValues = <String>[];
-    final preIncludeEntries = <FlatEntry>[];
-    var seenAnyInclude = false;
-    for (final e in doc.entries) {
-      if (e.key == options.includeKey) {
-        if (e.value != null) {
-          final trimmedValue = e.value!.trim();
-          if (trimmedValue.isNotEmpty) {
-            includeValues.add(trimmedValue);
-            seenAnyInclude = true;
-          }
-        }
-        continue;
-      } else if (!seenAnyInclude) {
-        preIncludeEntries.add(e);
-      }
-    }
+    // First pass: collect include directives and pre-include entries
+    final collected = collectIncludesAndPreEntries(doc, options);
 
+    // Resolve includes
     final includeEntries = processIncludesSync(
-      includeValues,
+      collected.includeValues,
       file,
       canonicalPath,
       options,
@@ -468,31 +383,18 @@ extension FlatConfigIncludes on FlatConfig {
       depth: depth,
     );
 
+    // Process document with Ghostty semantics to get filtered tail entries
     final keysFromIncludes = includeEntries.map((e) => e.key).toSet();
-    final filteredTail = <FlatEntry>[];
-    if (seenAnyInclude) {
-      var afterFirstInclude = false;
-      for (final e in doc.entries) {
-        if (e.key == options.includeKey) {
-          afterFirstInclude = true;
-          continue;
-        }
-        if (!afterFirstInclude) {
-          continue;
-        }
-        if (keysFromIncludes.contains(e.key)) {
-          continue;
-        }
-        filteredTail.add(e);
-      }
-    }
+    final filteredTail = filterTailEntries(doc, options, keysFromIncludes);
+
+    // Build final document according to Ghostty semantics
+    final result = buildGhosttyDocument(
+      collected.preIncludeEntries,
+      includeEntries,
+      filteredTail,
+    );
 
     visited.remove(canonicalPath);
-    final result = FlatDocument([
-      ...preIncludeEntries,
-      ...includeEntries,
-      ...filteredTail,
-    ]);
     cache[canonicalPath] = result;
     return result;
   }
@@ -503,7 +405,7 @@ extension FlatConfigIncludes on FlatConfig {
   /// on case-insensitive filesystems (Windows and macOS/APFS) to ensure consistent canonical paths.
   @visibleForTesting
   static String normalizeCanonicalPath(String path) =>
-      (Platform.isWindows || Platform.isMacOS) ? path.toLowerCase() : path;
+      path_utils.normalizeCanonicalPath(path);
 }
 
 /// Extensions on [File] for parsing flat configuration files with includes.
