@@ -114,6 +114,16 @@ mode = c
       expect(doc['greeting'], 'Hey ya! 👋');
     });
 
+    test('explicit null reset is non-blocking within same file', () {
+      const src = 'color = ffaa00\n'
+          'color =\n'
+          'color = aabbcc\n';
+
+      final doc = FlatConfig.parse(src);
+      expect(doc.valuesOf('color'), ['ffaa00', null, 'aabbcc']);
+      expect(doc['color'], 'aabbcc');
+    });
+
     test('quoted string handling', () {
       const src = 'k1 = "   foo   "\n'
           'k2 = ""\n'

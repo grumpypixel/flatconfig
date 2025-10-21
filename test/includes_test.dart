@@ -95,6 +95,51 @@ cursor = 00ff00
       expect(entries[3].key, equals('cursor'));
     });
 
+    test('included file: explicit null reset is non-blocking within include',
+        () async {
+      // main includes theme; theme sets color, then resets, then sets again.
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+config-file = theme.conf
+''');
+
+      final themeFile = File('${tempDir.path}/theme.conf');
+      await themeFile.writeAsString('''
+color = ffaa00
+color =
+color = aabbcc
+''');
+
+      final doc = await mainFile.parseWithIncludes();
+
+      expect(doc.valuesOf('color'), ['ffaa00', null, 'aabbcc']);
+      expect(doc['color'], 'aabbcc');
+    });
+
+    test('include final value blocks later main overrides (with reset in tail)',
+        () async {
+      // include sets color to final value; main later resets and tries override
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString('''
+config-file = theme.conf
+color =
+color = 112233
+''');
+
+      final themeFile = File('${tempDir.path}/theme.conf');
+      await themeFile.writeAsString('''
+color = ffaa00
+color =
+color = aabbcc
+''');
+
+      final doc = await mainFile.parseWithIncludes();
+
+      // Ghostty semantics: tail entries for keys present in includes are filtered
+      expect(doc.valuesOf('color'), ['ffaa00', null, 'aabbcc']);
+      expect(doc['color'], 'aabbcc');
+    });
+
     test('basic include functionality (sync)', () async {
       // Create main config file
       final mainFile = File('${tempDir.path}/main.conf');
