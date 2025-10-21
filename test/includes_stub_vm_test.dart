@@ -1,4 +1,5 @@
 import 'package:flatconfig/src/includes_stub.dart' as inc;
+import 'package:flatconfig/src/io_stub.dart';
 import 'package:test/test.dart';
 
 void main() {

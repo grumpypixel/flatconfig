@@ -9,3 +9,4 @@ pubspec.lock
 # Coverage outputs (keep lcov.info tracked)
 coverage/*
 #!coverage/lcov.info
+.DS_Store

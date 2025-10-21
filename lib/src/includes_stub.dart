@@ -81,14 +81,4 @@ extension FileIncludesStub on Object {
     Map<String, FlatDocument>? cache,
   }) async =>
       _unsupported('File.parseWithIncludes');
-
-  /// Synchronous variant of [parseWithIncludes].
-  ///
-  /// Always throws [UnsupportedError] on web/wasm.
-  FlatDocument parseWithIncludesSync({
-    FlatParseOptions options = const FlatParseOptions(),
-    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
-  }) =>
-      _unsupported('File.parseWithIncludesSync');
 }
