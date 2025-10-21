@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.4.0
+
+Added:
+
+- **In-memory include support** via the new resolver system:
+  - `MemoryIncludeResolver` – define virtual configuration sources in memory (maps, generated strings, or tests).
+  - `CompositeIncludeResolver` – combine multiple resolvers (e.g., files + memory) with *first-hit-wins* lookup order.
+  - `FlatConfigResolverIncludes.parseStringWithIncludes()` – parse configuration text using any custom resolver.
+- **Web/WASM compatibility:**
+  - `FileIncludeResolver` is now an I/O-only implementation.
+  - A lightweight `FileIncludeResolver` stub is automatically used on Web/WASM (always returns `null`).
+
+Behavior:
+
+- Matches the **Ghostty include semantics**:
+  - Includes are processed at the end of the current unit (depth-first).
+  - Later includes override earlier includes.
+  - Entries after the first include cannot override keys defined in includes.
+  - Optional includes prefixed with `?` are silently ignored if missing.
+  - Cycle detection is performed via canonical `IncludeUnit.id`.
+
+Improved:
+
+- Expanded README:
+  - Detailed “Include Semantics” and new “In-Memory and Hybrid Includes” sections.
+  - Clarified **non-blocking reset** behavior (`key =` clears but doesn’t block later assignments).
+  - Added examples for resolver composition and hybrid (file + memory) setups.
+
+Notes:
+
+- The resolver system shares the same merge, caching, and validation rules as file-based includes.
+- Fully compatible with `FlatDocument`, `FlatEntry`, and all accessors.
+- Backwards-compatible with existing file-based parsing APIs.
+
 ## 0.3.1
 
 Improved:

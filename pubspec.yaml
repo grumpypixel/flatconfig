@@ -2,7 +2,7 @@ name: flatconfig
 description: >
   Flat, human-friendly key=value configuration format for Dart & Flutter —
   inspired by Ghostty, simpler than INI or TOML.
-version: 0.3.1
+version: 0.4.0
 
 repository: https://github.com/grumpypixel/flatconfig
 issue_tracker: https://github.com/grumpypixel/flatconfig/issues
