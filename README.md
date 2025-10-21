@@ -18,17 +18,17 @@ Perfect for tools, CLIs, and Flutter apps that need structured settings without 
 
 ## Highlights
 
-- 🧩 **Tiny syntax:** `key = value` (values may be quoted)
-- 📦 **Pure Dart**, minimal dependencies (`meta`; `path` for includes)
-- 📝 **Supports duplicates**, preserves entry order
-- 🔐 **Strict or lenient parsing**, optional callbacks for invalid lines
-- 📁 **Async/sync file I/O**, handles UTF-8 BOM and any line endings
-- 🧠 **Typed accessors** for durations, bytes, colors, URIs, JSON, enums, ratios, percents, lists, sets, maps, and ranges
-- 🧱 **Collapse helpers** to deduplicate keys (first occurrence or last write)
-- 🧰 **Pretty-print and debug dumps**
-- 🔁 **Round-tripping** with configurable quoting and escaping
-- 🧮 **Factories for easy creation** — build documents from maps, entries, or nested data (`fromMapData`)
-- ✅ **Strict validation** for non-empty keys, toggleable via `strict: false`
+- 🧩 **Tiny syntax:** `key = value` (values may be quoted)  
+- 📦 **Pure Dart**, minimal dependencies (`meta`; `path` for includes)  
+- 📝 **Supports duplicates**, preserves entry order  
+- 🔐 **Strict or lenient parsing**, optional callbacks for invalid lines  
+- 📁 **Async/sync file I/O**, handles UTF-8 BOM and any line endings  
+- 🧠 **Typed accessors** for durations, bytes, colors, URIs, JSON, enums, ratios, percents, lists, sets, maps, and ranges  
+- 🧱 **Collapse helpers** to deduplicate keys (first occurrence or last write)  
+- 🧰 **Pretty-print and debug dumps**  
+- 🔁 **Round-tripping** with configurable quoting and escaping  
+- 🧮 **Factories for easy creation** — build documents from maps, entries, or nested data (`fromMapData`)  
+- ✅ **Strict validation** for non-empty keys, toggleable via `strict: false`  
 
 ## Usage
 
@@ -147,18 +147,18 @@ texture =
 
 **Notes:**
 
-- Keys are case-sensitive: background ≠ Background
-- Values can be quoted or unquoted:
+- Keys are case-sensitive: background ≠ Background  
+- Values can be quoted or unquoted:  
 
-```conf
-font-family = "FiraCode Nerd Font"
-font-family = FiraCode Nerd Font
-```
+  ```conf
+  font-family = "FiraCode Nerd Font"
+  font-family = FiraCode Nerd Font
+  ```
 
-- Quoted values preserve inner whitespace and `=`
-- Empty (unquoted) values are interpreted as explicit resets (`null`)
-- Lines without `=` are ignored unless `strict: true` is enabled
-- The comment prefix (`#`) and the key-value separator (`=`) can be customized
+- Quoted values preserve inner whitespace and `=`  
+- Empty (unquoted) values are interpreted as explicit resets (`null`)  
+- Lines without `=` are ignored unless `strict: true` is enabled  
+- The comment prefix (`#`) and the key-value separator (`=`) can be customized  
 
 ## Comparison to INI and TOML
 
@@ -195,10 +195,10 @@ print(relaxed.toMap()); // {theme: dark}
 
 All factory constructors respect `strict`:
 
-- `FlatDocument.fromMap(...)`
-- `FlatDocument.fromEntries(...)`
-- `FlatDocument.merge([...])`
-- `FlatDocument.single('key', value: 'x')`
+- `FlatDocument.fromMap(...)`  
+- `FlatDocument.fromEntries(...)`  
+- `FlatDocument.merge([...])`  
+- `FlatDocument.single('key', value: 'x')`  
 
 > **Note:**
 > `FlatDocument.fromMap(...)` and `FlatConfig.fromDynamicMap(...)` are **shallow** factories.
@@ -244,10 +244,10 @@ final doc = FlatConfig.parse(
 );
 ```
 
-- Lines starting with `commentPrefix` are ignored.
-- Unquoted values are trimmed; quoted values preserve whitespace and `=`.
-- Empty unquoted values → `null` (explicit reset).
-- Duplicate keys are preserved; the last one wins in `toMap()`.
+- Lines starting with `commentPrefix` are ignored.  
+- Unquoted values are trimmed; quoted values preserve whitespace and `=`.  
+- Empty unquoted values → `null` (explicit reset).  
+- Duplicate keys are preserved; the last one wins in `toMap()`.  
 
 ### Files
 
@@ -269,12 +269,12 @@ final sync = File('config.conf').parseFlatSync();
 
 flatconfig supports **recursive includes** using the `config-file` key, similar to [Ghostty](https://ghostty.org/docs/config).
 
-- Files are processed **top-to-bottom**.
-- Each `config-file = path.conf` is merged **immediately** at that position (depth-first).
-- **Later entries override earlier ones** (“later wins”).
-- Use `config-file = ?path.conf` for **optional includes** — missing files are ignored.
-- An empty right-hand side (`key =`) is an **explicit null reset**: it clears the current value but does **not block** later assignments (non-blocking by default).
-- Includes support **nesting**, **optionals**, and **cycle detection**.
+- Files are processed **top-to-bottom**.  
+- Each `config-file = path.conf` is merged **immediately** at that position (depth-first).  
+- **Later entries override earlier ones** (“later wins”).  
+- Use `config-file = ?path.conf` for **optional includes** — missing files are ignored.  
+- An empty right-hand side (`key =`) is an **explicit null reset**: it clears the current value but does **not block** later assignments (non-blocking by default).  
+- Includes support **nesting**, **optionals**, and **cycle detection**.  
 
 ```conf
 # main.conf
@@ -314,9 +314,9 @@ background = 101010       # later wins (non-blocking reset)
 
 **Result:**
 
-- `theme` → `custom` (later in main.conf)
-- `background` → `101010` (overrides reset)
-- `foreground` → `f3d735` (from theme.conf)
+- `theme` → `custom` (later in main.conf)  
+- `background` → `101010` (overrides reset)  
+- `foreground` → `f3d735` (from theme.conf)  
 
 > If you ever need blocking resets (rare), you can enable them explicitly through merge options:
 >
@@ -329,23 +329,23 @@ background = 101010       # later wins (non-blocking reset)
 
 ### Include Semantics
 
-- **One include per line** — each `config-file = ...` line may reference exactly one file path. Comma-separated or space-separated include lists (e.g. `config-file = a.conf, b.conf`) are *not supported* and will be treated as a single literal path.
-- **Includes are processed after the current file**, so later lines in the current file do *not override* keys from included files.
-- **Null values from includes block later entries** — when an included file sets a key to `null` (empty value like `key =`), any later entries in the main file with the same key are blocked. This is part of the "Tail does not override includes" semantics and allows includes to explicitly reset configuration values.
-- **Multiple includes** are allowed. When several included files define the same key, *the later include wins*.
-- Includes are **recursive**, with a defensive maximum depth (`maxIncludeDepth`, default *64*). The root file starts at depth 0.
-- A leading `?` marks an include as *optional* (`config-file = ?user.conf`) — missing optional files are silently skipped.
-- Relative include paths are resolved relative to the including file's directory.
-- Absolute paths are used as-is.
-- Circular includes raise a `CircularIncludeException`.
+- **One include per line** — each `config-file = ...` line may reference exactly one file path. Comma-separated or space-separated include lists (e.g. `config-file = a.conf, b.conf`) are *not supported* and will be treated as a single literal path.  
+- **Includes are processed after the current file**, so later lines in the current file do *not override* keys from included files.  
+- **Null values from includes block later entries** — when an included file sets a key to `null` (empty value like `key =`), any later entries in the main file with the same key are blocked. This is part of the "Tail does not override includes" semantics and allows includes to explicitly reset configuration values.  
+- **Multiple includes** are allowed. When several included files define the same key, *the later include wins*.  
+- Includes are **recursive**, with a defensive maximum depth (`maxIncludeDepth`, default *64*). The root file starts at depth 0.  
+- A leading `?` marks an include as *optional* (`config-file = ?user.conf`) — missing optional files are silently skipped.  
+- Relative include paths are resolved relative to the including file's directory.  
+- Absolute paths are used as-is.  
+- Circular includes raise a `CircularIncludeException`.  
 
 > Customize the key name via `FlatParseOptions(includeKey: 'include')`.
 
 **Notes:**
 
-- On *Windows* (and optionally macOS), include cycle detection uses *case-insensitive paths*.
-- Quoted include paths (e.g. `config-file = "path/to/theme.conf"`) are supported. Escapes inside quotes (like `\"` or `\\`) are not decoded unless explicitly implemented.
-- Web builds are supported for in-memory parsing (`FlatConfig.parse()`), but *file includes* require `dart:io` and are not available in Flutter Web.
+- On *Windows* (and optionally macOS), include cycle detection uses *case-insensitive paths*.  
+- Quoted include paths (e.g. `config-file = "path/to/theme.conf"`) are supported. Escapes inside quotes (like `\"` or `\\`) are not decoded unless explicitly implemented.  
+- Web builds are supported for in-memory parsing (`FlatConfig.parse()`), but *file includes* require `dart:io` and are not available in Flutter Web.  
 
 ## Encoding & Round-Tripping
 
@@ -556,12 +556,12 @@ Future<void> main() async {
 
 ## Format Rules & Limits
 
-- Only full-line comments (default prefix `#`)
-- Inline comments are not supported
-- Lines without `=` are ignored in non-strict mode
-- Unquoted values are trimmed; quoted values preserve whitespace and `=`
-- Empty unquoted values become `null` (explicit reset)
-- Encoding is lossy (comments and blank lines are dropped)
+- Only full-line comments (default prefix `#`)  
+- Inline comments are not supported  
+- Lines without `=` are ignored in non-strict mode  
+- Unquoted values are trimmed; quoted values preserve whitespace and `=`  
+- Empty unquoted values become `null` (explicit reset)  
+- Encoding is lossy (comments and blank lines are dropped)  
 
 ## Document Factories
 
@@ -711,9 +711,9 @@ Structured object  ⇄  FlatDocument  ⇄  .conf file
 
 This lets you:
 
-- Parse `.conf` files into maps and models.
-- Modify or merge them in code.
-- Re-emit them back to human-friendly flat files.
+- Parse `.conf` files into maps and models.  
+- Modify or merge them in code.  
+- Re-emit them back to human-friendly flat files.  
 
 Perfect for editors, generators, and configuration UIs
 that need to stay both **machine-readable** and **human-editable**.
@@ -728,9 +728,9 @@ Every line means exactly what it says — `key = value`.
 
 This makes configuration files:
 
-- easy to hand-edit and diff,
-- trivial to merge and override,
-- and safe to parse in any environment (Flutter, CLI, Web, or server).
+- easy to hand-edit and diff,  
+- trivial to merge and override,  
+- and safe to parse in any environment (Flutter, CLI, Web, or server).  
 
 The goal isn’t to replace JSON, YAML, or TOML —
 but to offer a lightweight middle ground: human-friendly like INI,
