@@ -157,7 +157,7 @@ font-family = FiraCode Nerd Font
 
 - Quoted values preserve inner whitespace and `=`
 - Empty (unquoted) values are interpreted as explicit resets (`null`)
-- Lines without = are ignored unless `strict: true` is enabled
+- Lines without `=` are ignored unless `strict: true` is enabled
 - The comment prefix (`#`) and the key-value separator (`=`) can be customized
 
 ## Comparison to INI and TOML
@@ -200,10 +200,10 @@ All factory constructors respect `strict`:
 - `FlatDocument.merge([...])`
 - `FlatDocument.single('key', value: 'x')`
 
-> **Note:**  
-> `FlatDocument.fromMap(...)` and `FlatConfig.fromDynamicMap(...)` are **shallow** factories.  
-> They convert only one level of key-value pairs and do not traverse nested maps or lists.  
-> For structured data that needs to be flattened into key paths (e.g. `window.width = 5120`),  
+> **Note:**
+> `FlatDocument.fromMap(...)` and `FlatConfig.fromDynamicMap(...)` are **shallow** factories.
+> They convert only one level of key-value pairs and do not traverse nested maps or lists.
+> For structured data that needs to be flattened into key paths (e.g. `window.width = 5120`),
 > use [`FlatConfig.fromMapData`](#deep-flattening-with-frommapdata).
 
 ## Data Model
@@ -267,19 +267,24 @@ final sync = File('config.conf').parseFlatSync();
 
 ## Splitting into Multiple Files
 
-flatconfig supports **recursive includes** using the `config-file` key, just like [Ghostty](https://ghostty.org/docs/config).
+flatconfig supports **recursive includes** using the `config-file` key, similar to [Ghostty](https://ghostty.org/docs/config).
 
-Use `File.parseWithIncludes()` or `parseFileWithIncludes()` to automatically load and merge related configuration files.
-
-This lets you split your configuration into smaller files that are loaded automatically — with support for **optional includes**, **nested includes**, and **cycle detection**.
+- Files are processed **top-to-bottom**.
+- Each `config-file = path.conf` is merged **immediately** at that position (depth-first).
+- **Later entries override earlier ones** (“later wins”).
+- Use `config-file = ?path.conf` for **optional includes** — missing files are ignored.
+- An empty right-hand side (`key =`) is an **explicit null reset**: it clears the current value but does **not block** later assignments (non-blocking by default).
+- Includes support **nesting**, **optionals**, and **cycle detection**.
 
 ```conf
 # main.conf
 app-name = MyFlutterApp
 version = 1.0.1
+
 config-file = theme.conf
-config-file = ?user.conf  → optional
-theme = custom  → won't override included theme
+config-file = ?user.conf   # optional
+
+theme = custom             # overrides the earlier value from theme.conf
 ```
 
 ```conf
@@ -289,26 +294,38 @@ background = 343028
 foreground = f3d735
 ```
 
+**Null resets are non-blocking (default):**
+
 ```conf
-# reset.conf (example of null value blocking)
-background =  → resets background to null
+# reset.conf
+background =              # explicit null reset
 theme = light
 ```
 
-When `reset.conf` is included, the empty `background =` line sets the background to `null`.
-This means any later `background = ...` entries in the main file are blocked — effectively resetting the background value inherited from includes.
+When `reset.conf` is included **before** a later assignment, it clears the previous value but does **not** prevent later values from being set again.
 
-```dart
-import 'dart:io';
-import 'package:flatconfig/flatconfig.dart';
+```conf
+# main-with-reset.conf
+config-file = theme.conf
+config-file = reset.conf
 
-Future<void> main() async {
-  final doc = await File('main.conf').parseWithIncludes();
-  print(doc['theme']);       // → dark
-  print(doc['background']);  // → null (reset by reset.conf)
-  print(doc['user-name']);   // from optional include
-}
+background = 101010       # later wins (non-blocking reset)
 ```
+
+**Result:**
+
+- `theme` → `custom` (later in main.conf)
+- `background` → `101010` (overrides reset)
+- `foreground` → `f3d735` (from theme.conf)
+
+> If you ever need blocking resets (rare), you can enable them explicitly through merge options:
+>
+> ```dart
+> parseWithIncludes(merge: FlatMergeOptions(blockingNulls: true))
+> ```
+>
+> In that mode, `key =` permanently deletes the key and ignores any later assignments.
+> The default mode always uses **non-blocking resets** for predictable “later wins” merging.
 
 ### Include Semantics
 
