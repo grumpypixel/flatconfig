@@ -383,32 +383,90 @@ final dynamicMulti = doc.collapse(isMultiValueKey: (k) => k.startsWith('mv_'));
 final dropResets = doc.collapse(dropNulls: true); // omit keys with null
 ```
 
-## Typed Accessors (Examples)
+## Accessors – At a Glance
+
+- **Missing vs. empty:** Missing keys return `null`. An unquoted empty value (`key =`) becomes an empty string `""` (an explicit reset in flatconfig).  
+- **`get*` vs. `require*`:** `get*` returns `null` or a default; `require*` throws a `FormatException` on missing or invalid values.  
+- **Trimming:** String helpers (`getTrimmed…`) strip leading and trailing spaces.  
+- **Booleans:** Supported values are `true/false`, `on/off`, `yes/no`, and `1/0` (case-insensitive).  
+- **Ranges:** `get*InRange` validates and returns `null` when out of bounds; `require*InRange` throws.  
+- **Quote awareness:** `getMap()` is not quote-aware, while `getDocument()` and `getListOfDocuments()` are.  
+
+### Typed Accessors (Examples)
 
 ```dart
-final b  = doc.getBytes('size');          // SI (kB/MB/...) and IEC (KiB/MiB/...)
+final b  = doc.getBytes('size');          // SI (kB/MB/...) & IEC (KiB/MiB/...)
 final cc = doc.getColor('color');         // {a, r, g, b}
 final d  = doc.getDuration('timeout');    // "150ms", "2s", "5m", "3h", "1d"
 final e  = doc.getEnum('mode', {'prod': 1, 'dev': 2}); // case-insensitive
 final hc = doc.getHexColor('color');      // #rgb, #rgba, #rrggbb, #aarrggbb → 0xAARRGGBB
-final j  = doc.getJson('payload');        // parsed JSON object
+final j  = doc.getJson('payload');        // parsed JSON (Map/List/num/bool/String)
 final p  = doc.getPercent('alpha');       // "80%", "0.8", "80" → 0.8
-final r  = doc.getRatio('video');         // "16:9" → 1.777...
+final r  = doc.getRatio('video');         // "16:9" → 1.777…
 final u  = doc.getUri('endpoint');        // relative or absolute URI
 
 // Collections
-final l = doc.getList('features');        // "A, b , a" → ["A","b","a"]
-final s = doc.getSet('features');         // → {"a","b"} (case-insensitive)
+final l  = doc.getList('features');       // "A, b , a" → ["A","b","a"]
+final s  = doc.getSet('features');        // → {"a","b"} (case-insensitive, lower-cased unique)
 
 // Ranges
 final dir = doc.getDoubleInRange('gamma', min: 0.5, max: 2.0);
 final iir = doc.getIntInRange('retries', min: 0, max: 10);
 
-// Require* methods throw FormatException on missing/invalid values
+// Require* throw FormatException on missing/invalid values
 final siz = doc.requireBytes('size');
 final tim = doc.requireDuration('timeout');
 final hex = doc.requireHexColor('color');
 final pct = doc.requirePercent('alpha');
+```
+
+### More Accessors
+
+```dart
+// Strings
+final t0 = doc.getTrimmed('title');
+final t1 = doc.getTrimmedOrEmpty('title');
+final t2 = doc.getStringOr('env', 'prod');
+final t3 = doc.requireString('env');
+
+// Booleans
+final b0 = doc.getBoolOr('debug', false);
+final b1 = doc.requireBool('debug');
+final on  = doc.isEnabled('feature_x', defaultValue: true);
+final off = doc.isDisabled('feature_y');
+
+// Numbers
+final n0 = doc.getIntOr('retries', 3);
+final n1 = doc.requireInt('retries');
+final n2 = doc.getDoubleOr('gamma', 1.0);
+final n3 = doc.requireDouble('gamma');
+final n4 = doc.getNum('threshold');
+final n5 = doc.requireNum('threshold');
+
+// Date/time & URI
+final dt  = doc.getDateTime('start_at');   // ISO-8601 (Z/offset supported)
+final rdt = doc.requireDateTime('start_at');
+final ru  = doc.requireUri('endpoint');
+
+// Colors (extras)
+final color = doc.requireColor('color');   // {a,r,g,b}
+final tuple = doc.getColorTuple('color');  // (a,r,g,b)
+final rtpl  = doc.requireColorTuple('color');
+
+// Ranges & clamping
+final ri = doc.requireIntInRange('retries', min: 0, max: 10);
+final rd = doc.requireDoubleInRange('gamma', min: 0.5, max: 2.0);
+final ci = doc.getClampedInt('retries', min: 0, max: 10);
+
+// Collections (extras)
+final ls = doc.getListOrEmpty('features');
+final ss = doc.getSetOrEmpty('features');
+final m  = doc.getMap('overrides');        // "a:1, b: 2" → {a:1, b:2} (not quote-aware)
+final me = doc.getMapOrEmpty('overrides');
+
+// Validation & predicates
+doc.requireKeys(['host', 'port']);         // throws on missing keys
+final ok = doc.isOneOf('mode', {'prod', 'dev'});
 ```
 
 ### Custom Converters
