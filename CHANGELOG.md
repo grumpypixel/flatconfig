@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.1
+
+Improved:
+
+- Polished README section for accessors (`get*`, `require*`, ranges, and quote awareness)
+- Added concise "Accessors – At a Glance" overview
+- Unified comment style and clarified boolean handling and range validation
+- Minor formatting and consistency improvements across examples
+
+Fixed:
+
+- Corrected README description of include semantics:
+  - Includes are merged **depth-first at the insertion point**; **later entries override earlier ones** (“later wins”).
+  - An **unquoted empty value** (`key =`) is an **explicit reset** and **does not block** later assignments (**non-blocking by default**).
+  - Optional includes via `config-file = ?file.conf` now explicitly documented as “missing files are ignored”.
+- Added an example to demonstrate non-blocking resets and later overrides.
+
 ## 0.3.0
 
 Added:
