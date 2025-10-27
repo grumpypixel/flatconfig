@@ -1049,6 +1049,36 @@ extension FlatDocumentAccessors on FlatDocument {
     }
   }
 
+  /// Returns `true` if all [keys] exist in this document.
+  /// - When [ignoreNulls] is true (default), keys with null values don't count.
+  /// - Case-sensitive by default.
+  bool hasAllKeys(
+    Iterable<String> keys, {
+    bool ignoreNulls = true,
+    bool caseSensitive = true,
+  }) {
+    final map = caseSensitive
+        ? toMap()
+        : {
+            for (final e in entries) e.key.toLowerCase(): e.value,
+          };
+
+    for (final key in keys) {
+      final k = caseSensitive ? key : key.toLowerCase();
+      final v = map[k];
+      if (v == null) {
+        if (!map.containsKey(k)) {
+          return false;
+        }
+        if (ignoreNulls) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
   /// Parses the latest value of [key] as a mini document comprised of
   /// `key=value` items separated by [itemSep] (default ',').
   ///
