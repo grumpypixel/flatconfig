@@ -655,7 +655,8 @@ final sub = doc.getDocument('data'); // "key1="value, with, commas", key2=normal
 ```dart
 doc.getTrimmed('name');                  // trimmed value
 doc.getStringOr('title', 'Untitled');    // default fallback
-doc.isEnabled('feature_x');               // truthy/falsey strings
+doc.isEnabled('feature');                // "true", "yes", "on", "1" → true
+doc.isEnabled('feature');                // "false", "no", "off", "0" → false
 doc.isOneOf('env', {'dev', 'prod'});     // case-insensitive
 doc.requireKeys(['host', 'port']);       // throws on first missing key
 doc.hasAllKeys(['a', 'b', 'c']);         // returns true if all exist
@@ -860,6 +861,16 @@ This lets you:
 
 Perfect for editors, generators, and configuration UIs
 that need to stay both **machine-readable** and **human-editable**.
+
+### Round-Trip Example
+
+You can easily verify round-trip symmetry between parsing and encoding:
+
+```dart
+final doc = FlatConfig.fromMapData({'a': 1});
+final roundTrip = FlatConfig.parse(doc.encode());
+print(roundTrip.toMap()); // {a: 1}
+```
 
 ## Design Philosophy
 
