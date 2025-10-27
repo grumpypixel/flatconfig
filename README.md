@@ -36,7 +36,7 @@ Add `flatconfig` as a dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flatconfig: ^0.4.0 # check pub.dev for the latest version
+  flatconfig: ^0.5.0 # check pub.dev for the latest version
 ```
 
 Then import it in your Dart code:

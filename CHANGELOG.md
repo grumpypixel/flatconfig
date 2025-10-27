@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.0
+
+Added:
+
+- **`FlatDocument.hasAllKeys()`**  
+  Checks whether all specified keys exist in the document.  
+  - `ignoreNulls` (default: `true`) skips null-valued keys.  
+  - `caseSensitive` (default: `true`) controls case matching.  
+
+- **`FlatDocument.slice(prefix)`**  
+  Extracts a subdocument containing only keys that start with the given prefix.  
+  Operates on the resolved/latest view (unique keys; last value wins) and preserves key order.  
+
+- **`FlatDocument.stripPrefix(prefix)`**  
+  Returns a new document with all keys that start with the given prefix —  
+  but removes the prefix from each key.  
+  Ideal for working with grouped or sectioned configurations.  
+
 ## 0.4.0
 
 Added:
