@@ -433,6 +433,40 @@ final dynamicMulti = doc.collapse(isMultiValueKey: (k) => k.startsWith('mv_'));
 final dropResets = doc.collapse(dropNulls: true); // omit keys with null
 ```
 
+## Working with Sections (`slice()` & `stripPrefix()`)
+
+Use prefix-based helpers to extract or rewrite subdocuments from the resolved/latest view  
+(unique keys; last value wins):
+
+```dart
+final doc = FlatConfig.parse('''
+window.width = 1200
+window.height = 800
+theme = dark
+''');
+
+final win = doc.slice('window.');
+// -> keys: window.width, window.height
+
+final clean = doc.stripPrefix('window.');
+// -> keys: width, height
+
+final copy = doc.slice('');
+// -> full clone (including duplicates)
+```
+
+Notes:
+
+- Empty prefix clones the document, preserving **duplicates** and **order**.
+- Matching is **case-sensitive** and **literal** (pass separators explicitly, e.g. `"window."`).
+- Operates on the **resolved/latest view** (unique keys; last value wins).
+- The source document is **never mutated**; methods return new documents.
+- Combine both for modular configs or focused UI sections:
+
+```dart
+final section = doc.slice('window.').stripPrefix('window.');
+```
+
 ## Accessors – At a Glance
 
 - **Missing vs. empty:** Missing keys return `null`. An unquoted empty value (`key =`) becomes an empty string `""` (an explicit reset in flatconfig).  
