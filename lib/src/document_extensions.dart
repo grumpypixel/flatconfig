@@ -367,4 +367,53 @@ extension FlatDocumentExtensions on FlatDocument {
 
     return buf.toString();
   }
+
+  /// Returns a new document containing only entries whose keys start with [prefix].
+  ///
+  /// Operates on the resolved/latest view (unique keys; last value wins),
+  /// preserving the first-occurrence key order.
+  ///
+  /// When [prefix] is empty, this returns a clone of the current document,
+  /// including duplicates.
+  FlatDocument slice(String prefix) {
+    if (prefix.isEmpty) {
+      // Clone original entries, including duplicates and order.
+      return FlatDocument(List<FlatEntry>.of(entries));
+    }
+
+    // Resolved/latest view: unique keys with last value, in first-occurrence order.
+    final out = <FlatEntry>[];
+    for (final k in toMap().keys) {
+      if (k.startsWith(prefix)) {
+        out.add(FlatEntry(k, this[k]));
+      }
+    }
+
+    return FlatDocument(out);
+  }
+
+  /// Returns a new document with keys starting with [prefix], but with [prefix]
+  /// removed from the beginning of each key.
+  ///
+  /// Operates on the resolved/latest view (unique keys; last value wins),
+  /// preserving the first-occurrence key order.
+  ///
+  /// When [prefix] is empty, this returns a clone of the current document
+  /// (including duplicates) without rewriting.
+  FlatDocument stripPrefix(String prefix) {
+    if (prefix.isEmpty) {
+      // Clone original entries unchanged.
+      return FlatDocument(List<FlatEntry>.of(entries));
+    }
+
+    final out = <FlatEntry>[];
+    final pLen = prefix.length;
+    for (final k in toMap().keys) {
+      if (!k.startsWith(prefix)) continue;
+      final newKey = k.substring(pLen);
+      out.add(FlatEntry(newKey, this[k]));
+    }
+
+    return FlatDocument(out);
+  }
 }
