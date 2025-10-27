@@ -658,6 +658,7 @@ doc.getStringOr('title', 'Untitled');    // default fallback
 doc.isEnabled('feature_x');               // truthy/falsey strings
 doc.isOneOf('env', {'dev', 'prod'});     // case-insensitive
 doc.requireKeys(['host', 'port']);       // throws on first missing key
+doc.hasAllKeys(['a', 'b', 'c']);         // returns true if all exist
 ```
 
 All `require*` methods throw a `FormatException` with context on invalid data.
