@@ -298,6 +298,172 @@ class FlatConfig {
   }) =>
       flatDocumentFromMapData(data, options: options);
 
+  /// Builds a [FlatDocument] from environment-like maps.
+  ///
+  /// This method is pure and does not access [Platform.environment] or any
+  /// global state. You must explicitly pass the environment map, making it
+  /// suitable for Flutter Web, WASM, and testing scenarios.
+  ///
+  /// Precedence order: [FlatEnvOptions.defaults] → [env] → [FlatEnvOptions.merge]
+  ///
+  /// Processing steps:
+  /// 1. Apply default values from [options.defaults]
+  /// 2. Apply environment variables from [env] (with optional prefix filtering)
+  /// 3. Apply override values from [options.merge]
+  /// 4. Drop empty values if [options.keepEmptyValues] is false
+  /// 5. Interpolate `${VAR}` placeholders if [options.interpolate] is true
+  /// 6. Return a [FlatDocument]
+  ///
+  /// Example - Basic usage:
+  /// ```dart
+  /// final env = {'HOST': 'localhost', 'PORT': '8080'};
+  /// final doc = FlatConfig.fromEnvironment(env);
+  /// print(doc['HOST']); // localhost
+  /// ```
+  ///
+  /// Example - With prefix filtering:
+  /// ```dart
+  /// final env = {
+  ///   'APP_HOST': 'api.example.com',
+  ///   'APP_PORT': '8080',
+  ///   'OTHER_VAR': 'ignored',
+  /// };
+  /// final doc = FlatConfig.fromEnvironment(
+  ///   env,
+  ///   options: FlatEnvOptions(prefix: 'APP_'),
+  /// );
+  /// final clean = doc.stripPrefix('APP_');
+  /// print(clean.toMap()); // {HOST: api.example.com, PORT: 8080}
+  /// ```
+  ///
+  /// Example - With interpolation:
+  /// ```dart
+  /// final env = {
+  ///   'HOST': 'api.example.com',
+  ///   'PORT': '8080',
+  ///   'URL': 'https://${HOST}:${PORT}',
+  /// };
+  /// final doc = FlatConfig.fromEnvironment(
+  ///   env,
+  ///   options: FlatEnvOptions(interpolate: true),
+  /// );
+  /// print(doc['URL']); // https://api.example.com:8080
+  /// ```
+  ///
+  /// Example - With precedence:
+  /// ```dart
+  /// final env = {'PORT': '3000'};
+  /// final doc = FlatConfig.fromEnvironment(
+  ///   env,
+  ///   options: FlatEnvOptions(
+  ///     defaults: {'HOST': 'localhost', 'PORT': '8080'},
+  ///     merge: {'DEBUG': 'true'},
+  ///   ),
+  /// );
+  /// print(doc.toMap()); // {HOST: localhost, PORT: 3000, DEBUG: true}
+  /// ```
+  static FlatDocument fromEnvironment(
+    Map<String, String> env, {
+    FlatEnvOptions options = const FlatEnvOptions(),
+  }) {
+    final out = <String, String?>{};
+
+    // 1) Start with defaults (lowest precedence).
+    if (options.defaults.isNotEmpty) {
+      for (final e in options.defaults.entries) {
+        out[e.key] = e.value;
+      }
+    }
+
+    // 2) Apply provided env.
+    if (env.isNotEmpty) {
+      final usePrefix = options.prefix;
+      if (usePrefix == null || usePrefix.isEmpty) {
+        for (final e in env.entries) {
+          out[e.key] = e.value;
+        }
+      } else {
+        if (options.caseSensitive) {
+          for (final e in env.entries) {
+            if (e.key.startsWith(usePrefix)) {
+              out[e.key] = e.value;
+            }
+          }
+        } else {
+          final lp = usePrefix.toLowerCase();
+          for (final e in env.entries) {
+            if (e.key.toLowerCase().startsWith(lp)) {
+              out[e.key] = e.value;
+            }
+          }
+        }
+      }
+    }
+
+    // 3) Final merge overrides (highest precedence).
+    if (options.merge.isNotEmpty) {
+      for (final e in options.merge.entries) {
+        out[e.key] = e.value;
+      }
+    }
+
+    // 4) Drop empty values if requested.
+    if (!options.keepEmptyValues) {
+      final keysToDrop = <String>[];
+      for (final kv in out.entries) {
+        if ((kv.value ?? '').isEmpty) {
+          keysToDrop.add(kv.key);
+        }
+      }
+      for (final k in keysToDrop) {
+        out.remove(k);
+      }
+    }
+
+    // 5) Interpolate ${VAR} if enabled. Single pass is usually enough for env.
+    if (options.interpolate) {
+      final re = RegExp(options.varPattern);
+      final snapshot = Map<String, String?>.from(out);
+      for (final k in out.keys.toList()) {
+        final raw = out[k];
+        if (raw == null || raw.isEmpty) {
+          continue;
+        }
+
+        // Replace all matches by rebuilding the string
+        final matches = re.allMatches(raw).toList();
+        if (matches.isEmpty) {
+          continue;
+        }
+
+        final buffer = StringBuffer();
+        var lastEnd = 0;
+
+        for (final m in matches) {
+          // Add the text before this match
+          buffer.write(raw.substring(lastEnd, m.start));
+
+          // Add the replacement value
+          if (m.groupCount >= 1) {
+            final name = m.group(1)!;
+            final rep = snapshot[name] ?? '';
+            buffer.write(rep);
+          }
+
+          lastEnd = m.end;
+        }
+
+        // Add any remaining text after the last match
+        buffer.write(raw.substring(lastEnd));
+
+        out[k] = buffer.toString();
+      }
+    }
+
+    // Convert to FlatDocument (nulls not expected; env is strings).
+    return FlatConfig.fromDynamicMap(out);
+  }
+
   /// Parses a single configuration line into a [FlatEntry].
   ///
   /// This method processes one line of configuration text and returns a [FlatEntry]

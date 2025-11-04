@@ -49,6 +49,7 @@ export 'src/io_stub.dart' if (dart.library.io) 'src/io.dart';
 export 'src/options.dart'
     show
         FlatEncodeOptions,
+        FlatEnvOptions,
         FlatParseOptions,
         FlatStreamReadOptions,
         FlatStreamWriteOptions,

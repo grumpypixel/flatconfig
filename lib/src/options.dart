@@ -241,3 +241,172 @@ class FlatEncodeOptions {
         commentPrefix: commentPrefix ?? this.commentPrefix,
       );
 }
+
+/// Options for loading environment variables into a FlatDocument.
+///
+/// These options control how environment-like maps are processed when using
+/// [FlatConfig.fromEnvironment], including prefix filtering, interpolation,
+/// and precedence handling. Pure in-memory; no dart:io required.
+class FlatEnvOptions {
+  /// Creates a new [FlatEnvOptions] with the specified configuration.
+  ///
+  /// All parameters are optional and have sensible defaults for typical
+  /// environment variable loading scenarios.
+  const FlatEnvOptions({
+    this.prefix,
+    this.caseSensitive = true,
+    this.interpolate = true,
+    this.keepEmptyValues = true,
+    this.varPattern = r'\$\{([A-Za-z0-9_]+)\}',
+    this.defaults = const {},
+    this.merge = const {},
+  });
+
+  /// Optional key prefix to include only env vars starting with this prefix.
+  ///
+  /// If set, only keys that start with this prefix will be included in the
+  /// resulting document. The keys will retain the prefix in the document.
+  /// Use [FlatDocumentExtensions.stripPrefix] on the result if you want to
+  /// remove the prefix from the keys.
+  ///
+  /// Example:
+  /// ```dart
+  /// final env = {'APP_HOST': 'localhost', 'APP_PORT': '8080', 'OTHER': 'value'};
+  /// final doc = FlatConfig.fromEnvironment(
+  ///   env,
+  ///   options: FlatEnvOptions(prefix: 'APP_'),
+  /// );
+  /// print(doc.toMap()); // {APP_HOST: localhost, APP_PORT: 8080}
+  /// ```
+  final String? prefix;
+
+  /// When false, keys are matched case-insensitively (storage remains original).
+  ///
+  /// This affects prefix matching when [prefix] is set. The original case of
+  /// the keys is always preserved in the resulting document.
+  ///
+  /// Example with case-insensitive matching:
+  /// ```dart
+  /// final env = {'app_host': 'localhost', 'APP_PORT': '8080'};
+  /// final doc = FlatConfig.fromEnvironment(
+  ///   env,
+  ///   options: FlatEnvOptions(prefix: 'APP_', caseSensitive: false),
+  /// );
+  /// print(doc.toMap()); // {app_host: localhost, APP_PORT: 8080}
+  /// ```
+  final bool caseSensitive;
+
+  /// Replace `${VAR}` placeholders in values using the final env view.
+  ///
+  /// When enabled, values can reference other variables using the `${VAR}`
+  /// syntax. The interpolation happens after all defaults, env, and merge
+  /// operations are applied, so any variable in the final environment can
+  /// be referenced.
+  ///
+  /// Variables that don't exist are replaced with an empty string.
+  ///
+  /// Example:
+  /// ```dart
+  /// final env = {
+  ///   'HOST': 'localhost',
+  ///   'PORT': '8080',
+  ///   'URL': 'http://${HOST}:${PORT}',
+  /// };
+  /// final doc = FlatConfig.fromEnvironment(
+  ///   env,
+  ///   options: FlatEnvOptions(interpolate: true),
+  /// );
+  /// print(doc['URL']); // http://localhost:8080
+  /// ```
+  final bool interpolate;
+
+  /// Keep entries whose value is '' (empty string).
+  ///
+  /// If false, entries with empty string values are removed from the
+  /// resulting document.
+  ///
+  /// Example:
+  /// ```dart
+  /// final env = {'KEY1': 'value', 'KEY2': ''};
+  /// final doc1 = FlatConfig.fromEnvironment(
+  ///   env,
+  ///   options: FlatEnvOptions(keepEmptyValues: true),
+  /// );
+  /// print(doc1.toMap()); // {KEY1: value, KEY2: }
+  ///
+  /// final doc2 = FlatConfig.fromEnvironment(
+  ///   env,
+  ///   options: FlatEnvOptions(keepEmptyValues: false),
+  /// );
+  /// print(doc2.toMap()); // {KEY1: value}
+  /// ```
+  final bool keepEmptyValues;
+
+  /// Regex used for `${VAR}` placeholder matching (first capture = var name).
+  ///
+  /// The regex must have at least one capture group, which will be used as
+  /// the variable name to look up in the environment.
+  ///
+  /// Default pattern matches: `${VAR_NAME}` where VAR_NAME contains only
+  /// alphanumeric characters and underscores.
+  final String varPattern;
+
+  /// Default key-values applied first (lowest precedence).
+  ///
+  /// These values are applied before the environment variables, so they can
+  /// be overridden by actual environment values or merge values.
+  ///
+  /// Example:
+  /// ```dart
+  /// final env = {'PORT': '3000'};
+  /// final doc = FlatConfig.fromEnvironment(
+  ///   env,
+  ///   options: FlatEnvOptions(
+  ///     defaults: {'HOST': 'localhost', 'PORT': '8080'},
+  ///   ),
+  /// );
+  /// print(doc.toMap()); // {HOST: localhost, PORT: 3000}
+  /// ```
+  final Map<String, String> defaults;
+
+  /// Additional key-values applied last (highest precedence).
+  ///
+  /// These values are applied after environment variables and will override
+  /// any conflicting keys from defaults or the environment.
+  ///
+  /// Example:
+  /// ```dart
+  /// final env = {'PORT': '3000'};
+  /// final doc = FlatConfig.fromEnvironment(
+  ///   env,
+  ///   options: FlatEnvOptions(
+  ///     merge: {'PORT': '9000'},
+  ///   ),
+  /// );
+  /// print(doc.toMap()); // {PORT: 9000}
+  /// ```
+  final Map<String, String> merge;
+
+  /// Returns a copy of these options with selectively replaced fields.
+  ///
+  /// Only the provided parameters will be changed; all others will remain
+  /// the same as in the original options object.
+  FlatEnvOptions copyWith({
+    String? prefix,
+    bool? caseSensitive,
+    bool? interpolate,
+    bool? keepEmptyValues,
+    String? varPattern,
+    Map<String, String>? defaults,
+    Map<String, String>? merge,
+  }) =>
+      FlatEnvOptions(
+        prefix: prefix ?? this.prefix,
+        caseSensitive: caseSensitive ?? this.caseSensitive,
+        interpolate: interpolate ?? this.interpolate,
+        keepEmptyValues: keepEmptyValues ?? this.keepEmptyValues,
+        varPattern: varPattern ?? this.varPattern,
+        defaults: defaults ?? this.defaults,
+        merge: merge ?? this.merge,
+      );
+}
