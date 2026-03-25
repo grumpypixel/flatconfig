@@ -1,0 +1,16 @@
+# Files that live in the repo but must not ship to pub.dev.
+#
+# Note: pub gives this file precedence over .gitignore in this directory, so
+# the root .gitignore entries are repeated here rather than inherited.
+
+.dart_tool/
+pubspec.lock
+coverage/
+.DS_Store
+.vscode/
+
+# Internal planning and tooling.
+ROADMAP_1.0.md
+justfile
+coverage-review/
+tool/

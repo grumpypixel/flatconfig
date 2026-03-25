@@ -550,11 +550,12 @@ Currently shipped to pub.dev: `PACKAGE_REVIEW.md` (39 KB), `improvements.md`
 
 ### 4.2 Fix the README contradictions
 
-- [ ] Line 163 claims the `=` separator is customizable. It is hardcoded.
-- [ ] Line 472 says `key =` yields `""`. It yields `null`, and line 161 already
-      says so correctly.
-- [ ] Line 732 documents `FlatDocument.fromDynamicMap`, which does not exist.
+- [x] Claim that the `=` separator is customizable. It is hardcoded.
+- [x] `key =` documented as yielding `""`. It yields `null`, and the parsing
+      section already said so correctly.
+- [x] `FlatDocument.fromDynamicMap` in an example. It lives on `FlatConfig`.
 - [ ] The "Round-Trip Example" only demonstrates cases that happen to work.
+      Deferred: it can only be made honest once Phase 1.2 lands.
 
 ### 4.3 Restructure the docs
 
