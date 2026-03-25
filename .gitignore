@@ -10,3 +10,4 @@ pubspec.lock
 coverage/*
 #!coverage/lcov.info
 .DS_Store
+.vscode/settings.json

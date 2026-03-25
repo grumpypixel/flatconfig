@@ -1,0 +1,40 @@
+---
+description: Use Jujutsu (jj) for version control in this repo, not git
+alwaysApply: true
+---
+
+# Version control: use `jj`, not `git`
+
+This repo is a **colocated jj/git repo** (`.jj/` and `.git/` both present).
+Use Jujutsu for all version control work. `git` commands are read-only fallbacks
+only — never use them to create commits, branches, or rewrite history.
+
+## Command mapping
+
+| Intent | Use | Not |
+|---|---|---|
+| Inspect working copy | `jj status` | `git status` |
+| History | `jj log` | `git log` |
+| Diff | `jj diff` | `git diff` |
+| Describe current change | `jj describe -m "..."` | `git commit -m` |
+| Start a new change | `jj new` | `git checkout -b` |
+| Move a bookmark | `jj bookmark set <name> -r @-` | `git branch -f` |
+| Push | `jj git push` | `git push` |
+| Fetch | `jj git fetch` | `git pull` |
+
+## Notes that matter here
+
+- There is no staging area. Edits land in the working-copy commit (`@`)
+  immediately, so **do not look for or suggest `jj add`**.
+- The normal flow is: edit → `jj describe -m "..."` → `jj new` for the next
+  change. Describing does not "create" a commit; `@` already is one.
+- Branches are **bookmarks** and do not advance automatically. After describing
+  a change, move the bookmark explicitly before pushing.
+- Prefer `jj` revsets (`@`, `@-`, `main..@`) over git refspecs when selecting
+  revisions.
+- Commit message style in this repo follows Conventional Commits
+  (`feat:`, `fix:`, `docs:`, `chore(release):`).
+
+## Current state
+
+Active bookmark: `feat/config-from-environment`, ahead of `main`.
