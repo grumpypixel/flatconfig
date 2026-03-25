@@ -160,7 +160,7 @@ texture =
 - Quoted values preserve inner whitespace and `=`  
 - Empty (unquoted) values are interpreted as explicit resets (`null`)  
 - Lines without `=` are ignored unless `strict: true` is enabled  
-- The comment prefix (`#`) and the key-value separator (`=`) can be customized  
+- The comment prefix (`#`) can be customized; the key-value separator (`=`) is fixed  
 
 ## Comparison to INI and TOML
 
@@ -469,7 +469,7 @@ final section = doc.slice('window.').stripPrefix('window.');
 
 ## Accessors – At a Glance
 
-- **Missing vs. empty:** Missing keys return `null`. An unquoted empty value (`key =`) becomes an empty string `""` (an explicit reset in flatconfig).  
+- **Missing vs. empty:** Missing keys return `null`. An unquoted empty value (`key =`) is an explicit reset and also returns `null`; write `key = ""` for an empty string.  
 - **`get*` vs. `require*`:** `get*` returns `null` or a default; `require*` throws a `FormatException` on missing or invalid values.  
 - **Trimming:** String helpers (`getTrimmed…`) strip leading and trailing spaces.  
 - **Booleans:** Supported values are `true/false`, `on/off`, `yes/no`, and `1/0` (case-insensitive).  
@@ -729,7 +729,7 @@ final shallow = FlatDocument.fromMap({
 });
 
 // From a dynamic map (typed values converted to strings)
-final dynamicMap = FlatDocument.fromDynamicMap({
+final dynamicMap = FlatConfig.fromDynamicMap({
   'version': 2.0,
   'enabled': true,
   'tags': ['alpha', 'beta'],
