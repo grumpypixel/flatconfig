@@ -56,8 +56,18 @@ jobs:
       - name: Install dependencies
         run: dart pub get
 
+      # The formatter reads each file's language version from its package
+      # config, so the example needs its own dependencies resolved or its files
+      # are formatted against a default version instead.
+      - name: Install example dependencies
+        run: dart pub get
+        working-directory: example
+
+      # The Flutter example is checked in its own job, where flutter pub get
+      # has run. Formatting it from here, with no package config, produces a
+      # different answer.
       - name: Check formatting
-        run: dart format --set-exit-if-changed .
+        run: dart format --set-exit-if-changed lib test tool example/*.dart
 
   # Asserts vanish in release builds, so a guard written as an assert protects
   # nothing where it matters. Compiling to an executable turns them off, which
@@ -150,6 +160,10 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+        working-directory: example/flatconfig_flutter
+
+      - name: Check formatting
+        run: dart format --set-exit-if-changed .
         working-directory: example/flatconfig_flutter
 
       - name: Analyze
