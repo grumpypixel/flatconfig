@@ -11,6 +11,16 @@ Added:
 - **`FlatIssue`, `FlatIssueKind` and `FlatParseOptions.onIssue`** — one channel
   for every problem the parser finds, carrying the kind, the 1-based line and
   column, and the raw line.
+- **Key transformation in `FlatEnvOptions`** — `stripMatchedPrefix`,
+  `keySplitOn`/`keyJoinWith` and `lowercaseKeys` turn `APP_WINDOW_WIDTH` into
+  `window.width` without post-processing. They run after interpolation, so a
+  `${VAR}` names an environment variable rather than a rewritten key, and they
+  apply to `defaults` and `merge` too — otherwise a default could not override
+  the variable it is a default for.
+- **`MultilineValuePolicy`** — an environment variable whose value contains a
+  line break can now be skipped instead of throwing, for a process whose
+  environment carries something like a PEM key it never reads. The default
+  stays `error`.
 - **`package:flatconfig/flatconfig_accessors.dart`** — ready-made accessors for
   `DateTime`, `Duration`, `Uri`, JSON and enums, in the same three shapes as the
   core catalog. A program reading strings and numbers no longer carries a date
@@ -27,6 +37,16 @@ Added:
 
 Changed:
 
+- **`FlatEnvOptions.interpolate` now defaults to `false`.** A variable's value
+  is data the program did not write, and a `$` in it is more often a password
+  than a reference. Turning it on is a decision, not the state you get by
+  forgetting to make one.
+- **A `${VAR}` naming nothing is preserved rather than emptied.**
+  `{'URL': r'https://${NOPE}/api'}` used to yield `https:///api`, which looks
+  like a URL and fails somewhere else entirely; the unresolved placeholder
+  points at the typo instead. `MissingVariablePolicy.empty` restores the old
+  behaviour and `.error` throws naming both the variable and the value that
+  references it.
 - **`includeKey` and `maxIncludeDepth` moved to `FlatIncludeOptions`.** They sat
   on `FlatParseOptions`, which made it look as though `FlatDocument.parse` might
   follow an include. It never did — only the entry points that take a path or a

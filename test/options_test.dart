@@ -121,9 +121,15 @@ void main() {
 
       expect(options.prefix, null);
       expect(options.caseSensitive, true);
-      expect(options.interpolate, true);
+      expect(options.interpolate, false);
+      expect(options.missingVariable, MissingVariablePolicy.preserve);
+      expect(options.multilineValue, MultilineValuePolicy.error);
       expect(options.keepEmptyValues, true);
       expect(options.varPattern, r'\$\{([A-Za-z0-9_]+)\}');
+      expect(options.stripMatchedPrefix, false);
+      expect(options.keySplitOn, null);
+      expect(options.keyJoinWith, null);
+      expect(options.lowercaseKeys, false);
       expect(options.defaults, const <String, String>{});
       expect(options.merge, const <String, String>{});
     });

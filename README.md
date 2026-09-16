@@ -704,13 +704,49 @@ final entries = FlatDocument.fromEntries([
 final merged = shallow.concat(entries);
 
 // Single key/value pair
-final single = FlatDocument.single('theme', value: 'dark');
+final single = FlatDocument([FlatEntry('theme', 'dark')]);
 ```
 
 > **Note:**
-> `fromMap` and `fromDynamicMap` are *shallow* — they do not traverse nested maps or lists.
+> `fromMap` is *shallow* — it does not traverse nested maps or lists.
 > Each map entry becomes exactly one key in the resulting document.
 > For structured or nested data, use `fromData` below.
+
+### From the Environment
+
+`FlatDocument.fromEnvironment` builds a document from an environment-like map.
+It is pure: pass `Platform.environment` yourself if that is what you mean, which
+keeps it usable on Web and WASM and in tests.
+
+```dart
+final doc = FlatDocument.fromEnvironment(
+  Platform.environment,
+  options: FlatEnvOptions(
+    prefix: 'APP_',
+    stripMatchedPrefix: true,
+    keySplitOn: '_',
+    keyJoinWith: '.',
+    lowercaseKeys: true,
+  ),
+);
+// APP_WINDOW_WIDTH=1280 becomes window.width = 1280
+```
+
+Precedence runs `defaults` → environment → `merge`. The key rewrite runs last,
+after interpolation, so a `${VAR}` names an environment variable rather than
+whatever that variable's key was rewritten into.
+
+Two defaults are deliberately cautious:
+
+- **`interpolate` is off.** A variable's value is data the program did not
+  write, and a `$` in it is more often a password than a reference. When you do
+  turn it on, `missingVariable` decides what `${NOPE}` becomes: `preserve` (the
+  default) leaves the placeholder visible, `empty` behaves like a POSIX shell,
+  and `error` throws naming both the missing variable and the value referencing it.
+- **A value containing a line break is an error.** No document can hold one
+  (see [Format Rules & Limits](#format-rules--limits)). Set
+  `multilineValue: MultilineValuePolicy.skip` to drop such a variable and keep
+  the rest — useful when the environment carries a PEM key the program never reads.
 
 ### Deep Flattening with `fromData`
 

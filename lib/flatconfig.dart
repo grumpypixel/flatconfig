@@ -55,6 +55,8 @@ export 'src/options.dart'
         FlatIncludeOptions,
         FlatParseOptions,
         FlatStreamReadOptions,
-        FlatStreamWriteOptions;
+        FlatStreamWriteOptions,
+        MissingVariablePolicy,
+        MultilineValuePolicy;
 // Resolver-based include support (web-safe core + conditional IO resolver)
 export 'src/parse_with_resolver.dart' show FlatConfigResolverIncludes;

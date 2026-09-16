@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'constants.dart';
 import 'issue.dart';
+import 'validation.dart';
 
 /// Callback function invoked when a parsing error occurs.
 ///
@@ -340,6 +341,36 @@ class FlatEncodeOptions {
       Object.hash(escapeQuoted, quoteIfWhitespace, alwaysQuote, commentPrefix);
 }
 
+/// What interpolation does with a `${VAR}` that names nothing.
+enum MissingVariablePolicy {
+  /// Leave the placeholder in the value, spelled exactly as it was written.
+  ///
+  /// The default. A typo stays visible instead of turning `https://${HOST}/api`
+  /// into `https:///api`, which looks like a URL and fails much later.
+  preserve,
+
+  /// Replace it with the empty string, the way a POSIX shell does.
+  empty,
+
+  /// Throw an [ArgumentError] naming the variable.
+  error,
+}
+
+/// What to do with an environment variable whose value contains a line break.
+///
+/// No document can hold one (`SPEC.md` §4), so the value cannot be kept either
+/// way. The choice is whether to fail or to carry on without it.
+enum MultilineValuePolicy {
+  /// Throw an [ArgumentError] naming the variable. The default.
+  error,
+
+  /// Drop the variable and keep the rest.
+  ///
+  /// For a process whose environment happens to carry something like a PEM key
+  /// it should not be reading anyway, and which should not be stopped by it.
+  skip,
+}
+
 /// Options for loading environment variables into a FlatDocument.
 ///
 /// These options control how environment-like maps are processed when using
@@ -358,9 +389,15 @@ class FlatEnvOptions {
   FlatEnvOptions({
     String? prefix,
     this.caseSensitive = true,
-    this.interpolate = true,
+    this.interpolate = false,
+    this.missingVariable = MissingVariablePolicy.preserve,
+    this.multilineValue = MultilineValuePolicy.error,
     this.keepEmptyValues = true,
     this.varPattern = defaultVarPattern,
+    this.stripMatchedPrefix = false,
+    this.keySplitOn,
+    this.keyJoinWith,
+    this.lowercaseKeys = false,
     Map<String, String> defaults = const {},
     Map<String, String> merge = const {},
   }) : // An empty prefix filters nothing, which is what a null prefix means.
@@ -368,25 +405,52 @@ class FlatEnvOptions {
        prefix = (prefix?.isEmpty ?? true) ? null : prefix,
        defaults = Map.unmodifiable(defaults),
        merge = Map.unmodifiable(merge) {
-    final RegExp compiled;
+    if (stripMatchedPrefix && this.prefix == null) {
+      throw ArgumentError.value(
+        stripMatchedPrefix,
+        'stripMatchedPrefix',
+        'needs a prefix to strip',
+      );
+    }
+
+    if (keySplitOn != null && keySplitOn!.isEmpty) {
+      throw ArgumentError.value(keySplitOn, 'keySplitOn', 'must not be empty');
+    }
+
+    if (keyJoinWith != null && keySplitOn == null) {
+      throw ArgumentError.value(
+        keyJoinWith,
+        'keyJoinWith',
+        'has nothing to join without keySplitOn',
+      );
+    }
+
+    // A key rewritten into something the format cannot hold would only be
+    // caught by FlatEntry, one layer away from the setting that caused it.
+    final joiner = keyJoinWith;
+    if (joiner != null) {
+      final reason = invalidKeyReason(joiner);
+      if (reason != null && joiner.isNotEmpty) {
+        throw ArgumentError.value(joiner, 'keyJoinWith', reason);
+      }
+    }
+
     try {
-      compiled = RegExp(varPattern);
+      RegExp(varPattern);
     } on FormatException catch (e) {
       throw ArgumentError.value(varPattern, 'varPattern', 'is not a regex: $e');
     }
 
     // Interpolation reads group 1 as the variable name, so a pattern without
-    // one would throw at the first placeholder rather than here.
-    if (!compiled.hasMatch(r'${X}') && interpolate) {
-      // Not every valid pattern has to match this probe; only reject a pattern
-      // with no capture group at all, which can never name a variable.
-      if (!varPattern.contains('(')) {
-        throw ArgumentError.value(
-          varPattern,
-          'varPattern',
-          'must have a capture group naming the variable',
-        );
-      }
+    // one could never name a variable. Rejected whether or not [interpolate]
+    // is set: an unusable pattern is a mistake either way, and turning
+    // interpolation on later should not be what surfaces it.
+    if (!varPattern.contains('(')) {
+      throw ArgumentError.value(
+        varPattern,
+        'varPattern',
+        'must have a capture group naming the variable',
+      );
     }
   }
 
@@ -432,9 +496,13 @@ class FlatEnvOptions {
   /// When enabled, values can reference other variables using the `${VAR}`
   /// syntax. The interpolation happens after all defaults, env, and merge
   /// operations are applied, so any variable in the final environment can
-  /// be referenced.
+  /// be referenced. It runs before any key transformation, so a placeholder
+  /// names an environment variable and not a rewritten key.
   ///
-  /// Variables that don't exist are replaced with an empty string.
+  /// Defaults to false. A variable's value is data the program did not write,
+  /// and a `$` in it is far more often a password than a reference.
+  ///
+  /// [missingVariable] decides what a placeholder naming nothing becomes.
   ///
   /// Example:
   /// ```dart
@@ -450,6 +518,16 @@ class FlatEnvOptions {
   /// print(doc['URL']); // http://localhost:8080
   /// ```
   final bool interpolate;
+
+  /// What a `${VAR}` naming nothing becomes. Only read when [interpolate].
+  ///
+  /// Defaults to [MissingVariablePolicy.preserve].
+  final MissingVariablePolicy missingVariable;
+
+  /// What to do with a value containing a line break.
+  ///
+  /// Defaults to [MultilineValuePolicy.error].
+  final MultilineValuePolicy multilineValue;
 
   /// Keep entries whose value is '' (empty string).
   ///
@@ -481,6 +559,45 @@ class FlatEnvOptions {
   /// Default pattern matches: `${VAR_NAME}` where VAR_NAME contains only
   /// alphanumeric characters and underscores.
   final String varPattern;
+
+  /// Remove [prefix] from each key that matched it.
+  ///
+  /// The three key settings run in order — strip, split and join, lowercase —
+  /// and all of them run after interpolation. Together they turn a screaming
+  /// environment into ordinary configuration keys:
+  ///
+  /// ```dart
+  /// FlatEnvOptions(
+  ///   prefix: 'APP_',
+  ///   stripMatchedPrefix: true,
+  ///   keySplitOn: '_',
+  ///   keyJoinWith: '.',
+  ///   lowercaseKeys: true,
+  /// );
+  /// // APP_WINDOW_WIDTH -> window.width
+  /// ```
+  ///
+  /// Requires [prefix]. Keys from [defaults] and [merge] are transformed too:
+  /// they are settings for the same document, and leaving them untouched would
+  /// mean a default could not override the variable it is a default for.
+  final bool stripMatchedPrefix;
+
+  /// Separator the key is split on before being rejoined with [keyJoinWith].
+  ///
+  /// Null leaves the key as it is.
+  final String? keySplitOn;
+
+  /// Separator the split key parts are rejoined with.
+  ///
+  /// Defaults to [Constants.keySeparator] when [keySplitOn] is set. Setting it
+  /// without [keySplitOn] is an error rather than a no-op.
+  final String? keyJoinWith;
+
+  /// Lowercase every key, after stripping and rejoining.
+  ///
+  /// Two keys can collide once case stops distinguishing them; the later one
+  /// wins, as it would anywhere else in a document.
+  final bool lowercaseKeys;
 
   /// Default key-values applied first (lowest precedence).
   ///
@@ -523,20 +640,38 @@ class FlatEnvOptions {
   /// Only the provided parameters will be changed; all others will remain
   /// the same as in the original options object.
   /// Pass [prefix] as `null` to clear it; omitting it keeps the current one.
+  /// Pass [prefix], [keySplitOn] or [keyJoinWith] as `null` to clear one;
+  /// omitting it keeps the current value.
   FlatEnvOptions copyWith({
     Object? prefix = _unset,
     bool? caseSensitive,
     bool? interpolate,
+    MissingVariablePolicy? missingVariable,
+    MultilineValuePolicy? multilineValue,
     bool? keepEmptyValues,
     String? varPattern,
+    bool? stripMatchedPrefix,
+    Object? keySplitOn = _unset,
+    Object? keyJoinWith = _unset,
+    bool? lowercaseKeys,
     Map<String, String>? defaults,
     Map<String, String>? merge,
   }) => FlatEnvOptions(
     prefix: identical(prefix, _unset) ? this.prefix : prefix as String?,
     caseSensitive: caseSensitive ?? this.caseSensitive,
     interpolate: interpolate ?? this.interpolate,
+    missingVariable: missingVariable ?? this.missingVariable,
+    multilineValue: multilineValue ?? this.multilineValue,
     keepEmptyValues: keepEmptyValues ?? this.keepEmptyValues,
     varPattern: varPattern ?? this.varPattern,
+    stripMatchedPrefix: stripMatchedPrefix ?? this.stripMatchedPrefix,
+    keySplitOn: identical(keySplitOn, _unset)
+        ? this.keySplitOn
+        : keySplitOn as String?,
+    keyJoinWith: identical(keyJoinWith, _unset)
+        ? this.keyJoinWith
+        : keyJoinWith as String?,
+    lowercaseKeys: lowercaseKeys ?? this.lowercaseKeys,
     defaults: defaults ?? this.defaults,
     merge: merge ?? this.merge,
   );
@@ -544,8 +679,12 @@ class FlatEnvOptions {
   @override
   String toString() =>
       'FlatEnvOptions(prefix: $prefix, caseSensitive: $caseSensitive, '
-      'interpolate: $interpolate, keepEmptyValues: $keepEmptyValues, '
-      'varPattern: $varPattern, defaults: ${defaults.length} entries, '
+      'interpolate: $interpolate, missingVariable: ${missingVariable.name}, '
+      'multilineValue: ${multilineValue.name}, '
+      'keepEmptyValues: $keepEmptyValues, varPattern: $varPattern, '
+      'stripMatchedPrefix: $stripMatchedPrefix, keySplitOn: $keySplitOn, '
+      'keyJoinWith: $keyJoinWith, lowercaseKeys: $lowercaseKeys, '
+      'defaults: ${defaults.length} entries, '
       'merge: ${merge.length} entries)';
 
   @override
@@ -554,8 +693,14 @@ class FlatEnvOptions {
       other.prefix == prefix &&
       other.caseSensitive == caseSensitive &&
       other.interpolate == interpolate &&
+      other.missingVariable == missingVariable &&
+      other.multilineValue == multilineValue &&
       other.keepEmptyValues == keepEmptyValues &&
       other.varPattern == varPattern &&
+      other.stripMatchedPrefix == stripMatchedPrefix &&
+      other.keySplitOn == keySplitOn &&
+      other.keyJoinWith == keyJoinWith &&
+      other.lowercaseKeys == lowercaseKeys &&
       _sameEntries(other.defaults, defaults) &&
       _sameEntries(other.merge, merge);
 
@@ -564,8 +709,14 @@ class FlatEnvOptions {
     prefix,
     caseSensitive,
     interpolate,
+    missingVariable,
+    multilineValue,
     keepEmptyValues,
     varPattern,
+    stripMatchedPrefix,
+    keySplitOn,
+    keyJoinWith,
+    lowercaseKeys,
     _entriesHash(defaults),
     _entriesHash(merge),
   );

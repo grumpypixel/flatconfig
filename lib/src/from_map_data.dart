@@ -1,11 +1,13 @@
 import 'dart:convert' as convert;
+
+import 'constants.dart';
 import 'document.dart';
 
 /// Controls how nested Map/List data are flattened into FlatEntries.
 final class FlatDataOptions {
   /// Constructor for FlatDataOptions.
   const FlatDataOptions({
-    this.separator = '.',
+    this.separator = Constants.keySeparator,
     this.listMode = FlatListMode.multi,
     this.csvSeparator = ', ',
     this.csvNullToken = '',

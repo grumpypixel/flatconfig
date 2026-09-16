@@ -146,7 +146,9 @@ void main() {
         expect(doc['URL'], equals('https://api.example.com:8080'));
       });
 
-      test('replaces missing variables with empty string', () {
+      test('a missing variable is left in place by default', () {
+        // 'https://:' looks like a URL and fails somewhere else entirely.
+        // The unresolved placeholder points at the typo.
         final env = {'URL': 'https://\${HOST}:\${PORT}'};
 
         final doc = FlatDocument.fromEnvironment(
@@ -154,7 +156,42 @@ void main() {
           options: FlatEnvOptions(interpolate: true),
         );
 
+        expect(doc['URL'], equals('https://\${HOST}:\${PORT}'));
+      });
+
+      test('a missing variable can be emptied, the way a shell does', () {
+        final env = {'URL': 'https://\${HOST}:\${PORT}'};
+
+        final doc = FlatDocument.fromEnvironment(
+          env,
+          options: FlatEnvOptions(
+            interpolate: true,
+            missingVariable: MissingVariablePolicy.empty,
+          ),
+        );
+
         expect(doc['URL'], equals('https://:'));
+      });
+
+      test('a missing variable can be an error naming it', () {
+        final env = {'URL': 'https://\${HOST}/api'};
+
+        expect(
+          () => FlatDocument.fromEnvironment(
+            env,
+            options: FlatEnvOptions(
+              interpolate: true,
+              missingVariable: MissingVariablePolicy.error,
+            ),
+          ),
+          throwsA(
+            isA<ArgumentError>().having(
+              (e) => '${e.invalidValue} ${e.message}',
+              'names both sides',
+              allOf(contains('HOST'), contains('URL')),
+            ),
+          ),
+        );
       });
 
       test('handles multiple placeholders in same value', () {
@@ -366,18 +403,41 @@ void main() {
       });
 
       test('rejects a variable whose value contains a newline', () {
-        // The format is line-based and cannot hold one. See Phase 2.10 for
-        // whether the environment deserves a skip-instead-of-throw policy.
         expect(
           () => FlatDocument.fromEnvironment({'KEY': 'a\nb'}),
           throwsA(
             isA<ArgumentError>().having(
-              (e) => e.message,
-              'message',
-              contains('must not contain a line break'),
+              (e) => '${e.invalidValue} ${e.message}',
+              'names the variable',
+              allOf(contains('KEY'), contains('line break')),
             ),
           ),
         );
+      });
+
+      test('or skips it, keeping the rest', () {
+        // A process whose environment carries a PEM key it never reads should
+        // not be stopped by it.
+        final doc = FlatDocument.fromEnvironment({
+          'PEM': '-----BEGIN\nMII\n-----END',
+          'PORT': '8080',
+        }, options: FlatEnvOptions(multilineValue: MultilineValuePolicy.skip));
+
+        expect(doc.containsKey('PEM'), isFalse);
+        expect(doc['PORT'], '8080');
+      });
+
+      test('a skipped value cannot leak through interpolation', () {
+        final doc = FlatDocument.fromEnvironment(
+          {'PEM': 'a\nb', 'COPY': r'${PEM}'},
+          options: FlatEnvOptions(
+            interpolate: true,
+            multilineValue: MultilineValuePolicy.skip,
+          ),
+        );
+
+        expect(doc.containsKey('PEM'), isFalse);
+        expect(doc['COPY'], r'${PEM}');
       });
     });
 
@@ -620,6 +680,118 @@ void main() {
 
         expect(doc['API_BASE_URL'], equals('https://api.example.com:443/v1'));
         expect(doc['API_HEADERS'], equals('Authorization: Bearer secret123'));
+      });
+    });
+
+    group('key transformation', () {
+      test('a screaming prefix becomes ordinary configuration keys', () {
+        final doc = FlatDocument.fromEnvironment(
+          {
+            'APP_WINDOW_WIDTH': '1280',
+            'APP_WINDOW_HEIGHT': '720',
+            'OTHER_VAR': 'ignored',
+          },
+          options: FlatEnvOptions(
+            prefix: 'APP_',
+            stripMatchedPrefix: true,
+            keySplitOn: '_',
+            keyJoinWith: '.',
+            lowercaseKeys: true,
+          ),
+        );
+
+        expect(doc.toMap(), {'window.width': '1280', 'window.height': '720'});
+      });
+
+      test('keyJoinWith defaults to the key separator', () {
+        final doc = FlatDocument.fromEnvironment({
+          'A_B': '1',
+        }, options: FlatEnvOptions(keySplitOn: '_'));
+
+        expect(doc.containsKey('A.B'), isTrue);
+      });
+
+      test('each step is independent of the others', () {
+        const env = {'APP_A_B': '1'};
+
+        expect(
+          FlatDocument.fromEnvironment(
+            env,
+            options: FlatEnvOptions(prefix: 'APP_', stripMatchedPrefix: true),
+          ).containsKey('A_B'),
+          isTrue,
+        );
+        expect(
+          FlatDocument.fromEnvironment(
+            env,
+            options: FlatEnvOptions(lowercaseKeys: true),
+          ).containsKey('app_a_b'),
+          isTrue,
+        );
+      });
+
+      test('defaults and merge are rewritten too', () {
+        // Otherwise a default could not override the variable it defaults for.
+        final doc = FlatDocument.fromEnvironment(
+          {'APP_PORT': '3000'},
+          options: FlatEnvOptions(
+            prefix: 'APP_',
+            stripMatchedPrefix: true,
+            lowercaseKeys: true,
+            defaults: {'APP_HOST': 'localhost'},
+            merge: {'APP_DEBUG': 'true'},
+          ),
+        );
+
+        expect(doc.toMap(), {
+          'host': 'localhost',
+          'port': '3000',
+          'debug': 'true',
+        });
+      });
+
+      test('a placeholder names the variable, not the rewritten key', () {
+        // The rewrite runs last, so \${APP_HOST} still resolves.
+        final doc = FlatDocument.fromEnvironment(
+          {'APP_HOST': 'example.com', 'APP_URL': r'https://${APP_HOST}/api'},
+          options: FlatEnvOptions(
+            prefix: 'APP_',
+            stripMatchedPrefix: true,
+            lowercaseKeys: true,
+            interpolate: true,
+          ),
+        );
+
+        expect(doc['url'], 'https://example.com/api');
+      });
+
+      test('a rewrite producing an invalid key names the variable', () {
+        expect(
+          () => FlatDocument.fromEnvironment({
+            'A_B': '1',
+          }, options: FlatEnvOptions(keySplitOn: '_', keyJoinWith: '=')),
+          throwsArgumentError,
+        );
+      });
+
+      test('lowercasing can collide, and the later key wins', () {
+        final doc = FlatDocument.fromEnvironment({
+          'KEY': 'first',
+          'key': 'second',
+        }, options: FlatEnvOptions(lowercaseKeys: true));
+
+        expect(doc['key'], 'second');
+      });
+
+      test('stripping without a prefix to strip is rejected', () {
+        expect(
+          () => FlatEnvOptions(stripMatchedPrefix: true),
+          throwsArgumentError,
+        );
+      });
+
+      test('joining without splitting is rejected rather than ignored', () {
+        expect(() => FlatEnvOptions(keyJoinWith: '.'), throwsArgumentError);
       });
     });
   });

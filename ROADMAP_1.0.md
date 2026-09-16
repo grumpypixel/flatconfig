@@ -568,13 +568,21 @@ policy, the way lax parsing has one for files.
 `interpolate` defaults to `true` and unknown variables silently become the empty
 string: `{'URL': r'https://${NOPE}/api'}` yields `https:///api`.
 
-- [ ] Default `interpolate` to `false`.
-- [ ] Add `MissingVariablePolicy { preserve, empty, error }`, default `preserve`.
-- [ ] Add key transformation (`stripMatchedPrefix`, `keySplitOn`/`keyJoinWith`,
+- [x] Default `interpolate` to `false`.
+- [x] Add `MissingVariablePolicy { preserve, empty, error }`, default `preserve`.
+- [x] Add key transformation (`stripMatchedPrefix`, `keySplitOn`/`keyJoinWith`,
       `lowercaseKeys`) so `APP_WINDOW_WIDTH` → `window.width` without manual
       post-processing. Specify whether `${VAR}` references original env names or
       transformed keys — transform runs **after** interpolation.
-- [ ] Keep `Platform.environment` access in `flatconfig_io.dart`.
+
+      The transform applies to `defaults` and `merge` as well. Leaving them
+      untouched would mean a default could not override the variable it is a
+      default for, which is the whole point of having one.
+- [x] Keep `Platform.environment` access in `flatconfig_io.dart`. Nothing to do:
+      `fromEnvironment` never read ambient state, it takes the map.
+- [x] Decide the skip-instead-of-throw question: `MultilineValuePolicy`, default
+      `error`. The check runs before interpolation, so a skipped value cannot
+      reach another one through a `${VAR}` reference.
 
 ### 2.11 Async-first include resolution
 

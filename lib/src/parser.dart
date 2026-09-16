@@ -200,12 +200,19 @@ Stream<FlatEntry> streamEntriesFromStrings(
 /// Precedence order: [FlatEnvOptions.defaults] → [env] → [FlatEnvOptions.merge]
 ///
 /// Processing steps:
-/// 1. Apply default values from [options.defaults]
+/// 1. Apply default values from [FlatEnvOptions.defaults]
 /// 2. Apply environment variables from [env] (with optional prefix filtering)
-/// 3. Apply override values from [options.merge]
-/// 4. Drop empty values if [options.keepEmptyValues] is false
-/// 5. Interpolate `${VAR}` placeholders if [options.interpolate] is true
-/// 6. Return a [FlatDocument]
+/// 3. Apply override values from [FlatEnvOptions.merge]
+/// 4. Drop empty values if [FlatEnvOptions.keepEmptyValues] is false
+/// 5. Reject or drop values containing a line break, per
+///    [FlatEnvOptions.multilineValue]
+/// 6. Interpolate `${VAR}` placeholders if [FlatEnvOptions.interpolate] is set
+/// 7. Rewrite keys, per [FlatEnvOptions.stripMatchedPrefix],
+///    [FlatEnvOptions.keySplitOn] and [FlatEnvOptions.lowercaseKeys]
+/// 8. Return a [FlatDocument]
+///
+/// Interpolation runs before the key rewrite on purpose: a `${VAR}` names an
+/// environment variable, not whatever that variable's key was rewritten into.
 ///
 /// Example - Basic usage:
 /// ```dart
@@ -214,19 +221,24 @@ Stream<FlatEntry> streamEntriesFromStrings(
 /// print(doc['HOST']); // localhost
 /// ```
 ///
-/// Example - With prefix filtering:
+/// Example - With prefix filtering and key rewriting:
 /// ```dart
 /// final env = {
-///   'APP_HOST': 'api.example.com',
-///   'APP_PORT': '8080',
+///   'APP_WINDOW_WIDTH': '1280',
+///   'APP_WINDOW_HEIGHT': '720',
 ///   'OTHER_VAR': 'ignored',
 /// };
-/// final doc = FlatConfig.fromEnvironment(
+/// final doc = FlatDocument.fromEnvironment(
 ///   env,
-///   options: FlatEnvOptions(prefix: 'APP_'),
+///   options: FlatEnvOptions(
+///     prefix: 'APP_',
+///     stripMatchedPrefix: true,
+///     keySplitOn: '_',
+///     keyJoinWith: '.',
+///     lowercaseKeys: true,
+///   ),
 /// );
-/// final clean = doc.stripPrefix('APP_');
-/// print(clean.toMap()); // {HOST: api.example.com, PORT: 8080}
+/// print(doc.toMap()); // {window.width: 1280, window.height: 720}
 /// ```
 ///
 /// Example - With interpolation:
@@ -260,102 +272,170 @@ FlatDocument documentFromEnvironment(
   FlatEnvOptions? options,
 }) {
   final opts = options ?? FlatEnvOptions();
+
+  final collected = _collectEnvironment(env, opts);
+  final kept = _applyMultilinePolicy(collected, opts);
+  final interpolated = opts.interpolate ? _interpolate(kept, opts) : kept;
+
+  return FlatDocument([
+    for (final e in _transformKeys(interpolated, opts).entries)
+      FlatEntry(e.key, e.value),
+  ]);
+}
+
+/// Layers defaults, the environment and merge overrides into one view.
+Map<String, String?> _collectEnvironment(
+  Map<String, String> env,
+  FlatEnvOptions opts,
+) {
+  final out = <String, String?>{...opts.defaults};
+
+  final prefix = opts.prefix;
+  for (final e in env.entries) {
+    if (prefix == null || _hasPrefix(e.key, prefix, opts.caseSensitive)) {
+      out[e.key] = e.value;
+    }
+  }
+
+  out.addAll(opts.merge);
+
+  if (!opts.keepEmptyValues) {
+    out.removeWhere((_, v) => (v ?? '').isEmpty);
+  }
+
+  return out;
+}
+
+bool _hasPrefix(String key, String prefix, bool caseSensitive) => caseSensitive
+    ? key.startsWith(prefix)
+    : key.toLowerCase().startsWith(prefix.toLowerCase());
+
+/// Drops or rejects values no document can hold (SPEC.md 4).
+///
+/// Runs before interpolation, so a rejected value cannot reach another one
+/// through a `${VAR}` reference.
+Map<String, String?> _applyMultilinePolicy(
+  Map<String, String?> values,
+  FlatEnvOptions opts,
+) {
   final out = <String, String?>{};
 
-  // 1) Start with defaults (lowest precedence).
-  if (opts.defaults.isNotEmpty) {
-    for (final e in opts.defaults.entries) {
+  for (final e in values.entries) {
+    if (invalidValueReason(e.value) == null) {
       out[e.key] = e.value;
+      continue;
+    }
+
+    if (opts.multilineValue == MultilineValuePolicy.error) {
+      throw ArgumentError.value(
+        e.key,
+        'env',
+        'value contains a line break, which no document can hold',
+      );
     }
   }
 
-  // 2) Apply provided env.
-  if (env.isNotEmpty) {
-    final usePrefix = opts.prefix;
-    if (usePrefix == null || usePrefix.isEmpty) {
-      for (final e in env.entries) {
-        out[e.key] = e.value;
-      }
-    } else {
-      if (opts.caseSensitive) {
-        for (final e in env.entries) {
-          if (e.key.startsWith(usePrefix)) {
-            out[e.key] = e.value;
-          }
-        }
-      } else {
-        final lp = usePrefix.toLowerCase();
-        for (final e in env.entries) {
-          if (e.key.toLowerCase().startsWith(lp)) {
-            out[e.key] = e.value;
-          }
-        }
-      }
+  return out;
+}
+
+/// Replaces `${VAR}` placeholders from a snapshot of the collected view.
+///
+/// One pass: a value referring to a value that itself refers to a third is
+/// far rarer in an environment than a value that happens to contain `${`.
+Map<String, String?> _interpolate(
+  Map<String, String?> values,
+  FlatEnvOptions opts,
+) {
+  final pattern = RegExp(opts.varPattern);
+  final snapshot = Map<String, String?>.from(values);
+  final out = <String, String?>{};
+
+  for (final e in values.entries) {
+    final raw = e.value;
+    if (raw == null || raw.isEmpty) {
+      out[e.key] = raw;
+      continue;
     }
+
+    out[e.key] = raw.replaceAllMapped(pattern, (m) {
+      if (m.groupCount < 1) {
+        return m[0]!;
+      }
+
+      final name = m.group(1)!;
+      final value = snapshot[name];
+      if (value != null) {
+        return value;
+      }
+
+      return switch (opts.missingVariable) {
+        MissingVariablePolicy.preserve => m[0]!,
+        MissingVariablePolicy.empty => '',
+        MissingVariablePolicy.error => throw ArgumentError.value(
+          name,
+          'env',
+          'is referenced by "${e.key}" but is not set',
+        ),
+      };
+    });
   }
 
-  // 3) Final merge overrides (highest precedence).
-  if (opts.merge.isNotEmpty) {
-    for (final e in opts.merge.entries) {
-      out[e.key] = e.value;
-    }
+  return out;
+}
+
+/// Rewrites keys: strip the matched prefix, resplit, lowercase.
+///
+/// Runs after interpolation, so a `${VAR}` names an environment variable
+/// rather than whatever that variable's key was rewritten into.
+Map<String, String?> _transformKeys(
+  Map<String, String?> values,
+  FlatEnvOptions opts,
+) {
+  final rewrites =
+      opts.stripMatchedPrefix || opts.keySplitOn != null || opts.lowercaseKeys;
+  if (!rewrites) {
+    return values;
   }
 
-  // 4) Drop empty values if requested.
-  if (!opts.keepEmptyValues) {
-    final keysToDrop = <String>[];
-    for (final kv in out.entries) {
-      if ((kv.value ?? '').isEmpty) {
-        keysToDrop.add(kv.key);
-      }
-    }
-    for (final k in keysToDrop) {
-      out.remove(k);
-    }
+  final out = <String, String?>{};
+  for (final e in values.entries) {
+    out[_transformKey(e.key, opts)] = e.value;
   }
 
-  // 5) Interpolate ${VAR} if enabled. Single pass is usually enough for env.
-  if (opts.interpolate) {
-    final re = RegExp(opts.varPattern);
-    final snapshot = Map<String, String?>.from(out);
-    for (final k in out.keys.toList()) {
-      final raw = out[k];
-      if (raw == null || raw.isEmpty) {
-        continue;
-      }
+  return out;
+}
 
-      // Replace all matches by rebuilding the string
-      final matches = re.allMatches(raw).toList();
-      if (matches.isEmpty) {
-        continue;
-      }
+String _transformKey(String key, FlatEnvOptions opts) {
+  var out = key;
 
-      final buffer = StringBuffer();
-      var lastEnd = 0;
-
-      for (final m in matches) {
-        // Add the text before this match
-        buffer.write(raw.substring(lastEnd, m.start));
-
-        // Add the replacement value
-        if (m.groupCount >= 1) {
-          final name = m.group(1)!;
-          final rep = snapshot[name] ?? '';
-          buffer.write(rep);
-        }
-
-        lastEnd = m.end;
-      }
-
-      // Add any remaining text after the last match
-      buffer.write(raw.substring(lastEnd));
-
-      out[k] = buffer.toString();
-    }
+  final prefix = opts.prefix;
+  if (opts.stripMatchedPrefix &&
+      prefix != null &&
+      _hasPrefix(out, prefix, opts.caseSensitive)) {
+    out = out.substring(prefix.length);
   }
 
-  // Values are already strings here, so no encoding step is needed.
-  return FlatDocument([for (final e in out.entries) FlatEntry(e.key, e.value)]);
+  final splitOn = opts.keySplitOn;
+  if (splitOn != null) {
+    out = out.split(splitOn).join(opts.keyJoinWith ?? Constants.keySeparator);
+  }
+
+  if (opts.lowercaseKeys) {
+    out = out.toLowerCase();
+  }
+
+  // FlatEntry would reject this too, but only by the rewritten name, which
+  // says nothing about which variable and which setting produced it.
+  final reason = invalidKeyReason(out);
+  if (reason != null) {
+    throw ArgumentError.value(
+      key,
+      'env',
+      'was rewritten to "$out", which is not a valid key: $reason',
+    );
+  }
+
+  return out;
 }
 
 /// Parses a single configuration line into a [FlatEntry].

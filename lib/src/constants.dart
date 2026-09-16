@@ -19,6 +19,7 @@ class Constants {
   static const crlf = '\r\n';
   static const commentPrefix = '#';
   static const includeKey = 'config-file';
+  static const keySeparator = '.';
   static const optionalIncludePrefix = '?';
   static const newline = '\n';
   static const pairSeparator = '=';
