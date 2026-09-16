@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 
-import 'key.dart';
 import 'parser_utils.dart';
+import 'validation.dart';
 
 /// A single configuration entry representing a `key = value` pair.
 ///
@@ -33,6 +33,11 @@ class FlatEntry {
   /// Throws an [ArgumentError] naming the rule that was broken.
   factory FlatEntry.validated(String key, [String? value]) {
     checkKey(key);
+
+    final valueProblem = invalidValueReason(value);
+    if (valueProblem != null) {
+      throw ArgumentError.value(value, 'value', 'Value $valueProblem');
+    }
 
     return FlatEntry(key, value);
   }
@@ -409,9 +414,9 @@ class FlatDocument extends Iterable<FlatEntry> {
       return;
     }
     for (final e in entries) {
-      final reason = invalidKeyReason(e.key);
+      final reason = invalidEntryReason(e);
       if (reason != null) {
-        throw FormatException('Key "${e.key}" $reason.');
+        throw FormatException('$reason.');
       }
     }
   }
@@ -464,5 +469,5 @@ class FlatDocument extends Iterable<FlatEntry> {
 /// entries instead of throwing.
 List<FlatEntry> _keepValidEntries(Iterable<FlatEntry> entries) => [
       for (final e in entries)
-        if (invalidKeyReason(e.key) == null) e,
+        if (invalidEntryReason(e) == null) e,
     ];

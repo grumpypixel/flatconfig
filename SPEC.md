@@ -250,6 +250,8 @@ Measured against 0.5.0, not inferred from the source. Each row is a Phase 1 task
 | 7 | escaping on by default | `escapeQuoted` defaulted to `false`. |
 
 | 5 | backslashes preserved | `splitRespectingQuotes` consumed every backslash as an escape marker without copying it, so `getDocument` turned `win=C:\temp\x` into `win → C:tempx`. It now only locates boundaries; `parseValue` owns decoding. `indexOfUnquoted` carried a second copy of the same rule and now shares one helper. |
+| 7 | newlines rejected | `FlatEntry('a', 'x\ny')` was accepted and encoded to two physical lines; re-parsing yielded `a` → `"x`. Values are now checked at the same boundary as keys. |
+| 7 | no trailing-newline option | `FlatStreamWriteOptions.ensureTrailingNewline` was a no-op, since `encode()` already terminates the last line. Removed. |
 | 3 | keys validated at construction | Only emptiness was checked, and only while parsing. `FlatEntry('#x', 'v')` encoded to `#x = v` and re-parsed to **zero entries**; `FlatEntry(' a ', 'v')` lost its padding; `"a b" = v` kept its quotes in the key. |
 
 These four had to move together. Unescaped output was only readable back
@@ -265,10 +267,7 @@ invalid entries, as its documentation always claimed.
 
 ### Open
 
-| § | Rule | 0.5.0 actually does | Severity |
-|---|---|---|---|
-| 7 | newlines rejected | `FlatEntry('a', 'x\ny')` is accepted and encodes to two physical lines; re-parsing yields `a` → `"x` | corrupts |
-| 7 | no trailing-newline option | `ensureTrailingNewline` exists but is a no-op, since output already ends with `\n` | dead option |
+None. Every deviation Appendix A listed is fixed and pinned by a test.
 
 Behaviour that already conforms, confirmed by probe: line-ending handling (`\n`,
 `\r\n`, `\r`), BOM stripping, comment classification including custom prefixes,

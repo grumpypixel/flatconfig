@@ -6,9 +6,9 @@ import 'constants.dart';
 import 'document.dart';
 import 'exceptions.dart';
 import 'from_map_data.dart';
-import 'key.dart';
 import 'options.dart';
 import 'parser_utils.dart';
+import 'validation.dart';
 
 /// Main parser class for flat `key = value` configuration files.
 ///

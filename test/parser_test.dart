@@ -828,12 +828,17 @@ shader = vignette=soft
       expect(reparsed['k'], 'say "hi"');
     });
 
-    test('quotes when value contains newlines', () {
-      final doc = FlatDocument(const [
-        FlatEntry('k', 'a\nb'),
-      ]);
-      final out = doc.encode();
-      expect(out.contains('"a\nb"'), isTrue);
+    test('rejects a value containing a newline instead of quoting it', () {
+      // Quoting does not help: the format is line-based, so the value was
+      // written as two physical lines and read back as 'a' plus a broken one.
+      expect(
+        () => FlatDocument(const [FlatEntry('k', 'a\nb')]),
+        throwsA(isA<FormatException>().having(
+          (e) => e.message,
+          'message',
+          contains('must not contain a line break'),
+        )),
+      );
     });
   });
 

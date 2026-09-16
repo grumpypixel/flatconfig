@@ -78,7 +78,6 @@ servers = host=a,port=8080 | host=b,port=9090
     writeOptions: const FlatStreamWriteOptions(
       encoding: utf8,
       lineTerminator: '\r\n',
-      ensureTrailingNewline: true,
     ),
   );
 

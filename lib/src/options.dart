@@ -154,7 +154,6 @@ class FlatStreamWriteOptions {
   const FlatStreamWriteOptions({
     this.encoding = utf8,
     this.lineTerminator = Constants.newline,
-    this.ensureTrailingNewline = false,
   });
 
   /// Text encoding used when writing the file.
@@ -168,12 +167,6 @@ class FlatStreamWriteOptions {
   /// Windows-style line endings or `\r` for classic Mac-style line endings.
   final String lineTerminator;
 
-  /// Whether to ensure the final output ends with a newline.
-  ///
-  /// When true, a newline will be added to the end of the file if it doesn't
-  /// already end with one. Defaults to false.
-  final bool ensureTrailingNewline;
-
   /// Returns a copy of these options with selectively replaced fields.
   ///
   /// Only the provided parameters will be changed; all others will remain
@@ -181,13 +174,10 @@ class FlatStreamWriteOptions {
   FlatStreamWriteOptions copyWith({
     Encoding? encoding,
     String? lineTerminator,
-    bool? ensureTrailingNewline,
   }) =>
       FlatStreamWriteOptions(
         encoding: encoding ?? this.encoding,
         lineTerminator: lineTerminator ?? this.lineTerminator,
-        ensureTrailingNewline:
-            ensureTrailingNewline ?? this.ensureTrailingNewline,
       );
 }
 

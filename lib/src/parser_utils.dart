@@ -226,11 +226,13 @@ int firstUnescapedQuote(String s, int from) {
 /// Parameters:
 /// - [text]: the text to normalize
 /// - [lineTerminator]: the line ending to use (e.g., '\n', '\r\n', '\r')
-/// - [ensureTrailingNewline]: whether to add a trailing newline if missing
+/// - [ensureTrailingNewline]: whether to add a trailing newline if the text
+///   does not already end with one. A trailing newline that was already there
+///   is preserved regardless.
 String normalizeLineEndings(
   String text, {
   required String lineTerminator,
-  required bool ensureTrailingNewline,
+  bool ensureTrailingNewline = false,
 }) {
   assert(lineTerminator.isNotEmpty);
 

@@ -10,17 +10,16 @@ folded in below, with reproductions.
 
 ## Where this stands
 
-Last updated after Phase 1.6. Verify with `dart test` (expect 770 passing) and
+Last updated after Phase 1.2. Verify with `dart test` (expect 774 passing) and
 `sed -n '/^### Open/,$p' SPEC.md` for the remaining format deviations.
 
-**Done:** Phase 0 in full; Phase 1.1, 1.2 (mostly), 1.3, 1.4, 1.5 and 1.6.
+**Done:** Phase 0 in full; Phase 1.1 through 1.6. `SPEC.md` Appendix A is
+empty — every listed deviation is fixed and pinned by a test.
 
 **Open in Phase 1, in the order I would take them:**
 
 | Item | Reproduction, verified on this tree | Why it is still here |
 |---|---|---|
-| 1.2 rest | `FlatEntry('a', 'x\ny')` encodes to two physical lines and re-parses as `a` → `"x` | values are not checked for newlines |
-| 1.2 rest | `ensureTrailingNewline: false` cannot remove the trailing newline | the flag is a no-op |
 | 1.7–1.9 | path canonicalization, assertions on public input, SDK floor | not started |
 
 **How the work is organised.** Every fix carries a regression test.
@@ -123,10 +122,11 @@ earlier reviews:
       whitespace, and a leading `#` can never reach the encoder (`SPEC.md` §3).
 - [x] Encoder throws when a key begins with a non-default comment prefix — key
       validity must not depend on parse options.
-- [ ] Reject newline-containing values (decision 2) at construction and encode.
+- [x] Reject newline-containing values (decision 2) at construction and encode.
 - [x] Make safe escaping the default; unescaped output becomes opt-in.
-- [ ] `encode()` always writes a trailing newline, so
-      `ensureTrailingNewline: false` cannot remove one. Make the flag honest.
+- [x] `encode()` always writes a trailing newline, so
+      `ensureTrailingNewline: false` could not remove one. The option is gone
+      rather than fixed, as Phase 0 decided.
 
 `FlatEntry` keeps its `const` constructor: a `const` constructor may only
 assert compile-time constant expressions, and `key.contains('=')` is not one.
@@ -507,6 +507,10 @@ class FlatParseOptions {
       `maxIncludeDepth` out of `FlatParseOptions`.
 
 ### 2.10 Safer environment defaults
+
+A variable whose value contains a newline now throws, since no document can
+hold one. Decide here whether the environment deserves a skip-instead-of-throw
+policy, the way lax parsing has one for files.
 
 `interpolate` defaults to `true` and unknown variables silently become the empty
 string: `{'URL': r'https://${NOPE}/api'}` yields `https:///api`.

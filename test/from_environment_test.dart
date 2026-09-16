@@ -415,7 +415,6 @@ void main() {
         final env = {
           'KEY1': ' ',
           'KEY2': '\t',
-          'KEY3': '\n',
         };
 
         final doc = FlatConfig.fromEnvironment(
@@ -424,7 +423,20 @@ void main() {
         );
 
         // Whitespace is not empty, so all keys are kept
-        expect(doc.length, equals(3));
+        expect(doc.length, equals(2));
+      });
+
+      test('rejects a variable whose value contains a newline', () {
+        // The format is line-based and cannot hold one. See Phase 2.10 for
+        // whether the environment deserves a skip-instead-of-throw policy.
+        expect(
+          () => FlatConfig.fromEnvironment({'KEY': 'a\nb'}),
+          throwsA(isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('must not contain a line break'),
+          )),
+        );
       });
     });
 

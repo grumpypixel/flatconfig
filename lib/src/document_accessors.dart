@@ -3,8 +3,8 @@ import 'dart:convert' as convert;
 import 'constants.dart';
 import 'document.dart';
 import 'exceptions.dart';
-import 'key.dart';
 import 'parser_utils.dart';
+import 'validation.dart';
 
 /// Converter function that transforms a non-null string into a typed value `T`.
 ///

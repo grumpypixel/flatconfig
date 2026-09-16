@@ -32,6 +32,9 @@ Fixed:
 - **`toMap()` and `valuesOf()` are unmodifiable after `cache()`.** Pre-caching
   handed out a writable view of a document documented as immutable, so
   `doc.cache(); doc.toMap()['a'] = 'x';` changed the document.
+- **Values containing a line break are rejected.** `FlatEntry('a', 'x\ny')`
+  was accepted, encoded to two physical lines, and read back as `a` → `"x`.
+  Quoting cannot rescue it, because the format is line-based.
 - **Non-finite numbers are rejected.** `NaN` passed every range guard, because
   all comparisons with it are false: `getDoubleInRange('p', min: 0, max: 1)`
   returned `NaN`. `NaN`, `Infinity` and `-Infinity` are now treated as invalid
@@ -49,6 +52,12 @@ Changed (breaking):
 - `splitRespectingQuotes` returns raw tokens; `parseValue` owns escape decoding.
 - `getDocument`'s `trimKey: false` is now inert, since every key whose padding
   it would preserve is invalid. It goes with those accessors in Phase 2.6.
+- `FlatStreamWriteOptions.ensureTrailingNewline` is removed. It was a no-op:
+  `encode()` already terminates the last line.
+- `rfc4180CsvItemEncoder` is only safe for newline-free items. RFC-4180 permits
+  a newline inside a quoted field; this format cannot store one.
+- `FlatConfig.fromEnvironment` throws on a variable whose value contains a
+  newline, rather than storing something unreadable.
 
 ## 0.5.0
 

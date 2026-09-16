@@ -199,6 +199,25 @@ void main() {
       );
     });
 
+    test('a value containing a line break is rejected', () {
+      // Quoting cannot rescue it: the format is line-based, so 'x\ny' was
+      // written as two physical lines and read back as x -> '"x'.
+      for (final bad in ['x\ny', 'x\r\ny', 'x\ry']) {
+        expect(
+          () => FlatDocument([FlatEntry('k', bad)]),
+          throwsA(isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('must not contain a line break'),
+          )),
+        );
+      }
+    });
+
+    test('null is a valid value, being the explicit reset', () {
+      expect(FlatDocument(const [FlatEntry('k', null)]).encode(), 'k = \n');
+    });
+
     test('a non-empty document always ends with the terminator', () {
       expect(
           FlatDocument(const [FlatEntry('k', 'v')]).encode(), endsWith('\n'));

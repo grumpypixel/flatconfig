@@ -5,10 +5,10 @@ enum TestEnum { red, green, blue }
 
 void main() {
   group('fromMapData – csvItemEncoder (RFC-4180)', () {
-    test('quotes items with separator, quotes, and newlines', () {
+    test('quotes items with separator and quotes', () {
       final doc = FlatConfig.fromMapData(
         {
-          'tags': ['hello', 'a,b', 'with "quote"', 'multi\nline'],
+          'tags': ['hello', 'a,b', 'with "quote"'],
         },
         options: FlatMapDataOptions(
           listMode: FlatListMode.csv,
@@ -17,12 +17,32 @@ void main() {
         ),
       );
 
-      // Expected CSV:
-      // hello,"a,b","with ""quote""","multi
-      // line"
       expect(
         doc['tags'],
-        'hello,"a,b","with ""quote""","multi\nline"',
+        'hello,"a,b","with ""quote"""',
+      );
+    });
+
+    test('an item containing a newline cannot be stored', () {
+      // RFC-4180 allows a newline inside a quoted field; this format does not,
+      // because it is line-based. rfc4180CsvItemEncoder is therefore only safe
+      // for newline-free items.
+      expect(
+        () => FlatConfig.fromMapData(
+          {
+            'tags': ['hello', 'multi\nline'],
+          },
+          options: FlatMapDataOptions(
+            listMode: FlatListMode.csv,
+            csvSeparator: ',',
+            csvItemEncoder: rfc4180CsvItemEncoder(','),
+          ),
+        ),
+        throwsA(isA<FormatException>().having(
+          (e) => e.message,
+          'message',
+          contains('must not contain a line break'),
+        )),
       );
     });
 

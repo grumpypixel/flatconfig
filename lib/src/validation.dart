@@ -1,4 +1,5 @@
 import 'constants.dart';
+import 'document.dart';
 
 /// Why [key] is not a valid configuration key, or `null` if it is.
 ///
@@ -42,6 +43,43 @@ String? invalidKeyReason(String key) {
 
   if (key.startsWith(Constants.commentPrefix)) {
     return "must not begin with '${Constants.commentPrefix}'";
+  }
+
+  return null;
+}
+
+/// Why [value] cannot be written out, or `null` if it can.
+///
+/// A line break is the only thing a value may not contain (SPEC.md 7): the
+/// format is line-based, so `x\ny` is written as two physical lines and reads
+/// back as `x` followed by a line the parser cannot make sense of. Everything
+/// else — quotes, `=`, leading `#`, whitespace — is representable, because the
+/// encoder can quote and escape it.
+///
+/// A `null` value is valid; it is the explicit reset.
+String? invalidValueReason(String? value) {
+  if (value == null) {
+    return null;
+  }
+
+  if (value.contains(Constants.newline) ||
+      value.contains(Constants.carriageReturn)) {
+    return 'must not contain a line break';
+  }
+
+  return null;
+}
+
+/// Why [entry] cannot be written out, or `null` if it can.
+String? invalidEntryReason(FlatEntry entry) {
+  final keyProblem = invalidKeyReason(entry.key);
+  if (keyProblem != null) {
+    return 'Key "${entry.key}" $keyProblem';
+  }
+
+  final valueProblem = invalidValueReason(entry.value);
+  if (valueProblem != null) {
+    return 'Value of "${entry.key}" $valueProblem';
   }
 
   return null;

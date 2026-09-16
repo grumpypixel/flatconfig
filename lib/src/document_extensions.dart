@@ -1,8 +1,8 @@
 import 'constants.dart';
 import 'document.dart';
-import 'key.dart';
 import 'options.dart';
 import 'parser_utils.dart';
+import 'validation.dart';
 
 /// Ordering strategy for collapsing duplicate keys in a [FlatDocument].
 ///
@@ -220,10 +220,11 @@ extension FlatDocumentExtensions on FlatDocument {
     FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
   }) {
     final text = encode(options: options);
+    // encode() always terminates the last line (SPEC.md 7), so there is never
+    // a missing newline to add here.
     final normalized = normalizeLineEndings(
       text,
       lineTerminator: writeOptions.lineTerminator,
-      ensureTrailingNewline: writeOptions.ensureTrailingNewline,
     );
 
     return writeOptions.encoding.encode(normalized);
