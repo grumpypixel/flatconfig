@@ -268,13 +268,12 @@ void main() {
   });
 
   group('Strict validation propagation', () {
-    test('strict=false drops a whitespace-only key', () {
+    test('a whitespace-only key is rejected', () {
       // The parser trims keys, so '   ' could never be read back (SPEC.md 3).
-      final doc = FlatConfig.fromMapData({
-        '   ': 'x',
-      }, options: const FlatMapDataOptions(strict: false));
-
-      expect(doc, isEmpty);
+      expect(
+        () => FlatConfig.fromMapData({'   ': 'x'}),
+        throwsA(isA<ArgumentError>()),
+      );
     });
   });
 

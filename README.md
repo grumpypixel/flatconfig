@@ -22,7 +22,7 @@ Perfect for tools, CLIs, and Flutter apps that need structured settings without 
 - 📦 **Pure Dart**, minimal dependencies (`meta`; `path` for includes)  
 - 📝 **Supports duplicates**, preserves entry order  
 - 🔐 **Strict or lenient parsing**, optional callbacks for invalid lines  
-- ✅ **Strict validation** for non-empty keys, toggleable via `strict: false`  
+- ✅ **Valid by construction** — an entry the format cannot write out cannot be built  
 - 📁 **Async/sync file I/O**, handles UTF-8 BOM and any line endings  
 - 🧠 **Typed accessors** for durations, bytes, colors, URIs, JSON, enums, ratios, percents, lists, sets, maps, and ranges  
 - 🧱 **Collapse helpers** to deduplicate keys (first occurrence or last write)  
@@ -181,25 +181,23 @@ This makes merging, overriding, and diffing configurations trivial, and keeps fi
 
 > Think of it as “*the minimal, portable 20 % of INI/TOML that covers 90 % of real-world use cases.”*
 
-## Validation & Strict Mode
+## Validation
 
-`FlatEntry` and `FlatDocument` validate all keys by default — empty or whitespace-only keys
-throw an error. You can disable this behavior by passing `strict: false`.
+`FlatEntry` rejects anything the format cannot write out and read back: an empty
+or padded key, a key containing `=`, `#` or a quote, and a value spanning a line
+break. There is no lenient mode, because there is nothing to be lenient about —
+such an entry cannot be built at all.
 
 ```dart
-// Throws an ArgumentError:
-FlatEntry.validated('   ', 'oops');
-
-// Works fine:
-final relaxed = FlatDocument.fromMap({'': 'x', 'theme': 'dark'}, strict: false);
-print(relaxed.toMap()); // {theme: dark}
+FlatEntry('   ', 'oops');   // ArgumentError: key has leading whitespace
+FlatEntry('k', 'a\nb');     // ArgumentError: value must not contain a line break
+FlatEntry.reset('theme');   // fine: writes `theme =`
 ```
 
-All factory constructors respect `strict`:
-
-- `FlatDocument.fromMap(...)`  
-- `FlatDocument.fromEntries(...)`  
-- `FlatDocument.single('key', value: 'x')`  
+Leniency belongs to the parser, where hand-edited files actually arrive. There
+`FlatParseOptions.strict` decides whether a malformed line throws or is skipped.
+A document built in code from a key the format cannot represent is a bug at the
+call site, not input to be tolerated.
 
 > **Note:**
 > `FlatDocument.fromMap(...)` and `FlatConfig.fromDynamicMap(...)` are **shallow** factories.
@@ -794,7 +792,6 @@ for (final e in doc.entries) {
 | `dropNulls`             | Removes `null` values entirely                                               | `false`              |
 | `valueEncoder`          | Global override for *any* value (highest priority)                           | `null`               |
 | `onUnsupportedListItem` | How to handle composite items in lists (`encodeJson`, `skip`, `error`)       | `encodeJson`         |
-| `strict`                | Validates non-empty keys                                                     | `true`               |
 | `keyEscaper`            | Escapes keys containing the path separator                                   | `null`               |
 | `csvItemEncoder`        | Optional hook for quoting/escaping CSV items                                 | `null`               |
 

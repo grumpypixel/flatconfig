@@ -14,7 +14,6 @@ final class FlatMapDataOptions {
     this.csvItemEncoder,
     this.keyEscaper,
     this.onUnsupportedListItem = FlatUnsupportedListItem.encodeJson,
-    this.strict = true,
   });
 
   /// Path separator between nested keys, e.g. `a.b.c`.
@@ -46,9 +45,6 @@ final class FlatMapDataOptions {
 
   /// Behavior when a list contains composite items (Map/List).
   final FlatUnsupportedListItem onUnsupportedListItem;
-
-  /// Enables strict key validation consistent with other factories.
-  final bool strict;
 }
 
 /// List encoding mode: multi-value entries vs CSV string.
@@ -96,7 +92,7 @@ FlatDocument flatDocumentFromMapData(
     flattenValue(keyPath: root, value: e.value, options: options, out: entries);
   }
 
-  return FlatDocument.fromEntries(entries, strict: options.strict);
+  return FlatDocument.fromEntries(entries);
 }
 
 // ===== Helper Implementations (top-level; no nested functions) =====

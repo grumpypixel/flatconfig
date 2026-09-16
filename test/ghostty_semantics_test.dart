@@ -6,10 +6,7 @@ import 'package:test/test.dart';
 void main() {
   group('processDocumentWithGhosttySemantics', () {
     test('no includes → all entries are pre-include; tail is empty', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
 
       const options = FlatParseOptions();
       final result = processDocumentWithGhosttySemantics(
@@ -34,7 +31,7 @@ void main() {
 
     test('with includes → collect values; filter tail by include keys', () {
       // Simulate a file where an include appears, then later entries.
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('x', 'root'),
         FlatEntry('config-file', 'inc1'),
         FlatEntry('config-file', '  inc2  '),
@@ -54,11 +51,11 @@ void main() {
 
       expect(result.seenAnyInclude, isTrue);
       expect(result.includeValues, ['inc1', 'inc2']);
-      expect(result.preIncludeEntries, [const FlatEntry('x', 'root')]);
-      expect(result.filteredTailEntries, [const FlatEntry('y', 'allowed')]);
+      expect(result.preIncludeEntries, [FlatEntry('x', 'root')]);
+      expect(result.filteredTailEntries, [FlatEntry('y', 'allowed')]);
 
       // Final assembled document order: pre, includes, filtered tail
-      final includeEntries = const [
+      final includeEntries = [
         FlatEntry('x', 'from-include-1'),
         FlatEntry('x', 'from-include-2'),
       ];

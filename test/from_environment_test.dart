@@ -374,7 +374,7 @@ void main() {
         expect(
           () => FlatConfig.fromEnvironment({'KEY': 'a\nb'}),
           throwsA(
-            isA<FormatException>().having(
+            isA<ArgumentError>().having(
               (e) => e.message,
               'message',
               contains('must not contain a line break'),

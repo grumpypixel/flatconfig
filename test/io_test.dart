@@ -13,9 +13,7 @@ void main() {
       final file = File('test/tmp_io_async_flags.conf');
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      final doc = FlatDocument(const [
-        FlatEntry('k', r'He said: "hello" \ o/'),
-      ]);
+      final doc = FlatDocument([FlatEntry('k', r'He said: "hello" \ o/')]);
 
       await file.writeFlat(
         doc,
@@ -34,7 +32,7 @@ void main() {
       final file = File(path);
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      final doc = FlatDocument(const [FlatEntry('k', 'v')]);
+      final doc = FlatDocument([FlatEntry('k', 'v')]);
       await io.writeFlat(path, doc);
       expect(file.existsSync(), isTrue);
       expect(file.readAsStringSync().trim(), 'k = v');
@@ -45,7 +43,7 @@ void main() {
       final file = File(path);
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      final doc = FlatDocument(const [FlatEntry('x', 'y')]);
+      final doc = FlatDocument([FlatEntry('x', 'y')]);
       io.writeFlatSync(path, doc);
       expect(file.existsSync(), isTrue);
       expect(file.readAsStringSync().trim(), 'x = y');
@@ -205,7 +203,7 @@ included_key = included_value
       final file = File('test/tmp_io_sync_quote.conf');
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      final doc = FlatDocument(const [FlatEntry('k', ' spaced ')]);
+      final doc = FlatDocument([FlatEntry('k', ' spaced ')]);
       file.writeFlatSync(doc);
       final content = file.readAsStringSync();
       expect(content.trim(), 'k = " spaced "');
@@ -256,7 +254,7 @@ key2 = value2
       () async {
         final file = File('test/tmp_io_quote_tab.conf');
         addTearDown(() => file.existsSync() ? file.deleteSync() : null);
-        final doc = FlatDocument(const [FlatEntry('k', '\tfoo\t')]);
+        final doc = FlatDocument([FlatEntry('k', '\tfoo\t')]);
         await file.writeFlat(doc);
         final content = file.readAsStringSync().trim();
         expect(content, 'k = "\tfoo\t"');
@@ -373,10 +371,7 @@ included_key = included_value
       final file = File('test/tmp_save_to_file.conf');
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
 
       // Test the actual saveToFile method
       await doc.saveToFile('test/tmp_save_to_file.conf');
@@ -391,10 +386,7 @@ included_key = included_value
       final file = File('test/tmp_save_to_file_sync.conf');
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      final doc = FlatDocument(const [
-        FlatEntry('x', 'y'),
-        FlatEntry('z', 'w'),
-      ]);
+      final doc = FlatDocument([FlatEntry('x', 'y'), FlatEntry('z', 'w')]);
 
       // Test the actual saveToFileSync method
       doc.saveToFileSync('test/tmp_save_to_file_sync.conf');
@@ -409,7 +401,7 @@ included_key = included_value
       final file = File('test/tmp_save_to_file_opts.conf');
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      final doc = FlatDocument(const [FlatEntry('k', 'value with spaces')]);
+      final doc = FlatDocument([FlatEntry('k', 'value with spaces')]);
 
       await doc.saveToFile(
         'test/tmp_save_to_file_opts.conf',
@@ -425,7 +417,7 @@ included_key = included_value
       final file = File('test/tmp_save_to_file_sync_opts.conf');
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      final doc = FlatDocument(const [FlatEntry('k', 'value with spaces')]);
+      final doc = FlatDocument([FlatEntry('k', 'value with spaces')]);
 
       doc.saveToFileSync(
         'test/tmp_save_to_file_sync_opts.conf',

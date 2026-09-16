@@ -32,6 +32,18 @@ Fixed:
 - **`toMap()` and `valuesOf()` are unmodifiable after `cache()`.** Pre-caching
   handed out a writable view of a document documented as immutable, so
   `doc.cache(); doc.toMap()['a'] = 'x';` changed the document.
+- **`FlatEntry` is valid by construction, and `strict` is gone everywhere.** The
+  constructor now rejects what the format cannot write out, so the flag had
+  nothing left to switch: `fromMap`, `fromEntries`, `FlatMapDataOptions` and the
+  deleted `single` no longer take it, `FlatEntry.validated` is the ordinary
+  constructor, and `FlatDocument.validateEntries` is deleted as unreachable.
+  These inputs now raise `ArgumentError` at the point they are written, rather
+  than `FormatException` one layer later. `FlatEntry.reset(key)` names the
+  explicit reset.
+  `FlatEntry` is no longer `const`: a `const` constructor can only check through
+  `assert`, which release builds drop. A `const` document was never
+  constructible anyway, so the only loss is `const` lists of entries.
+  Leniency stays where files actually arrive, in `FlatParseOptions.strict`.
 - **The three merge APIs collapse into `concat`.** In a last-write-wins model
   appending already is the merge: `a.concat(b).toMap()` equals
   `{...a.toMap(), ...b.toMap()}`, and `merge(b, override: false)` is `b.concat(a)`

@@ -724,7 +724,7 @@ shader = vignette=soft
       }
     });
 
-    final doc = FlatDocument(const [FlatEntry('a', '1'), FlatEntry('b', null)]);
+    final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', null)]);
 
     await file.writeFlat(doc);
     final content = file.readAsStringSync();
@@ -740,7 +740,7 @@ shader = vignette=soft
       }
     });
 
-    final doc = FlatDocument(const [FlatEntry('only', 'x')]);
+    final doc = FlatDocument([FlatEntry('only', 'x')]);
 
     await file.writeFlat(doc);
     final content = file.readAsStringSync();
@@ -751,7 +751,7 @@ shader = vignette=soft
     test(
       'quotes values with leading/trailing spaces when quoteIfWhitespace=true',
       () {
-        final doc = FlatDocument(const [FlatEntry('k', '  spaced  ')]);
+        final doc = FlatDocument([FlatEntry('k', '  spaced  ')]);
         final out = doc.encode();
         expect(out.trim(), 'k = "  spaced  "');
 
@@ -761,10 +761,7 @@ shader = vignette=soft
     );
 
     test('alwaysQuote forces quoting for all non-null values', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', 'x'),
-        FlatEntry('b', ' y '),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', 'x'), FlatEntry('b', ' y ')]);
       final out = doc.encode(
         options: const FlatEncodeOptions(alwaysQuote: true),
       );
@@ -777,9 +774,7 @@ shader = vignette=soft
     });
 
     test('escapeQuoted=true escapes quotes and backslashes', () {
-      final doc = FlatDocument(const [
-        FlatEntry('k', r'He said: "hello" \ o/'),
-      ]);
+      final doc = FlatDocument([FlatEntry('k', r'He said: "hello" \ o/')]);
       final out = doc.encode(
         options: const FlatEncodeOptions(alwaysQuote: true, escapeQuoted: true),
       );
@@ -795,7 +790,7 @@ shader = vignette=soft
     });
 
     test('quotes values with leading/trailing tabs', () {
-      final doc = FlatDocument(const [FlatEntry('k', '\tfoo\t')]);
+      final doc = FlatDocument([FlatEntry('k', '\tfoo\t')]);
       final out = doc.encode();
       expect(out.trim(), 'k = "\tfoo\t"');
       final reparsed = FlatConfig.parse(out);
@@ -804,7 +799,7 @@ shader = vignette=soft
 
     test('quotes values with leading/trailing NBSP (U+00A0)', () {
       const nbsp = '\u00A0';
-      final doc = FlatDocument(const [FlatEntry('k', '${nbsp}x$nbsp')]);
+      final doc = FlatDocument([FlatEntry('k', '${nbsp}x$nbsp')]);
       final out = doc.encode();
       expect(out.contains('"'), isTrue);
       final reparsed = FlatConfig.parse(out);
@@ -812,7 +807,7 @@ shader = vignette=soft
     });
 
     test('quotes when value contains the separator', () {
-      final doc = FlatDocument(const [FlatEntry('k', 'left=right')]);
+      final doc = FlatDocument([FlatEntry('k', 'left=right')]);
       final out = doc.encode();
       expect(out.trim(), 'k = "left=right"');
       final reparsed = FlatConfig.parse(out);
@@ -820,7 +815,7 @@ shader = vignette=soft
     });
 
     test('quotes when value starts with the comment prefix after trim', () {
-      final doc = FlatDocument(const [FlatEntry('k', '# danger')]);
+      final doc = FlatDocument([FlatEntry('k', '# danger')]);
       final out = doc.encode(
         options: const FlatEncodeOptions(commentPrefix: '#'),
       );
@@ -830,7 +825,7 @@ shader = vignette=soft
     });
 
     test('quotes when value contains double quotes', () {
-      final doc = FlatDocument(const [FlatEntry('k', 'say "hi"')]);
+      final doc = FlatDocument([FlatEntry('k', 'say "hi"')]);
       final out = doc.encode();
       expect(out.contains(r'"say \"hi\""'), isTrue);
       final reparsed = FlatConfig.parse(out);
@@ -841,9 +836,9 @@ shader = vignette=soft
       // Quoting does not help: the format is line-based, so the value was
       // written as two physical lines and read back as 'a' plus a broken one.
       expect(
-        () => FlatDocument(const [FlatEntry('k', 'a\nb')]),
+        () => FlatEntry('k', 'a\nb'),
         throwsA(
-          isA<FormatException>().having(
+          isA<ArgumentError>().having(
             (e) => e.message,
             'message',
             contains('must not contain a line break'),

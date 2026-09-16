@@ -22,12 +22,12 @@ void main() {
   });
 
   test('writeFlat throws UnsupportedError on web/wasm', () async {
-    final doc = FlatDocument(const [FlatEntry('a', '1')]);
+    final doc = FlatDocument([FlatEntry('a', '1')]);
     expect(io.writeFlat('path', doc), throwsA(isA<UnsupportedError>()));
   });
 
   test('writeFlatSync throws UnsupportedError on web/wasm', () {
-    final doc = FlatDocument(const [FlatEntry('a', '1')]);
+    final doc = FlatDocument([FlatEntry('a', '1')]);
     expect(
       () => io.writeFlatSync('path', doc),
       throwsA(isA<UnsupportedError>()),
@@ -51,12 +51,12 @@ void main() {
     });
 
     test('writeFlat throws UnsupportedError', () async {
-      final doc = FlatDocument(const [FlatEntry('k', 'v')]);
+      final doc = FlatDocument([FlatEntry('k', 'v')]);
       expect(Object().writeFlat(doc), throwsA(isA<UnsupportedError>()));
     });
 
     test('writeFlatSync throws UnsupportedError', () {
-      final doc = FlatDocument(const [FlatEntry('k', 'v')]);
+      final doc = FlatDocument([FlatEntry('k', 'v')]);
       expect(
         () => Object().writeFlatSync(doc),
         throwsA(isA<UnsupportedError>()),

@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('FlatDocument.hasAllKeys', () {
     test('returns true when all keys exist with non-null values', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('c', '3'),
@@ -14,43 +14,40 @@ void main() {
     });
 
     test('returns false when any key is missing', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
 
       expect(doc.hasAllKeys(['a', 'b', 'c']), isFalse);
       expect(doc.hasAllKeys(['c']), isFalse);
     });
 
     test('null-valued keys fail by default (ignoreNulls: true)', () {
-      final doc = FlatDocument(const [FlatEntry('present-null', null)]);
+      final doc = FlatDocument([FlatEntry('present-null', null)]);
 
       expect(doc.hasAllKeys(['present-null']), isFalse);
     });
 
     test('null-valued keys pass when ignoreNulls is false', () {
-      final doc = FlatDocument(const [FlatEntry('present-null', null)]);
+      final doc = FlatDocument([FlatEntry('present-null', null)]);
 
       expect(doc.hasAllKeys(['present-null'], ignoreNulls: false), isTrue);
     });
 
     test('empty string value counts as present (not null)', () {
-      final doc = FlatDocument(const [FlatEntry('empty', '')]);
+      final doc = FlatDocument([FlatEntry('empty', '')]);
 
       expect(doc.hasAllKeys(['empty']), isTrue);
       expect(doc.hasAllKeys(['empty'], ignoreNulls: false), isTrue);
     });
 
     test('caseSensitive: true (default) respects case differences', () {
-      final doc = FlatDocument(const [FlatEntry('Host', 'localhost')]);
+      final doc = FlatDocument([FlatEntry('Host', 'localhost')]);
 
       expect(doc.hasAllKeys(['host']), isFalse);
       expect(doc.hasAllKeys(['Host']), isTrue);
     });
 
     test('caseSensitive: false matches keys ignoring case', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('Host', 'localhost'),
         FlatEntry('PORT', '8080'),
       ]);
@@ -59,7 +56,7 @@ void main() {
     });
 
     test('case-insensitive map uses last write for duplicates', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('port', '8080'),
         // Later entry with same lowercase key but different case + null value
         FlatEntry('PORT', null),
@@ -76,7 +73,7 @@ void main() {
     });
 
     test('empty keys iterable returns true (vacuous truth)', () {
-      final doc = FlatDocument(const [FlatEntry('a', '1')]);
+      final doc = FlatDocument([FlatEntry('a', '1')]);
 
       expect(doc.hasAllKeys([]), isTrue);
     });
@@ -140,19 +137,16 @@ b =
 
     test('an empty string is never a present key', () {
       // No document can hold one, so the query can only ever be false.
-      expect(
-        () => FlatDocument(const [FlatEntry('', 'x')]),
-        throwsFormatException,
-      );
+      expect(() => FlatEntry('', 'x'), throwsArgumentError);
 
-      final doc = FlatDocument(const [FlatEntry('a', '1')]);
+      final doc = FlatDocument([FlatEntry('a', '1')]);
       expect(doc.hasAllKeys(['']), isFalse);
     });
 
     test(
       'case-insensitive collision: earlier non-null, later null (last write wins)',
       () {
-        final doc = FlatDocument(const [
+        final doc = FlatDocument([
           FlatEntry('Port', '8080'),
           FlatEntry('PORT', null), // later null
         ]);
@@ -171,7 +165,7 @@ b =
     test(
       'case-insensitive collision: earlier null, later non-null (last write wins)',
       () {
-        final doc = FlatDocument(const [
+        final doc = FlatDocument([
           FlatEntry('PORT', null),
           FlatEntry('port', '8080'), // later non-null
         ]);
@@ -181,7 +175,7 @@ b =
     );
 
     test('empty value "" is not null and counts as present by default', () {
-      final doc = FlatDocument(const [FlatEntry('k', '')]);
+      final doc = FlatDocument([FlatEntry('k', '')]);
       expect(doc.hasAllKeys(['k']), isTrue);
     });
 

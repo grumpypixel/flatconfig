@@ -6,7 +6,7 @@ void main() {
 
   group('FlatDocument Core Behavior', () {
     test('preserves order of keys (first occurrence only)', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('a', '3'),
@@ -15,37 +15,28 @@ void main() {
     });
 
     test('indexer returns last value per key', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('a', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('a', '2')]);
       expect(doc['a'], '2');
     });
 
     test('allValues returns all values for a key', () {
-      final doc = FlatDocument(const [
-        FlatEntry('x', 'foo'),
-        FlatEntry('x', 'bar'),
-      ]);
+      final doc = FlatDocument([FlatEntry('x', 'foo'), FlatEntry('x', 'bar')]);
       expect(doc.allValues('x'), ['foo', 'bar']);
     });
 
     test('supports null values (reset)', () {
-      final doc = FlatDocument(const [FlatEntry('font-family', null)]);
+      final doc = FlatDocument([FlatEntry('font-family', null)]);
       expect(doc['font-family'], isNull);
       expect(doc.allValues('font-family'), [null]);
     });
 
     test('indexer reflects null if last value is null', () {
-      final doc = FlatDocument(const [
-        FlatEntry('x', 'one'),
-        FlatEntry('x', null),
-      ]);
+      final doc = FlatDocument([FlatEntry('x', 'one'), FlatEntry('x', null)]);
       expect(doc['x'], isNull);
     });
 
     test('allValues returns nulls among values', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('k', 'v1'),
         FlatEntry('k', null),
         FlatEntry('k', 'v3'),
@@ -54,7 +45,7 @@ void main() {
     });
 
     test('calling toMap does not mutate entries order', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('a', '3'),
@@ -74,21 +65,21 @@ void main() {
     });
 
     test('entries list is unmodifiable', () {
-      final doc = FlatDocument(const [FlatEntry('a', '1')]);
+      final doc = FlatDocument([FlatEntry('a', '1')]);
       expect(
-        () => doc.entries.add(const FlatEntry('b', '2')),
+        () => doc.entries.add(FlatEntry('b', '2')),
         throwsUnsupportedError,
       );
     });
 
     test('allValues returns empty for missing key in non-empty doc', () {
-      final doc = FlatDocument(const [FlatEntry('a', '1')]);
+      final doc = FlatDocument([FlatEntry('a', '1')]);
       expect(doc.allValues('missing'), isEmpty);
     });
 
     test('allValues exposes the first occurrence too', () {
       // firstValueOf used to do this; allValues answers it and more.
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('a', '3'),
@@ -99,7 +90,7 @@ void main() {
     });
 
     test('operator [] returns the last occurrence value', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('a', '3'),
@@ -110,19 +101,13 @@ void main() {
     });
 
     test('getString returns last value', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('a', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('a', '2')]);
       expect(doc.getString('a'), '2');
       expect(doc.getString('missing'), isNull);
     });
 
     test('iterator works correctly', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
       final entries = doc.iterator;
       expect(entries.moveNext(), isTrue);
       expect(entries.current.key, 'a');
@@ -132,7 +117,7 @@ void main() {
     });
 
     test('toMap returns unmodifiable map', () {
-      final doc = FlatDocument(const [FlatEntry('a', '1')]);
+      final doc = FlatDocument([FlatEntry('a', '1')]);
       expect(() => doc.toMap()['b'] = '2', throwsUnsupportedError);
     });
 
@@ -143,7 +128,7 @@ void main() {
     });
 
     test('toMap handles null values', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', null),
         FlatEntry('c', '3'),
@@ -159,7 +144,7 @@ void main() {
     test(
       'cache() should populate expando caches for toMap() and/or allValues',
       () {
-        final doc = FlatDocument(const [
+        final doc = FlatDocument([
           FlatEntry('a', '1'),
           FlatEntry('b', '2'),
           FlatEntry('a', '3'),
@@ -185,10 +170,7 @@ void main() {
     });
 
     test('cache() can cache only toMap', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
 
       // Cache only toMap
       doc.cache(toMap: true, toAllValues: false);
@@ -201,10 +183,7 @@ void main() {
     });
 
     test('cache() can cache only allValues', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('a', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('a', '2')]);
 
       // Cache only valuesOf
       doc.cache(toMap: false, toAllValues: true);
@@ -217,10 +196,7 @@ void main() {
     });
 
     test('cache() with no parameters caches only toMap by default', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
 
       // Cache with default parameters
       doc.cache();
@@ -233,7 +209,7 @@ void main() {
     });
 
     test('whereKey() should return correct filtered subsets', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('a', '3'),
@@ -247,7 +223,7 @@ void main() {
     });
 
     test('whereKey() should preserve original order', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('a', '3'),
@@ -259,7 +235,7 @@ void main() {
     });
 
     test('whereKeys() should return correct filtered subsets', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('c', '3'),
@@ -272,7 +248,7 @@ void main() {
     });
 
     test('whereKeys() should preserve original order', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('c', '3'),
@@ -284,7 +260,7 @@ void main() {
     });
 
     test('whereValue() should return correct filtered subsets', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('c', '1'),
@@ -302,7 +278,7 @@ void main() {
     });
 
     test('whereValue() should preserve original order', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('c', '1'),
@@ -316,47 +292,26 @@ void main() {
     test(
       'operator == should make two documents with identical entries equal',
       () {
-        final doc1 = FlatDocument(const [
-          FlatEntry('a', '1'),
-          FlatEntry('b', '2'),
-        ]);
-        final doc2 = FlatDocument(const [
-          FlatEntry('a', '1'),
-          FlatEntry('b', '2'),
-        ]);
+        final doc1 = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
+        final doc2 = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
         expect(doc1, equals(doc2));
       },
     );
 
     test('operator == should make order differences unequal', () {
-      final doc1 = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
-      final doc2 = FlatDocument(const [
-        FlatEntry('b', '2'),
-        FlatEntry('a', '1'),
-      ]);
+      final doc1 = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
+      final doc2 = FlatDocument([FlatEntry('b', '2'), FlatEntry('a', '1')]);
       expect(doc1, isNot(equals(doc2)));
     });
 
     test('hashCode should be equal for identical documents', () {
-      final doc1 = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
-      final doc2 = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
+      final doc1 = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
+      final doc2 = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
       expect(doc1.hashCode, equals(doc2.hashCode));
     });
 
     test('toString() should display entry count', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
       expect(doc.toString(), 'FlatDocument(2 entries)');
       expect(FlatDocument.empty().toString(), 'FlatDocument(0 entries)');
     });
@@ -376,10 +331,7 @@ void main() {
     });
 
     test('.length should match entries count', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
       expect(doc.length, 2);
       expect(doc.length, doc.entries.length);
     });
@@ -392,15 +344,15 @@ void main() {
     });
 
     test('isEmpty and isNotEmpty work correctly for non-empty document', () {
-      final doc = FlatDocument(const [FlatEntry('a', '1')]);
+      final doc = FlatDocument([FlatEntry('a', '1')]);
       expect(doc.isEmpty, isFalse);
       expect(doc.isNotEmpty, isTrue);
     });
   });
 
-  group('FlatEntry.validated', () {
+  group('FlatEntry', () {
     test('should keep a valid key exactly as given', () {
-      final entry = FlatEntry.validated('theme', 'dark');
+      final entry = FlatEntry('theme', 'dark');
       expect(entry.key, 'theme');
       expect(entry.value, 'dark');
     });
@@ -408,7 +360,7 @@ void main() {
     test('should reject edge whitespace rather than trim it away', () {
       // Trimming would hand back an entry the caller never asked for.
       expect(
-        () => FlatEntry.validated(' theme ', 'dark'),
+        () => FlatEntry(' theme ', 'dark'),
         throwsA(
           isA<ArgumentError>().having(
             (e) => e.message,
@@ -422,7 +374,7 @@ void main() {
     test('should name the rule a key breaks', () {
       void expectRejected(String key, String reason) {
         expect(
-          () => FlatEntry.validated(key),
+          () => FlatEntry(key),
           throwsA(
             isA<ArgumentError>().having(
               (e) => e.message,
@@ -444,27 +396,27 @@ void main() {
     });
 
     test('should preserve value correctly, including null', () {
-      final entry1 = FlatEntry.validated('key', 'value');
+      final entry1 = FlatEntry('key', 'value');
       expect(entry1.key, 'key');
       expect(entry1.value, 'value');
 
-      final entry2 = FlatEntry.validated('key', null);
+      final entry2 = FlatEntry('key', null);
       expect(entry2.key, 'key');
       expect(entry2.value, isNull);
     });
 
     test('should produce correct toString()', () {
-      final entry = FlatEntry.validated('theme', 'dark');
+      final entry = FlatEntry('theme', 'dark');
       expect(entry.toString(), 'FlatEntry(theme, dark)');
 
-      final nullEntry = FlatEntry.validated('theme', null);
+      final nullEntry = FlatEntry('theme', null);
       expect(nullEntry.toString(), 'FlatEntry(theme, null)');
     });
 
     test('should implement proper == and hashCode equality', () {
-      final entry1 = FlatEntry.validated('theme', 'dark');
-      final entry2 = FlatEntry.validated('theme', 'dark');
-      final entry3 = FlatEntry.validated('theme', 'light');
+      final entry1 = FlatEntry('theme', 'dark');
+      final entry2 = FlatEntry('theme', 'dark');
+      final entry3 = FlatEntry('theme', 'light');
 
       expect(entry1, equals(entry2));
       expect(entry1.hashCode, equals(entry2.hashCode));
@@ -496,7 +448,7 @@ void main() {
         expect(
           () => FlatDocument.fromMap({'': 'value'}),
           throwsA(
-            isA<FormatException>().having(
+            isA<ArgumentError>().having(
               (e) => e.message,
               'message',
               contains('must not be empty'),
@@ -507,7 +459,7 @@ void main() {
         expect(
           () => FlatDocument.fromMap({'   ': 'value'}),
           throwsA(
-            isA<FormatException>().having(
+            isA<ArgumentError>().having(
               (e) => e.message,
               'message',
               contains('must not have leading or trailing whitespace'),
@@ -517,12 +469,13 @@ void main() {
       },
     );
 
-    test('should skip invalid keys when strict: false', () {
-      final map = {'valid': 'value', '': 'invalid', '   ': 'also invalid'};
-      final doc = FlatDocument.fromMap(map, strict: false);
-      expect(doc.length, 1);
-      expect(doc['valid'], 'value');
-      expect(doc[''], isNull);
+    test('has no lenient mode: an invalid key is a bug at the call site', () {
+      // Leniency belongs to the parser, where hand-edited files arrive. A map
+      // built in code holding a key the format cannot write is a defect.
+      expect(
+        () => FlatDocument.fromMap({'valid': 'value', '': 'invalid'}),
+        throwsA(isA<ArgumentError>()),
+      );
     });
 
     test('should preserve order of valid entries', () {
@@ -562,54 +515,27 @@ void main() {
   group('FlatDocument.fromEntries', () {
     test('should create document preserving order and duplicates', () {
       final entries = [
-        const FlatEntry('a', '1'),
-        const FlatEntry('b', '2'),
-        const FlatEntry('a', '3'),
+        FlatEntry('a', '1'),
+        FlatEntry('b', '2'),
+        FlatEntry('a', '3'),
       ];
       final doc = FlatDocument.fromEntries(entries);
       expect(doc.entries, entries);
       expect(doc.length, 3);
     });
 
-    test(
-      'should throw FormatException if any entry has empty key (strict: true)',
-      () {
-        final entries = [
-          const FlatEntry('valid', 'value'),
-          const FlatEntry('', 'invalid'),
-        ];
-        expect(
-          () => FlatDocument.fromEntries(entries),
-          throwsA(
-            isA<FormatException>().having(
-              (e) => e.message,
-              'message',
-              contains('must not be empty'),
-            ),
-          ),
-        );
-      },
-    );
-
-    test('should drop invalid entries when strict: false', () {
-      final entries = [
-        const FlatEntry('valid', 'value'),
-        const FlatEntry('', 'invalid'),
-        const FlatEntry('   ', 'also invalid'),
-      ];
-      final doc = FlatDocument.fromEntries(entries, strict: false);
-      expect(doc.length, 1);
-      expect(doc['valid'], 'value');
-      expect(doc[''], isNull);
-      expect(doc['   '], isNull);
+    test('never sees an invalid entry, because none can be built', () {
+      // FlatEntry rejects the key, so fromEntries has nothing left to filter.
+      expect(() => FlatEntry(''), throwsArgumentError);
+      expect(() => FlatEntry('   '), throwsArgumentError);
     });
 
     test('should behave identically to fromMap for equivalent input', () {
       final map = {'a': '1', 'b': '2', 'c': '3'};
       final entries = [
-        const FlatEntry('a', '1'),
-        const FlatEntry('b', '2'),
-        const FlatEntry('c', '3'),
+        FlatEntry('a', '1'),
+        FlatEntry('b', '2'),
+        FlatEntry('c', '3'),
       ];
 
       final docFromMap = FlatDocument.fromMap(map);
@@ -628,14 +554,8 @@ void main() {
 
   group('FlatDocument.merge', () {
     test('should concatenate documents and preserve all entries', () {
-      final doc1 = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
-      final doc2 = FlatDocument(const [
-        FlatEntry('c', '3'),
-        FlatEntry('d', '4'),
-      ]);
+      final doc1 = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
+      final doc2 = FlatDocument([FlatEntry('c', '3'), FlatEntry('d', '4')]);
       final merged = doc1.concat(doc2);
 
       expect(merged.length, 4);
@@ -646,14 +566,8 @@ void main() {
     });
 
     test('should preserve duplicates (order = concat of all)', () {
-      final doc1 = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
-      final doc2 = FlatDocument(const [
-        FlatEntry('a', '3'),
-        FlatEntry('c', '4'),
-      ]);
+      final doc1 = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
+      final doc2 = FlatDocument([FlatEntry('a', '3'), FlatEntry('c', '4')]);
       final merged = doc1 + doc2;
 
       expect(merged.entries.map((e) => e.key).toList(), ['a', 'b', 'a', 'c']);
@@ -661,14 +575,8 @@ void main() {
     });
 
     test('should ensure "last value wins" in toMap() for duplicate keys', () {
-      final doc1 = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
-      final doc2 = FlatDocument(const [
-        FlatEntry('a', '3'),
-        FlatEntry('b', '4'),
-      ]);
+      final doc1 = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
+      final doc2 = FlatDocument([FlatEntry('a', '3'), FlatEntry('b', '4')]);
       final merged = doc1.concat(doc2);
 
       expect(merged['a'], '3');
@@ -678,9 +586,9 @@ void main() {
     test('cannot be handed an invalid key, because no document holds one', () {
       // The guard sits at document construction, so merge never has to check.
       expect(
-        () => FlatDocument(const [FlatEntry('', 'invalid')]),
+        () => FlatDocument([FlatEntry('', 'invalid')]),
         throwsA(
-          isA<FormatException>().having(
+          isA<ArgumentError>().having(
             (e) => e.message,
             'message',
             contains('must not be empty'),
@@ -692,8 +600,8 @@ void main() {
     test('folds a list of documents into one', () {
       // What the static FlatDocument.merge used to do.
       final docs = [
-        FlatDocument(const [FlatEntry('a', '1')]),
-        FlatDocument(const [FlatEntry('b', '2')]),
+        FlatDocument([FlatEntry('a', '1')]),
+        FlatDocument([FlatEntry('b', '2')]),
       ];
       final merged = docs.reduce((a, b) => a.concat(b));
 
@@ -701,25 +609,31 @@ void main() {
     });
 
     test('concatenating with an empty document changes nothing', () {
-      final doc = FlatDocument(const [FlatEntry('a', '1')]);
+      final doc = FlatDocument([FlatEntry('a', '1')]);
 
       expect(doc.concat(FlatDocument.empty()), doc);
       expect(FlatDocument.empty().concat(doc), doc);
     });
   });
 
-  group('FlatDocument.single', () {
-    test('should create a document with exactly one entry', () {
-      final doc = FlatDocument.single('key', value: 'value');
+  group('FlatEntry validates at construction (Phase 2.3)', () {
+    test('builds a valid entry', () {
+      final doc = FlatDocument([FlatEntry('key', 'value')]);
       expect(doc.length, 1);
       expect(doc['key'], 'value');
-      expect(doc.entries.first.key, 'key');
-      expect(doc.entries.first.value, 'value');
     });
 
-    test('should validate key when strict: true (throws on invalid)', () {
+    test('a null value is the explicit reset', () {
+      final doc = FlatDocument([FlatEntry.reset('key')]);
+      expect(doc.length, 1);
+      expect(doc['key'], isNull);
+      expect(doc.lookup('key'), const FlatLookup.reset());
+      expect(FlatEntry.reset('k'), FlatEntry('k', null));
+    });
+
+    test('rejects an empty or whitespace-only key', () {
       expect(
-        () => FlatDocument.single('', value: 'value'),
+        () => FlatEntry('', 'value'),
         throwsA(
           isA<ArgumentError>().having(
             (e) => e.message,
@@ -730,7 +644,7 @@ void main() {
       );
 
       expect(
-        () => FlatDocument.single('   ', value: 'value'),
+        () => FlatEntry('   ', 'value'),
         throwsA(
           isA<ArgumentError>().having(
             (e) => e.message,
@@ -741,115 +655,34 @@ void main() {
       );
     });
 
-    test('should drop an invalid key when strict: false', () {
-      final doc = FlatDocument.single('', value: 'value', strict: false);
-      expect(doc, isEmpty);
+    test('rejects a padded key rather than trimming it', () {
+      expect(() => FlatEntry('  key  ', 'value'), throwsArgumentError);
     });
 
-    test('should correctly expose entry via doc[key]', () {
-      final doc = FlatDocument.single('theme', value: 'dark');
-      expect(doc['theme'], 'dark');
-      expect(doc['missing'], isNull);
+    test('rejects a value spanning a line break', () {
+      expect(() => FlatEntry('k', 'a\nb'), throwsArgumentError);
     });
 
-    test('should handle null value', () {
-      final doc = FlatDocument.single('key', value: null);
-      expect(doc.length, 1);
-      expect(doc['key'], isNull);
-    });
-
-    test('should reject a padded key rather than trim it', () {
+    test('leaves nothing for a document to filter', () {
+      // There is no lenient mode anywhere, because an invalid entry cannot be
+      // built in the first place.
       expect(
-        () => FlatDocument.single('  key  ', value: 'value'),
-        throwsA(isA<ArgumentError>()),
-      );
-    });
-  });
-
-  group('FlatDocument.validateEntries', () {
-    test(
-      'should throw FormatException if any entry has empty/whitespace key (strict: true)',
-      () {
-        final entries = [
-          const FlatEntry('valid', 'value'),
-          const FlatEntry('', 'invalid'),
-        ];
-
-        expect(
-          () => FlatDocument.validateEntries(entries),
-          throwsA(
-            isA<FormatException>().having(
-              (e) => e.message,
-              'message',
-              contains('must not be empty'),
-            ),
-          ),
-        );
-      },
-    );
-
-    test('should do nothing when strict: false', () {
-      final entries = [
-        const FlatEntry('valid', 'value'),
-        const FlatEntry('', 'invalid'),
-      ];
-
-      expect(
-        () => FlatDocument.validateEntries(entries, strict: false),
-        returnsNormally,
-      );
-    });
-
-    test('should handle empty iterable gracefully (no throw)', () {
-      expect(() => FlatDocument.validateEntries([]), returnsNormally);
-      expect(
-        () => FlatDocument.validateEntries([], strict: false),
-        returnsNormally,
-      );
-    });
-
-    test('should handle mixed entries: only valid keys pass', () {
-      final entries = [
-        const FlatEntry('valid1', 'value1'),
-        const FlatEntry('valid2', 'value2'),
-      ];
-
-      expect(() => FlatDocument.validateEntries(entries), returnsNormally);
-    });
-
-    test('should throw on whitespace-only keys', () {
-      final entries = [
-        const FlatEntry('valid', 'value'),
-        const FlatEntry('   ', 'whitespace'),
-        const FlatEntry('\t\n', 'tab newline'),
-      ];
-
-      expect(
-        () => FlatDocument.validateEntries(entries),
-        throwsA(
-          isA<FormatException>().having(
-            (e) => e.message,
-            'message',
-            contains('must not have leading or trailing whitespace'),
-          ),
-        ),
+        () => FlatDocument([FlatEntry('ok', '1'), FlatEntry('', '2')]),
+        throwsArgumentError,
       );
     });
   });
 
   group('FlatDocument helpers', () {
     test('getInt parses ints and returns null for invalid/missing', () {
-      final doc = FlatDocument(const [
-        FlatEntry('i1', '42'),
-        FlatEntry('i2', 'x'),
-      ]);
+      final doc = FlatDocument([FlatEntry('i1', '42'), FlatEntry('i2', 'x')]);
       expect(doc.getInt('i1'), 42);
       expect(doc.getInt('i2'), isNull);
       expect(doc.getInt('missing'), isNull);
     });
 
     test('getBool recognizes common forms and returns null when unknown', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('t1', 'true'),
         FlatEntry('t2', '1'),
         FlatEntry('t3', 'yes'),
@@ -874,7 +707,7 @@ void main() {
     });
 
     test('getDouble parses doubles and returns null for invalid/missing', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('d1', '3.14'),
         FlatEntry('d2', '  2.5  '),
         FlatEntry('d3', 'x'),
@@ -888,9 +721,9 @@ void main() {
     // document extension tests moved to test/document_extension_test.dart
 
     test('equality and hashCode reflect entries identity', () {
-      final a = FlatDocument(const [FlatEntry('k', 'v')]);
-      final b = FlatDocument(const [FlatEntry('k', 'v')]);
-      final c = FlatDocument(const [FlatEntry('k', 'x')]);
+      final a = FlatDocument([FlatEntry('k', 'v')]);
+      final b = FlatDocument([FlatEntry('k', 'v')]);
+      final c = FlatDocument([FlatEntry('k', 'x')]);
 
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
@@ -898,8 +731,8 @@ void main() {
     });
 
     test('FlatEntry.toString includes key and value/null', () {
-      const e1 = FlatEntry('k', 'v');
-      const e2 = FlatEntry('n', null);
+      final e1 = FlatEntry('k', 'v');
+      final e2 = FlatEntry('n', null);
       expect(e1.toString(), contains('k'));
       expect(e1.toString(), contains('v'));
       expect(e2.toString(), contains('null'));
@@ -934,7 +767,7 @@ void main() {
 
 void _lookupTests() {
   group('FlatDocument.lookup (Phase 2.5)', () {
-    final doc = FlatDocument(const [
+    final doc = FlatDocument([
       FlatEntry('present', 'x'),
       FlatEntry('empty', ''),
       FlatEntry('reset', null),
@@ -955,7 +788,7 @@ void _lookupTests() {
     });
 
     test('last write wins, resets included', () {
-      final overwritten = FlatDocument(const [
+      final overwritten = FlatDocument([
         FlatEntry('k', 'first'),
         FlatEntry('k', null),
       ]);

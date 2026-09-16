@@ -18,21 +18,21 @@ import 'validation.dart';
 /// ```
 @immutable
 class FlatEntry {
-  /// Creates a new [FlatEntry] with the given [key] and [value].
+  /// Creates an entry, rejecting anything the format cannot write out.
   ///
-  /// The [key] must not be null, but [value] can be null to represent
-  /// an empty or reset configuration value.
-  const FlatEntry(this.key, this.value);
-
-  /// Creates a new [FlatEntry] after checking the [key] against SPEC.md 3.
+  /// The [key] must satisfy SPEC.md 3 and [value] must not span a line break;
+  /// a null [value] is the explicit reset (`key =`). Both are rejected rather
+  /// than repaired: trimming ` theme ` to `theme` would quietly hand back an
+  /// entry the caller did not ask for, and only the caller knows whether the
+  /// whitespace was a typo or a bug upstream.
   ///
-  /// The key is rejected rather than repaired: trimming ` theme ` to `theme`
-  /// would quietly hand back an entry the caller did not ask for, and the
-  /// caller is the only one who knows whether the whitespace was a typo or a
-  /// bug upstream.
+  /// This is a factory and not a `const` constructor on purpose. A `const`
+  /// constructor can only check through `assert`, which is removed from
+  /// release builds, and a guard that disappears exactly where it matters is
+  /// the defect Phase 1.8 went through the package to remove.
   ///
   /// Throws an [ArgumentError] naming the rule that was broken.
-  factory FlatEntry.validated(String key, [String? value]) {
+  factory FlatEntry(String key, [String? value]) {
     checkKey(key);
 
     final valueProblem = invalidValueReason(value);
@@ -40,8 +40,13 @@ class FlatEntry {
       throw ArgumentError.value(value, 'value', 'Value $valueProblem');
     }
 
-    return FlatEntry(key, value);
+    return FlatEntry._(key, value);
   }
+
+  /// Creates an entry that clears [key], written out as `key =`.
+  factory FlatEntry.reset(String key) => FlatEntry(key);
+
+  const FlatEntry._(this.key, this.value);
 
   /// The configuration key (left side of the `=` sign).
   final String key;
@@ -90,20 +95,11 @@ class FlatEntry {
 class FlatDocument extends Iterable<FlatEntry> {
   /// Creates a new [FlatDocument] from a list of [FlatEntry] items.
   ///
-  /// The entries are defensively copied to ensure immutability, and every key
-  /// is checked against SPEC.md 3.
-  ///
-  /// This is the boundary that makes the format safe: [FlatEntry] itself is a
-  /// `const` pair and cannot validate, since a `const` constructor may only
-  /// assert compile-time constant expressions. Checking here instead means no
-  /// key that fails to survive a round trip can reach the encoder.
-  ///
-  /// Throws a [FormatException] naming the key and the rule it broke.
-  factory FlatDocument(List<FlatEntry> entries) {
-    validateEntries(entries);
-
-    return FlatDocument._(List.unmodifiable(entries));
-  }
+  /// The entries are copied defensively, and that is all this does: every
+  /// [FlatEntry] is already valid by construction, so no key or value that
+  /// fails to survive a round trip can reach here in the first place.
+  factory FlatDocument(List<FlatEntry> entries) =>
+      FlatDocument._(List.unmodifiable(entries));
 
   /// Creates an empty configuration document.
   factory FlatDocument.empty() => const FlatDocument._(<FlatEntry>[]);
@@ -114,45 +110,19 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// the corresponding configuration values. The map is copied defensively
   /// and the order of iteration determines the order of entries.
   ///
-  /// When [strict] is `true` (default), an empty or whitespace-only key
-  /// causes a [FormatException]. When `false`, such keys are silently
-  /// ignored and not included in the resulting document.
-  factory FlatDocument.fromMap(Map<String, String?> map, {bool strict = true}) {
-    final out = [for (final e in map.entries) FlatEntry(e.key, e.value)];
-
-    return FlatDocument(strict ? out : _keepValidEntries(out));
-  }
+  /// Throws a [FormatException] if any key breaks SPEC.md 3. Leniency belongs
+  /// to the parser, where hand-edited files arrive; a document built in code
+  /// from a key the format cannot represent is a bug at the call site.
+  factory FlatDocument.fromMap(Map<String, String?> map) =>
+      FlatDocument([for (final e in map.entries) FlatEntry(e.key, e.value)]);
 
   /// Creates a [FlatDocument] from an iterable of [FlatEntry] objects.
   ///
   /// The provided entries are copied defensively and preserve their order.
   ///
-  /// When [strict] is `true` (default), any entry with an empty or
-  /// whitespace-only key causes a [FormatException]. When `false`,
-  /// such entries are ignored.
-  factory FlatDocument.fromEntries(
-    Iterable<FlatEntry> entries, {
-    bool strict = true,
-  }) {
-    final list = entries.toList();
-
-    return FlatDocument(strict ? list : _keepValidEntries(list));
-  }
-
-  /// Creates a [FlatDocument] containing exactly one [FlatEntry].
-  ///
-  /// When [strict] is `true` (default), the [key] is validated and
-  /// must not be empty or whitespace-only. When `false`, validation is
-  /// skipped and the key is used as-is.
-  factory FlatDocument.single(
-    String key, {
-    String? value,
-    bool strict = true,
-  }) => FlatDocument(
-    strict
-        ? [FlatEntry.validated(key, value)]
-        : _keepValidEntries([FlatEntry(key, value)]),
-  );
+  /// Throws a [FormatException] if any key breaks SPEC.md 3.
+  factory FlatDocument.fromEntries(Iterable<FlatEntry> entries) =>
+      FlatDocument(entries.toList());
 
   // Private const constructor used internally
   const FlatDocument._(this.entries);
@@ -361,33 +331,6 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// for the key, or null if the key is not found or has an empty value.
   String? getString(String key) => this[key];
 
-  // Validates a collection of [FlatEntry] objects.
-  ///
-  /// When [strict] is `true` (default), this method checks that all
-  /// entries have non-empty keys after trimming whitespace. If any key is
-  /// empty or consists only of whitespace, a [FormatException] is thrown.
-  ///
-  /// When [strict] is `false`, the validation is skipped and the method
-  /// returns immediately.
-  ///
-  /// This method is typically used internally by [FlatDocument] factory
-  /// constructors such as [FlatDocument.fromMap], [FlatDocument.merge],
-  /// and [FlatDocument.fromEntries] to enforce consistent data integrity.
-  static void validateEntries(
-    Iterable<FlatEntry> entries, {
-    bool strict = true,
-  }) {
-    if (!strict) {
-      return;
-    }
-    for (final e in entries) {
-      final reason = invalidEntryReason(e);
-      if (reason != null) {
-        throw FormatException('$reason.');
-      }
-    }
-  }
-
   @override
   String toString() => 'FlatDocument(${entries.length} entries)';
 
@@ -429,12 +372,3 @@ class FlatDocument extends Iterable<FlatEntry> {
     return true;
   }
 }
-
-/// The entries whose keys are valid, in order.
-///
-/// Backs the `strict: false` mode of the document factories, which drop bad
-/// entries instead of throwing.
-List<FlatEntry> _keepValidEntries(Iterable<FlatEntry> entries) => [
-  for (final e in entries)
-    if (invalidEntryReason(e) == null) e,
-];

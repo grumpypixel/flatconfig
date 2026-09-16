@@ -10,14 +10,14 @@ folded in below, with reproductions.
 
 ## Where this stands
 
-Last updated after Phase 2.5. Verify with `dart test` (expect 783 passing),
+Last updated after Phase 2.3. Verify with `dart test` (expect 779 passing),
 `dart test --compiler exe` for the same suite without assertions, and
 `sed -n '/^### Open/,$p' SPEC.md` for format deviations.
 
 **Done:** Phase 0 and Phase 1, in full. `SPEC.md` Appendix A is empty — every
 listed deviation is fixed and pinned by a test.
 
-**Next:** Phase 2, the 1.0 API. 2.5 is done; the rest is open.
+**Next:** Phase 2, the 1.0 API. 2.3, 2.4 and 2.5 are done; the rest is open.
 
 **How the work is organised.** Every fix carries a regression test.
 `test/round_trip_test.dart` is the property gate for the format and must stay
@@ -370,12 +370,18 @@ A `FlatDocument` always holds valid entries; `FlatEntry` validates in its
 constructor. Leniency belongs exclusively to the parser, where hand-edited files
 actually arrive — and `FlatParseOptions` already covers it.
 
-- [ ] Remove `strict` from `fromMap`, `fromEntries`, `merge`, `single`, and
+- [x] Remove `strict` from `fromMap`, `fromEntries`, `merge`, `single`, and
       `FlatMapDataOptions`.
-- [ ] Remove the public `FlatDocument.validateEntries` static.
-- [ ] Remove `FlatEntry.validated` — the default constructor validates.
-- [ ] `FlatDocument.single(key, value:)` → deleted; use
-      `FlatDocument.of([FlatEntry(key, value)])`.
+- [x] Remove the public `FlatDocument.validateEntries` static. It turned out to
+      be unreachable once `FlatEntry` validates, so it is deleted rather than
+      hidden, and `FlatDocument` only copies defensively now.
+- [x] Remove `FlatEntry.validated` — the default constructor validates. That
+      costs `const FlatEntry`, deliberately: a `const` constructor can only
+      check through `assert`, and Phase 1.8 just removed that whole class of
+      guard. Nothing is lost in practice, since `FlatDocument`'s constructor is
+      a factory, so a `const` document was never constructible anyway.
+- [x] `FlatDocument.single(key, value:)` → deleted; use
+      `FlatDocument([FlatEntry(key, value)])`.
 
 ### 2.4 Delete `merge`
 

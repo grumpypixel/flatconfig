@@ -36,7 +36,7 @@ void main() {
           ),
         ),
         throwsA(
-          isA<FormatException>().having(
+          isA<ArgumentError>().having(
             (e) => e.message,
             'message',
             contains('must not contain a line break'),
@@ -356,15 +356,15 @@ void main() {
     test('empty root key throws by default (strict=true)', () {
       expect(
         () => FlatConfig.fromMapData({'': 1}),
-        throwsA(isA<FormatException>()),
+        throwsA(isA<ArgumentError>()),
       );
     });
 
-    test('empty root key dropped when strict=false', () {
-      final doc = FlatConfig.fromMapData({
-        '': 1,
-      }, options: const FlatMapDataOptions(strict: false));
-      expect(doc, isEmpty);
+    test('empty root key is rejected', () {
+      expect(
+        () => FlatConfig.fromMapData({'': 1}),
+        throwsA(isA<ArgumentError>()),
+      );
     });
 
     test('empty root with nested map flattens to child key', () {
@@ -389,16 +389,9 @@ void main() {
       'empty root key with null: strict=true throws; strict=false drops it',
       () {
         expect(
-          () => FlatConfig.fromMapData({
-            '': null,
-          }, options: const FlatMapDataOptions(strict: true)),
-          throwsA(isA<FormatException>()),
+          () => FlatConfig.fromMapData({'': null}),
+          throwsA(isA<ArgumentError>()),
         );
-
-        final doc = FlatConfig.fromMapData({
-          '': null,
-        }, options: const FlatMapDataOptions(strict: false));
-        expect(doc, isEmpty);
       },
     );
 

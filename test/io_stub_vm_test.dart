@@ -19,12 +19,12 @@ void main() {
   );
 
   test('io_stub.writeFlat throws UnsupportedError (VM import)', () async {
-    final doc = FlatDocument(const [FlatEntry('k', 'v')]);
+    final doc = FlatDocument([FlatEntry('k', 'v')]);
     expect(io.writeFlat('x', doc), throwsA(isA<UnsupportedError>()));
   });
 
   test('io_stub.writeFlatSync throws UnsupportedError (VM import)', () {
-    final doc = FlatDocument(const [FlatEntry('k', 'v')]);
+    final doc = FlatDocument([FlatEntry('k', 'v')]);
     expect(() => io.writeFlatSync('x', doc), throwsA(isA<UnsupportedError>()));
   });
 
@@ -45,12 +45,12 @@ void main() {
     });
 
     test('Object.writeFlat throws UnsupportedError', () async {
-      final doc = FlatDocument(const [FlatEntry('k', 'v')]);
+      final doc = FlatDocument([FlatEntry('k', 'v')]);
       expect(Object().writeFlat(doc), throwsA(isA<UnsupportedError>()));
     });
 
     test('Object.writeFlatSync throws UnsupportedError', () {
-      final doc = FlatDocument(const [FlatEntry('k', 'v')]);
+      final doc = FlatDocument([FlatEntry('k', 'v')]);
       expect(
         () => Object().writeFlatSync(doc),
         throwsA(isA<UnsupportedError>()),

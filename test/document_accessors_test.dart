@@ -128,7 +128,7 @@ void main() {
     test(
       'getAllAs yields converted values and skips invalid/empty when configured',
       () {
-        final d = FlatDocument(const [
+        final d = FlatDocument([
           FlatEntry('port', '8080'),
           FlatEntry('port', 'bad'),
           FlatEntry('port', null), // unquoted empty
@@ -152,14 +152,14 @@ void main() {
     );
 
     test('requireAllAs returns list or throws on first invalid number', () {
-      final ok = FlatDocument(const [
+      final ok = FlatDocument([
         FlatEntry('n', '1'),
         FlatEntry('n', ' 2 '),
         FlatEntry('n', '3'),
       ]);
       expect(ok.requireAllAs('n', int.parse), [1, 2, 3]);
 
-      final withNull = FlatDocument(const [
+      final withNull = FlatDocument([
         FlatEntry('n', '1'),
         FlatEntry('n', null),
       ]);
@@ -168,19 +168,19 @@ void main() {
         throwsFormatException,
       );
 
-      final withEmpty = FlatDocument(const [FlatEntry('n', '')]);
+      final withEmpty = FlatDocument([FlatEntry('n', '')]);
       expect(
         () => withEmpty.requireAllAs('n', int.parse),
         throwsFormatException,
       );
 
-      final withBad = FlatDocument(const [FlatEntry('n', 'x')]);
+      final withBad = FlatDocument([FlatEntry('n', 'x')]);
       expect(() => withBad.requireAllAs('n', int.parse), throwsFormatException);
     });
 
     test('requireAllAs stops at first invalid number', () {
       final seen = <String>[];
-      final d = FlatDocument(const [
+      final d = FlatDocument([
         FlatEntry('n', '1'),
         FlatEntry('n', 'x'), // invalid
         FlatEntry('n', '3'), // should not be converted anymore
@@ -533,7 +533,7 @@ void main() {
     });
 
     test('getDuration parses ms/s/m/h/d and bare ms', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('ms', '150'),
         FlatEntry('s', '2s'),
         FlatEntry('m', '2.5m'),
@@ -551,7 +551,7 @@ void main() {
     });
 
     test('getBytes parses SI and IEC units', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('b', '42'),
         FlatEntry('kb', '2KB'),
         FlatEntry('mb', '1.5MB'),
@@ -580,7 +580,7 @@ void main() {
       // Define a local enum-like mapping for the test
       // (Dart enums can't be declared inside functions prior to certain SDKs)
       final mode = {'a': 'A', 'b': 'B'};
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('m1', 'A'),
         FlatEntry('m2', 'b'),
         FlatEntry('m3', 'C'),
@@ -593,10 +593,7 @@ void main() {
     });
 
     test('requireInt/requireDouble throw on missing/invalid', () {
-      final doc = FlatDocument(const [
-        FlatEntry('i', '2'),
-        FlatEntry('d', '3.14'),
-      ]);
+      final doc = FlatDocument([FlatEntry('i', '2'), FlatEntry('d', '3.14')]);
       expect(doc.requireInt('i'), 2);
       expect(doc.requireDouble('d'), closeTo(3.14, 1e-9));
       expect(() => doc.requireInt('missing'), throwsFormatException);
@@ -604,19 +601,16 @@ void main() {
     });
 
     test('requireBool throws on missing/invalid and returns parsed value', () {
-      final doc = FlatDocument(const [
-        FlatEntry('t', 'true'),
-        FlatEntry('f', '0'),
-      ]);
+      final doc = FlatDocument([FlatEntry('t', 'true'), FlatEntry('f', '0')]);
       expect(doc.requireBool('t'), isTrue);
       expect(doc.requireBool('f'), isFalse);
       expect(() => doc.requireBool('missing'), throwsFormatException);
-      final doc2 = FlatDocument(const [FlatEntry('u', 'maybe')]);
+      final doc2 = FlatDocument([FlatEntry('u', 'maybe')]);
       expect(() => doc2.requireBool('u'), throwsFormatException);
     });
 
     test('getHexColor parses #rgb/#rgba/#rrggbb/#aarrggbb and no-#', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('rgb', '#0f8'), // -> FF00FF88
         // -> 00 FF 88 -> 00FF88 with alpha 00? expand -> 00 FF 88
         FlatEntry('rgba', '#0f88'),
@@ -637,7 +631,7 @@ void main() {
     });
 
     test('getHexColor cssAlphaAtEnd parameter for FlatDocument', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('css_8', '11223344'), // RRGGBBAA format
         FlatEntry('trad_8', '44112233'), // AARRGGBB format
       ]);
@@ -651,7 +645,7 @@ void main() {
     });
 
     test('getColor returns ARGB components', () {
-      final doc = FlatDocument(const [FlatEntry('c', '#336699')]);
+      final doc = FlatDocument([FlatEntry('c', '#336699')]);
       final c = doc.getColor('c')!;
       expect(c['a'], 0xFF);
       expect(c['r'], 0x33);
@@ -662,7 +656,7 @@ void main() {
     test(
       'getColor cssAlphaAtEnd parameter controls 8-digit interpretation for FlatDocument',
       () {
-        final doc = FlatDocument(const [
+        final doc = FlatDocument([
           FlatEntry('css_style', '11223344'), // RRGGBBAA format
           FlatEntry('traditional', '44112233'), // AARRGGBB format
         ]);
@@ -684,7 +678,7 @@ void main() {
     );
 
     test('getHexColor invalid lengths and non-hex return null', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('short', '#12'),
         FlatEntry('long', '123456789'),
         FlatEntry('nonhex', '#ggg'),
@@ -695,19 +689,19 @@ void main() {
     });
 
     test('getList splits, trims and skips empties by default', () {
-      final doc = FlatDocument(const [FlatEntry('l', 'a,  b , , c  ')]);
+      final doc = FlatDocument([FlatEntry('l', 'a,  b , , c  ')]);
       expect(doc.getList('l'), ['a', 'b', 'c']);
       expect(doc.getList('missing'), isNull);
     });
 
     test('getSet builds a set; case-insensitive option', () {
-      final doc = FlatDocument(const [FlatEntry('s', 'A, b, a, B ')]);
+      final doc = FlatDocument([FlatEntry('s', 'A, b, a, B ')]);
       expect(doc.getSet('s')!.length, 2);
       expect(doc.getSet('s'), {'a', 'b'});
     });
 
     test('getSet custom separator and keep empties=false/true', () {
-      final doc = FlatDocument(const [FlatEntry('s', 'A| |b||B|')]);
+      final doc = FlatDocument([FlatEntry('s', 'A| |b||B|')]);
       // Default caseInsensitive=true
       expect(doc.getSet('s', separator: '|'), {'a', 'b'});
       // Keep empties -> empties are dropped by Set but we ensure parsing path
@@ -719,7 +713,7 @@ void main() {
     test(
       'getList honors custom separator and keeps empties when configured',
       () {
-        final doc = FlatDocument(const [FlatEntry('l', 'a|  |b||c|')]);
+        final doc = FlatDocument([FlatEntry('l', 'a|  |b||c|')]);
         expect(doc.getList('l', separator: '|', skipEmpty: false), [
           'a',
           '',
@@ -732,7 +726,7 @@ void main() {
     );
 
     test('getBytes negatives and unknown unit return null', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('neg', '-1MB'),
         FlatEntry('unk', '10XB'),
       ]);
@@ -741,29 +735,26 @@ void main() {
     });
 
     test('getEnum works in case-sensitive mode only on exact match', () {
-      final doc = FlatDocument(const [FlatEntry('m', 'A')]);
+      final doc = FlatDocument([FlatEntry('m', 'A')]);
       final map = {'A': 1, 'B': 2};
       expect(doc.getEnum('m', map, caseInsensitive: false), 1);
       expect(doc.getEnum('m', {'a': 1}, caseInsensitive: false), isNull);
     });
 
     test('getStringTrimmed and requireString', () {
-      final doc = FlatDocument(const [FlatEntry('a', '  x  ')]);
+      final doc = FlatDocument([FlatEntry('a', '  x  ')]);
       expect(doc.getTrimmed('a'), 'x');
       expect(() => doc.requireString('missing'), throwsFormatException);
     });
 
     test('getIntOr / getDoubleOr fall back', () {
-      final doc = FlatDocument(const [
-        FlatEntry('i', 'x'),
-        FlatEntry('d', 'y'),
-      ]);
+      final doc = FlatDocument([FlatEntry('i', 'x'), FlatEntry('d', 'y')]);
       expect(doc.getIntOr('i', 7), 7);
       expect(doc.getDoubleOr('d', 3.5), 3.5);
     });
 
     test('requireEnum and getEnum', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('m1', 'Alpha'),
         FlatEntry('m2', 'b'),
       ]);
@@ -774,7 +765,7 @@ void main() {
     });
 
     test('requireEnum with preNormalizedLowerMapping', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('m1', 'Alpha'),
         FlatEntry('m2', 'BETA'),
       ]);
@@ -800,10 +791,7 @@ void main() {
     });
 
     test('requireDuration and requireBytes', () {
-      final doc = FlatDocument(const [
-        FlatEntry('t', '2s'),
-        FlatEntry('b', '1MiB'),
-      ]);
+      final doc = FlatDocument([FlatEntry('t', '2s'), FlatEntry('b', '1MiB')]);
       expect(doc.requireDuration('t').inMilliseconds, 2000);
       expect(doc.requireBytes('b'), 1024 * 1024);
       expect(() => doc.requireDuration('missing'), throwsFormatException);
@@ -811,13 +799,13 @@ void main() {
     });
 
     test('getDateTime / requireDateTime', () {
-      final doc = FlatDocument(const [FlatEntry('ts', '2024-01-02T03:04:05Z')]);
+      final doc = FlatDocument([FlatEntry('ts', '2024-01-02T03:04:05Z')]);
       expect(doc.getDateTime('ts')!.toUtc().year, 2024);
       expect(() => doc.requireDateTime('missing'), throwsFormatException);
     });
 
     test('getUri / requireUri', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('u', 'https://example.com/path?q=1'),
       ]);
       expect(doc.getUri('u')!.host, 'example.com');
@@ -825,19 +813,14 @@ void main() {
     });
 
     test('getMap parses key:value pairs', () {
-      final doc = FlatDocument(const [
-        FlatEntry('m', 'a:1, b:2 ,invalid, c: 3'),
-      ]);
+      final doc = FlatDocument([FlatEntry('m', 'a:1, b:2 ,invalid, c: 3')]);
       final m = doc.getMap('m');
       expect(m, {'a': '1', 'b': '2', 'c': '3'});
       expect(doc.getMap('missing'), isEmpty);
     });
 
     test('ranged getters and requires', () {
-      final doc = FlatDocument(const [
-        FlatEntry('i', '5'),
-        FlatEntry('d', '2.5'),
-      ]);
+      final doc = FlatDocument([FlatEntry('i', '5'), FlatEntry('d', '2.5')]);
       expect(doc.getIntInRange('i', min: 1, max: 10), 5);
       expect(doc.getDoubleInRange('d', min: 1, max: 3), 2.5);
       expect(() => doc.requireIntInRange('i', min: 6), throwsFormatException);
@@ -848,7 +831,7 @@ void main() {
     });
 
     test('isEnabled with default fallback', () {
-      final doc = FlatDocument(const [FlatEntry('b', 'yes')]);
+      final doc = FlatDocument([FlatEntry('b', 'yes')]);
       expect(doc.isEnabled('b'), isTrue);
       expect(doc.isEnabled('missing', defaultValue: true), isTrue);
     });
@@ -886,19 +869,16 @@ void main() {
       final d = docOf({'map': 'a=1, b=2 , c= 3'});
       final sub = d.getDocument('map');
       expect(sub.entries, [
-        const FlatEntry('a', '1'),
-        const FlatEntry('b', '2'),
-        const FlatEntry('c', '3'),
+        FlatEntry('a', '1'),
+        FlatEntry('b', '2'),
+        FlatEntry('c', '3'),
       ]);
     });
 
     test('getDocument ignores invalid items and empty keys', () {
       final d = docOf({'map': 'a=1, invalid,  =x , :y, x=, ='});
       final sub = d.getDocument('map');
-      expect(sub.entries, [
-        const FlatEntry('a', '1'),
-        const FlatEntry('x', null),
-      ]);
+      expect(sub.entries, [FlatEntry('a', '1'), FlatEntry('x', null)]);
     });
 
     test('getDocument supports custom sep and quoted values', () {
@@ -909,9 +889,9 @@ void main() {
         decodeEscapesInQuoted: true,
       );
       expect(sub.entries, [
-        const FlatEntry('k1', 'v=1'),
-        const FlatEntry('k2', 'v2'),
-        const FlatEntry('k3', ''),
+        FlatEntry('k1', 'v=1'),
+        FlatEntry('k2', 'v2'),
+        FlatEntry('k3', ''),
       ]);
     });
 
@@ -1176,12 +1156,12 @@ void main() {
         final list = d.getListOfDocuments('servers')!;
         expect(list.length, 2);
         expect(list[0].entries, [
-          const FlatEntry('host', 'foo'),
-          const FlatEntry('port', '8080'),
+          FlatEntry('host', 'foo'),
+          FlatEntry('port', '8080'),
         ]);
         expect(list[1].entries, [
-          const FlatEntry('host', 'bar'),
-          const FlatEntry('port', '9090'),
+          FlatEntry('host', 'bar'),
+          FlatEntry('port', '9090'),
         ]);
       },
     );
@@ -1197,13 +1177,10 @@ void main() {
           decodeEscapesInQuoted: true,
         )!;
         expect(list.length, 2);
-        expect(list[0].entries, [
-          const FlatEntry('k1', 'v=1'),
-          const FlatEntry('k2', '2'),
-        ]);
+        expect(list[0].entries, [FlatEntry('k1', 'v=1'), FlatEntry('k2', '2')]);
         expect(list[1].entries, [
-          const FlatEntry('x', '3'),
-          const FlatEntry('y', ' a , b '),
+          FlatEntry('x', '3'),
+          FlatEntry('y', ' a , b '),
         ]);
       },
     );
@@ -1243,10 +1220,7 @@ void main() {
     });
 
     test('debugDump formats entries with and without indexes', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', null),
-      ]);
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', null)]);
       final withIdx = doc.debugDump();
       expect(withIdx.split('\n'), ['[0] a = 1', '[1] b = null']);
       final noIdx = doc.debugDump(includeIndexes: false);
@@ -1344,8 +1318,8 @@ void main() {
       // It correctly handles the = inside the quoted value
       final doc = d.getDocument('data', itemSep: ',');
       expect(doc.entries, [
-        const FlatEntry('key1', 'value with = sign'),
-        const FlatEntry('key2', 'normal value'),
+        FlatEntry('key1', 'value with = sign'),
+        FlatEntry('key2', 'normal value'),
       ]);
     });
 
@@ -1366,8 +1340,8 @@ void main() {
       // getDocument() correctly handles commas inside quoted values
       final doc = d.getDocument('data', itemSep: ',');
       expect(doc.entries, [
-        const FlatEntry('key1', 'value, with, commas'),
-        const FlatEntry('key2', 'normal value'),
+        FlatEntry('key1', 'value, with, commas'),
+        FlatEntry('key2', 'normal value'),
       ]);
     });
 
@@ -1482,7 +1456,7 @@ void main() {
 
   group('FlatDocument Core Accessors', () {
     test('toMap() should include only last value per key', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('key1', 'first'),
         FlatEntry('key2', 'second'),
         FlatEntry('key1', 'last'), // duplicate key
@@ -1497,7 +1471,7 @@ void main() {
     });
 
     test('toMap() should return immutable map', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('key1', 'value1'),
         FlatEntry('key2', 'value2'),
       ]);
@@ -1509,7 +1483,7 @@ void main() {
     });
 
     test('toMap() should not modify after creation', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('key1', 'value1'),
         FlatEntry('key2', 'value2'),
       ]);
@@ -1521,12 +1495,12 @@ void main() {
       expect(identical(map1, map2), isTrue);
 
       // Modifying the document should not affect the cached map
-      FlatDocument([...doc.entries, const FlatEntry('key3', 'value3')]);
+      FlatDocument([...doc.entries, FlatEntry('key3', 'value3')]);
       expect(map1.containsKey('key3'), isFalse);
     });
 
     test('allValues(key) should return all values for key in order', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('key1', 'first'),
         FlatEntry('key2', 'only'),
         FlatEntry('key1', 'second'),
@@ -1540,7 +1514,7 @@ void main() {
     });
 
     test('allValues(key) should return empty list if key not found', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('key1', 'value1'),
         FlatEntry('key2', 'value2'),
       ]);
@@ -1551,7 +1525,7 @@ void main() {
     });
 
     test('allValues(key) should be immutable', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('key1', 'value1'),
         FlatEntry('key1', 'value2'),
       ]);
@@ -1563,7 +1537,7 @@ void main() {
     });
 
     test('allValues(key).first is the first occurrence', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('key1', 'first'),
         FlatEntry('key2', 'only'),
         FlatEntry('key1', 'second'),
@@ -1575,7 +1549,7 @@ void main() {
     });
 
     test('allValues(key) is empty if the key is not found', () {
-      final doc = FlatDocument(const [FlatEntry('key1', 'value1')]);
+      final doc = FlatDocument([FlatEntry('key1', 'value1')]);
 
       expect(doc.allValues('missing'), isEmpty);
     });
@@ -1583,7 +1557,7 @@ void main() {
     test(
       'lastValueOf(key) should return most recent value (alias to this[key])',
       () {
-        final doc = FlatDocument(const [
+        final doc = FlatDocument([
           FlatEntry('key1', 'first'),
           FlatEntry('key2', 'only'),
           FlatEntry('key1', 'second'),
@@ -1597,13 +1571,13 @@ void main() {
     );
 
     test('lastValueOf(key) should return null if missing', () {
-      final doc = FlatDocument(const [FlatEntry('key1', 'value1')]);
+      final doc = FlatDocument([FlatEntry('key1', 'value1')]);
 
       expect(doc['missing'], isNull);
     });
 
     test('has() should be true if key exists (even with null)', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('key1', 'value1'),
         FlatEntry('key2', null),
         FlatEntry('key3', ''),
@@ -1616,7 +1590,7 @@ void main() {
     });
 
     test('operator [] is null exactly when the value is null', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('key1', 'value1'),
         FlatEntry('key2', null),
         FlatEntry('key3', ''),
@@ -1629,7 +1603,7 @@ void main() {
     });
 
     test('getInt() should parse valid numeric values correctly', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('positive', '42'),
         FlatEntry('negative', '-17'),
         FlatEntry('zero', '0'),
@@ -1643,7 +1617,7 @@ void main() {
     });
 
     test('getInt() should return null for invalid or missing keys', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('invalid', 'not-a-number'),
         FlatEntry('float', '3.14'),
         FlatEntry('empty', ''),
@@ -1658,7 +1632,7 @@ void main() {
     });
 
     test('getDouble() should parse valid numeric values correctly', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('positive', '42.5'),
         FlatEntry('negative', '-17.25'),
         FlatEntry('zero', '0.0'),
@@ -1674,7 +1648,7 @@ void main() {
     });
 
     test('getDouble() should return null for invalid or missing keys', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('invalid', 'not-a-number'),
         FlatEntry('empty', ''),
         FlatEntry('null', null),
@@ -1687,7 +1661,7 @@ void main() {
     });
 
     test('getBool() should handle boolean strings correctly', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('true1', 'true'),
         FlatEntry('true2', 'TRUE'),
         FlatEntry('true3', '1'),
@@ -1724,7 +1698,7 @@ void main() {
     });
 
     test('getBool() should return null for invalid or missing keys', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('invalid1', 'maybe'),
         FlatEntry('invalid2', '2'),
         FlatEntry('invalid3', 'enabled'),
@@ -1741,7 +1715,7 @@ void main() {
     });
 
     test('getString() should return string values correctly', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('normal', 'hello world'),
         FlatEntry('empty', ''),
         FlatEntry('null', null),
@@ -1756,7 +1730,7 @@ void main() {
     });
 
     test('getString() should be equivalent to this[key]', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('key1', 'value1'),
         FlatEntry('key2', null),
         FlatEntry('key3', ''),

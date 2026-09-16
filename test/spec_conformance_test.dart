@@ -24,9 +24,9 @@ void main() {
     test('a document cannot be built from one', () {
       rejected.forEach((key, reason) {
         expect(
-          () => FlatDocument([FlatEntry(key, 'v')]),
+          () => FlatEntry(key, 'v'),
           throwsA(
-            isA<FormatException>().having(
+            isA<ArgumentError>().having(
               (e) => e.message,
               'message',
               contains(reason),
@@ -40,8 +40,8 @@ void main() {
     test('the two that used to be lost silently are now impossible', () {
       // '#x = v' read back as a comment, losing the entry without a trace;
       // ' a  = v' read back with the padding gone.
-      expect(() => FlatDocument.single('#x', value: 'v'), throwsArgumentError);
-      expect(() => FlatDocument.single(' a ', value: 'v'), throwsArgumentError);
+      expect(() => FlatEntry('#x', 'v'), throwsArgumentError);
+      expect(() => FlatEntry(' a ', 'v'), throwsArgumentError);
     });
 
     test('the parser skips such a line in lax mode', () {
@@ -177,7 +177,7 @@ void main() {
 
   group('SPEC 7 — the encoder is the inverse of the parser', () {
     test('an empty string is quoted, a reset is not', () {
-      final doc = FlatDocument(const [
+      final doc = FlatDocument([
         FlatEntry('empty', ''),
         FlatEntry('reset', null),
       ]);
@@ -186,7 +186,7 @@ void main() {
 
     test('escaping is on by default', () {
       expect(
-        FlatDocument(const [FlatEntry('k', r'say "hi" \ ok')]).encode(),
+        FlatDocument([FlatEntry('k', r'say "hi" \ ok')]).encode(),
         'k = '
         r'"say \"hi\" \\ ok"'
         '\n',
@@ -194,14 +194,11 @@ void main() {
     });
 
     test('a value that is only whitespace keeps it', () {
-      expect(
-        FlatDocument(const [FlatEntry('k', '   ')]).encode(),
-        'k = "   "\n',
-      );
+      expect(FlatDocument([FlatEntry('k', '   ')]).encode(), 'k = "   "\n');
     });
 
     test('a value starting with the comment prefix is quoted', () {
-      expect(FlatDocument(const [FlatEntry('k', '#x')]).encode(), 'k = "#x"\n');
+      expect(FlatDocument([FlatEntry('k', '#x')]).encode(), 'k = "#x"\n');
     });
 
     test('a value containing a line break is rejected', () {
@@ -209,9 +206,9 @@ void main() {
       // written as two physical lines and read back as x -> '"x'.
       for (final bad in ['x\ny', 'x\r\ny', 'x\ry']) {
         expect(
-          () => FlatDocument([FlatEntry('k', bad)]),
+          () => FlatEntry('k', bad),
           throwsA(
-            isA<FormatException>().having(
+            isA<ArgumentError>().having(
               (e) => e.message,
               'message',
               contains('must not contain a line break'),
@@ -222,14 +219,11 @@ void main() {
     });
 
     test('null is a valid value, being the explicit reset', () {
-      expect(FlatDocument(const [FlatEntry('k', null)]).encode(), 'k = \n');
+      expect(FlatDocument([FlatEntry('k', null)]).encode(), 'k = \n');
     });
 
     test('a non-empty document always ends with the terminator', () {
-      expect(
-        FlatDocument(const [FlatEntry('k', 'v')]).encode(),
-        endsWith('\n'),
-      );
+      expect(FlatDocument([FlatEntry('k', 'v')]).encode(), endsWith('\n'));
       expect(FlatDocument.empty().encode(), '');
     });
   });

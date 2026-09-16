@@ -120,7 +120,7 @@ void main() {
 
     test('explicit cache hit returns cached document and skips parsing', () {
       final cache = <String, FlatDocument>{
-        'mem:root': FlatDocument.single('cached', value: 'yes'),
+        'mem:root': FlatDocument([FlatEntry('cached', 'yes')]),
       };
 
       final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
