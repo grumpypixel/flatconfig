@@ -10,6 +10,7 @@ import 'include_path_utils.dart';
 import 'options.dart';
 import 'parser.dart';
 import 'path_utils.dart' as path_utils;
+import 'validation.dart';
 
 /// Extensions for parsing configuration files with includes.
 ///
@@ -263,6 +264,7 @@ extension FlatConfigIncludes on FlatDocument {
     int depth = 0,
   }) async {
     // Enforce maximum include depth
+    checkIncludeDepth(options.maxIncludeDepth);
     if (depth > options.maxIncludeDepth) {
       throw MaxIncludeDepthExceededException(
         file.path,
@@ -343,6 +345,7 @@ extension FlatConfigIncludes on FlatDocument {
     required Map<String, FlatDocument> cache,
     int depth = 0,
   }) {
+    checkIncludeDepth(options.maxIncludeDepth);
     if (depth > options.maxIncludeDepth) {
       throw MaxIncludeDepthExceededException(
         file.path,

@@ -54,7 +54,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(prefix: 'APP_'),
+          options: FlatEnvOptions(prefix: 'APP_'),
         );
 
         expect(
@@ -73,7 +73,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(prefix: 'APP_', caseSensitive: false),
+          options: FlatEnvOptions(prefix: 'APP_', caseSensitive: false),
         );
 
         expect(
@@ -93,7 +93,7 @@ void main() {
 
           final doc = FlatDocument.fromEnvironment(
             env,
-            options: const FlatEnvOptions(prefix: 'app_', caseSensitive: false),
+            options: FlatEnvOptions(prefix: 'app_', caseSensitive: false),
           );
 
           final keys = doc.keys.toList();
@@ -107,7 +107,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(prefix: 'APP_'),
+          options: FlatEnvOptions(prefix: 'APP_'),
         );
 
         expect(doc.isEmpty, isTrue);
@@ -118,11 +118,11 @@ void main() {
 
         final doc1 = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(prefix: ''),
+          options: FlatEnvOptions(prefix: ''),
         );
         final doc2 = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(prefix: null),
+          options: FlatEnvOptions(prefix: null),
         );
 
         expect(doc1.length, equals(2));
@@ -140,7 +140,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolate: true),
         );
 
         expect(doc['URL'], equals('https://api.example.com:8080'));
@@ -151,7 +151,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolate: true),
         );
 
         expect(doc['URL'], equals('https://:'));
@@ -166,7 +166,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolate: true),
         );
 
         expect(doc['GREETING'], equals('Hello World!'));
@@ -180,7 +180,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolate: true),
         );
 
         expect(doc['MESSAGE'], equals('John and John went to the store'));
@@ -191,7 +191,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(interpolate: false),
+          options: FlatEnvOptions(interpolate: false),
         );
 
         expect(doc['URL'], equals('https://\${HOST}'));
@@ -202,10 +202,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(
-            interpolate: true,
-            defaults: {'EMPTY': ''},
-          ),
+          options: FlatEnvOptions(interpolate: true, defaults: {'EMPTY': ''}),
         );
 
         // Should not throw, just skip empty values
@@ -217,7 +214,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolate: true),
         );
 
         expect(doc['HOST'], equals('localhost'));
@@ -229,7 +226,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(
+          options: FlatEnvOptions(
             interpolate: true,
             defaults: {'HOST': 'localhost'},
             merge: {'URL': 'http://\${HOST}:\${PORT}'},
@@ -246,7 +243,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(
+          options: FlatEnvOptions(
             defaults: {'HOST': 'localhost', 'PORT': '8080'},
           ),
         );
@@ -260,7 +257,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(
+          options: FlatEnvOptions(
             defaults: {'HOST': 'localhost', 'PORT': '8080'},
             merge: {'PORT': '9000', 'ENV': 'prod'},
           ),
@@ -277,7 +274,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(defaults: {}),
+          options: FlatEnvOptions(defaults: {}),
         );
 
         expect(doc['KEY'], equals('value'));
@@ -288,7 +285,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(merge: {}),
+          options: FlatEnvOptions(merge: {}),
         );
 
         expect(doc['KEY'], equals('value'));
@@ -299,7 +296,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(
+          options: FlatEnvOptions(
             defaults: {'A': 'default-a', 'B': 'default-b', 'C': 'default-c'},
             merge: {'C': 'merge-c', 'D': 'merge-d'},
           ),
@@ -318,7 +315,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(keepEmptyValues: true),
+          options: FlatEnvOptions(keepEmptyValues: true),
         );
 
         expect(
@@ -332,7 +329,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(keepEmptyValues: false),
+          options: FlatEnvOptions(keepEmptyValues: false),
         );
 
         expect(doc.toMap(), equals({'KEY1': 'value', 'KEY3': 'another'}));
@@ -345,7 +342,7 @@ void main() {
 
           final doc = FlatDocument.fromEnvironment(
             env,
-            options: const FlatEnvOptions(
+            options: FlatEnvOptions(
               keepEmptyValues: false,
               defaults: {'A': '', 'B': 'value'},
               merge: {'C': '', 'D': 'value'},
@@ -361,7 +358,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(keepEmptyValues: false),
+          options: FlatEnvOptions(keepEmptyValues: false),
         );
 
         // Whitespace is not empty, so all keys are kept
@@ -394,7 +391,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(prefix: 'APP_'),
+          options: FlatEnvOptions(prefix: 'APP_'),
         );
         final clean = doc.stripPrefix('APP_');
 
@@ -500,7 +497,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolate: true),
         );
 
         // A becomes the literal string "${A}" (from B's value)
@@ -520,7 +517,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolate: true),
         );
 
         // These don't match the pattern, so they're kept as-is
@@ -535,7 +532,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(
+          options: FlatEnvOptions(
             interpolate: true,
             varPattern: r'\$([A-Za-z0-9_]+)',
           ),
@@ -556,7 +553,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(prefix: 'APP_', interpolate: true),
+          options: FlatEnvOptions(prefix: 'APP_', interpolate: true),
         );
         final clean = doc.stripPrefix('APP_');
 
@@ -571,7 +568,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(
+          options: FlatEnvOptions(
             defaults: {
               'HOST': 'localhost',
               'PORT': '3000',
@@ -618,7 +615,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: const FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolate: true),
         );
 
         expect(doc['API_BASE_URL'], equals('https://api.example.com:443/v1'));

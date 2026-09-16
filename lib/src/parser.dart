@@ -257,26 +257,27 @@ Stream<FlatEntry> streamEntriesFromStrings(
 /// ```
 FlatDocument documentFromEnvironment(
   Map<String, String> env, {
-  FlatEnvOptions options = const FlatEnvOptions(),
+  FlatEnvOptions? options,
 }) {
+  final opts = options ?? FlatEnvOptions();
   final out = <String, String?>{};
 
   // 1) Start with defaults (lowest precedence).
-  if (options.defaults.isNotEmpty) {
-    for (final e in options.defaults.entries) {
+  if (opts.defaults.isNotEmpty) {
+    for (final e in opts.defaults.entries) {
       out[e.key] = e.value;
     }
   }
 
   // 2) Apply provided env.
   if (env.isNotEmpty) {
-    final usePrefix = options.prefix;
+    final usePrefix = opts.prefix;
     if (usePrefix == null || usePrefix.isEmpty) {
       for (final e in env.entries) {
         out[e.key] = e.value;
       }
     } else {
-      if (options.caseSensitive) {
+      if (opts.caseSensitive) {
         for (final e in env.entries) {
           if (e.key.startsWith(usePrefix)) {
             out[e.key] = e.value;
@@ -294,14 +295,14 @@ FlatDocument documentFromEnvironment(
   }
 
   // 3) Final merge overrides (highest precedence).
-  if (options.merge.isNotEmpty) {
-    for (final e in options.merge.entries) {
+  if (opts.merge.isNotEmpty) {
+    for (final e in opts.merge.entries) {
       out[e.key] = e.value;
     }
   }
 
   // 4) Drop empty values if requested.
-  if (!options.keepEmptyValues) {
+  if (!opts.keepEmptyValues) {
     final keysToDrop = <String>[];
     for (final kv in out.entries) {
       if ((kv.value ?? '').isEmpty) {
@@ -314,8 +315,8 @@ FlatDocument documentFromEnvironment(
   }
 
   // 5) Interpolate ${VAR} if enabled. Single pass is usually enough for env.
-  if (options.interpolate) {
-    final re = RegExp(options.varPattern);
+  if (opts.interpolate) {
+    final re = RegExp(opts.varPattern);
     final snapshot = Map<String, String?>.from(out);
     for (final k in out.keys.toList()) {
       final raw = out[k];

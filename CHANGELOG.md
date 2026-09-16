@@ -27,6 +27,22 @@ Added:
 
 Fixed:
 
+- **The options classes behave like values.** All five now implement `==`,
+  `hashCode` and `toString`, so two option sets built the same way compare equal
+  and a failing test prints what it was configured with. `copyWith` can clear a
+  nullable field rather than only set one: passing `prefix: null` to
+  `FlatEnvOptions.copyWith` now removes the prefix instead of being
+  indistinguishable from omitting the argument.
+- **`FlatEnvOptions` copies the maps it is given.** `defaults` and `merge` were
+  stored by reference, so mutating the caller's map changed the behaviour of
+  options that had already been constructed and used. The constructor is no
+  longer `const` as a result.
+- **Invalid options are rejected where they are written.** An empty
+  `lineTerminator`, a `commentPrefix` containing a line break, a negative
+  `maxIncludeDepth` and a `varPattern` that is not a valid regex with a capture
+  group all used to be accepted and then misbehave somewhere later. An empty
+  `FlatEnvOptions.prefix` now means the same as none, which is what it already
+  did in practice.
 - **Lenient parsing no longer drops lines in silence.** `onMissingEquals` and
   `onEmptyKey` covered two of the five things that can go wrong; an invalid key,
   an unterminated quote and trailing characters after a quote were skipped with

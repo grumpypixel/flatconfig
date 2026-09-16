@@ -204,7 +204,7 @@ class FlatDocument {
   /// yourself if that is what you mean.
   static FlatDocument fromEnvironment(
     Map<String, String> env, {
-    FlatEnvOptions options = const FlatEnvOptions(),
+    FlatEnvOptions? options,
   }) => documentFromEnvironment(env, options: options);
 
   /// Builds a document by flattening nested map and list data into key paths.

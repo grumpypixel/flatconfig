@@ -534,12 +534,16 @@ exception for the same input.
 
 ### 2.9 Options as proper value types
 
-- [ ] Sentinel-based `copyWith` so nullable fields can be cleared. Today
+- [x] Sentinel-based `copyWith` so nullable fields can be cleared. Today
       `FlatEnvOptions(prefix: 'APP_').copyWith(prefix: null)` still returns `APP_`.
-- [ ] Defensively copy `FlatEnvOptions.defaults` and `merge` — they currently
-      retain caller-owned mutable maps.
-- [ ] Add value equality and useful `toString()`.
-- [ ] Validate invalid combinations at construction.
+      `onIssue` needs a typed function as its sentinel, not `Object?`, or the
+      inference on a passed lambda breaks.
+- [x] Defensively copy `FlatEnvOptions.defaults` and `merge` — they currently
+      retain caller-owned mutable maps. Costs the `const` constructor.
+- [x] Add value equality and useful `toString()`.
+- [x] Validate invalid combinations at construction. An assert catches a literal
+      at compile time but a release build drops it, so `maxIncludeDepth` is also
+      checked where it is read.
 - [ ] Split by responsibility: `FlatParseOptions`, `FlatEncodeOptions`,
       `FlatDecodeOptions`, `FlatEncodeStreamOptions`, `FlatIncludeOptions`,
       `FlatEnvOptions`, `FlatDataOptions`. Move `includeKey` and

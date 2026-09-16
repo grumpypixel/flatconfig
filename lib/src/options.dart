@@ -9,6 +9,19 @@ import 'issue.dart';
 /// occurred, and [line] contains the raw line content that caused the error.
 // Issue reporting lives in issue.dart; see FlatIssue and OnIssue.
 
+/// Marks a `copyWith` parameter as "not passed".
+///
+/// `field ?? this.field` cannot tell `null` from absent, so a nullable field
+/// could be set but never cleared. Nullable `copyWith` parameters take this as
+/// their default and are compared with [identical].
+const Object _unset = #unset;
+
+/// The [OnIssue]-typed counterpart of [_unset].
+///
+/// A handler parameter has to keep its function type, or the lambda a caller
+/// writes at the call site loses its inferred argument type.
+void _unsetOnIssue(FlatIssue issue) {}
+
 /// Options that control how configuration files are parsed.
 ///
 /// These options allow you to customize the parsing behavior, including comment
@@ -25,11 +38,13 @@ class FlatParseOptions {
     this.includeKey = Constants.includeKey,
     this.maxIncludeDepth = 64,
     this.onIssue,
-  });
+  }) : assert(maxIncludeDepth >= 0, 'maxIncludeDepth must not be negative');
 
   /// Prefix used to mark comment lines.
   ///
-  /// Lines that start with this prefix (after trimming) are ignored during parsing.
+  /// Lines that start with this prefix (after trimming) are ignored during
+  /// parsing. Empty means the format has no comments, so every line is data.
+  /// A prefix containing a line break is rejected when parsing starts.
   /// Defaults to `#`.
   final String commentPrefix;
 
@@ -69,7 +84,8 @@ class FlatParseOptions {
   ///
   /// This defensive limit prevents pathological include graphs from causing
   /// unbounded recursion in cases where canonicalization fails or the graph
-  /// is extremely deep. Defaults to 64.
+  /// is extremely deep. Zero disallows includes entirely: a document that has
+  /// one raises [MaxIncludeDepthExceededException]. Defaults to 64.
   final int maxIncludeDepth;
 
   /// Called for each problem found while parsing, when [strict] is false.
@@ -89,20 +105,48 @@ class FlatParseOptions {
   ///
   /// Only the provided parameters will be changed; all others will remain
   /// the same as in the original options object.
+  /// Pass [onIssue] as `null` to clear it; omitting it keeps the current one.
   FlatParseOptions copyWith({
     String? commentPrefix,
     bool? decodeEscapesInQuoted,
     bool? strict,
     String? includeKey,
     int? maxIncludeDepth,
-    OnIssue? onIssue,
+    OnIssue? onIssue = _unsetOnIssue,
   }) => FlatParseOptions(
     commentPrefix: commentPrefix ?? this.commentPrefix,
     decodeEscapesInQuoted: decodeEscapesInQuoted ?? this.decodeEscapesInQuoted,
     strict: strict ?? this.strict,
     includeKey: includeKey ?? this.includeKey,
     maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
-    onIssue: onIssue ?? this.onIssue,
+    onIssue: identical(onIssue, _unsetOnIssue) ? this.onIssue : onIssue,
+  );
+
+  @override
+  String toString() =>
+      'FlatParseOptions(commentPrefix: $commentPrefix, '
+      'decodeEscapesInQuoted: $decodeEscapesInQuoted, strict: $strict, '
+      'includeKey: $includeKey, maxIncludeDepth: $maxIncludeDepth, '
+      'onIssue: ${onIssue == null ? 'none' : 'set'})';
+
+  @override
+  bool operator ==(Object other) =>
+      other is FlatParseOptions &&
+      other.commentPrefix == commentPrefix &&
+      other.decodeEscapesInQuoted == decodeEscapesInQuoted &&
+      other.strict == strict &&
+      other.includeKey == includeKey &&
+      other.maxIncludeDepth == maxIncludeDepth &&
+      other.onIssue == onIssue;
+
+  @override
+  int get hashCode => Object.hash(
+    commentPrefix,
+    decodeEscapesInQuoted,
+    strict,
+    includeKey,
+    maxIncludeDepth,
+    onIssue,
   );
 }
 
@@ -139,6 +183,18 @@ class FlatStreamReadOptions {
     encoding: encoding ?? this.encoding,
     lineSplitter: lineSplitter ?? this.lineSplitter,
   );
+
+  @override
+  String toString() => 'FlatStreamReadOptions(encoding: ${encoding.name})';
+
+  @override
+  bool operator ==(Object other) =>
+      other is FlatStreamReadOptions &&
+      other.encoding == encoding &&
+      other.lineSplitter == lineSplitter;
+
+  @override
+  int get hashCode => Object.hash(encoding, lineSplitter);
 }
 
 /// Options for writing configuration data to a byte stream.
@@ -150,7 +206,7 @@ class FlatStreamWriteOptions {
   const FlatStreamWriteOptions({
     this.encoding = utf8,
     this.lineTerminator = Constants.newline,
-  });
+  }) : assert(lineTerminator.length > 0, 'lineTerminator must not be empty');
 
   /// Text encoding used when writing the file.
   ///
@@ -174,6 +230,20 @@ class FlatStreamWriteOptions {
     encoding: encoding ?? this.encoding,
     lineTerminator: lineTerminator ?? this.lineTerminator,
   );
+
+  @override
+  String toString() =>
+      'FlatStreamWriteOptions(encoding: ${encoding.name}, '
+      'lineTerminator: ${jsonEncode(lineTerminator)})';
+
+  @override
+  bool operator ==(Object other) =>
+      other is FlatStreamWriteOptions &&
+      other.encoding == encoding &&
+      other.lineTerminator == lineTerminator;
+
+  @override
+  int get hashCode => Object.hash(encoding, lineTerminator);
 }
 
 /// Options for encoding configuration data to text.
@@ -232,6 +302,24 @@ class FlatEncodeOptions {
     alwaysQuote: alwaysQuote ?? this.alwaysQuote,
     commentPrefix: commentPrefix ?? this.commentPrefix,
   );
+
+  @override
+  String toString() =>
+      'FlatEncodeOptions(escapeQuoted: $escapeQuoted, '
+      'quoteIfWhitespace: $quoteIfWhitespace, alwaysQuote: $alwaysQuote, '
+      'commentPrefix: $commentPrefix)';
+
+  @override
+  bool operator ==(Object other) =>
+      other is FlatEncodeOptions &&
+      other.escapeQuoted == escapeQuoted &&
+      other.quoteIfWhitespace == quoteIfWhitespace &&
+      other.alwaysQuote == alwaysQuote &&
+      other.commentPrefix == commentPrefix;
+
+  @override
+  int get hashCode =>
+      Object.hash(escapeQuoted, quoteIfWhitespace, alwaysQuote, commentPrefix);
 }
 
 /// Options for loading environment variables into a FlatDocument.
@@ -244,15 +332,48 @@ class FlatEnvOptions {
   ///
   /// All parameters are optional and have sensible defaults for typical
   /// environment variable loading scenarios.
-  const FlatEnvOptions({
-    this.prefix,
+  ///
+  /// Unlike the other options classes this one is not `const`: it holds two
+  /// maps, and a `const` constructor cannot copy them. Keeping the caller's
+  /// maps would mean a later `defaults['X'] = 'y'` silently changed how an
+  /// already-built options object behaves.
+  FlatEnvOptions({
+    String? prefix,
     this.caseSensitive = true,
     this.interpolate = true,
     this.keepEmptyValues = true,
-    this.varPattern = r'\$\{([A-Za-z0-9_]+)\}',
-    this.defaults = const {},
-    this.merge = const {},
-  });
+    this.varPattern = defaultVarPattern,
+    Map<String, String> defaults = const {},
+    Map<String, String> merge = const {},
+  }) : // An empty prefix filters nothing, which is what a null prefix means.
+       // Normalising here leaves one spelling of "no prefix" instead of two.
+       prefix = (prefix?.isEmpty ?? true) ? null : prefix,
+       defaults = Map.unmodifiable(defaults),
+       merge = Map.unmodifiable(merge) {
+    final RegExp compiled;
+    try {
+      compiled = RegExp(varPattern);
+    } on FormatException catch (e) {
+      throw ArgumentError.value(varPattern, 'varPattern', 'is not a regex: $e');
+    }
+
+    // Interpolation reads group 1 as the variable name, so a pattern without
+    // one would throw at the first placeholder rather than here.
+    if (!compiled.hasMatch(r'${X}') && interpolate) {
+      // Not every valid pattern has to match this probe; only reject a pattern
+      // with no capture group at all, which can never name a variable.
+      if (!varPattern.contains('(')) {
+        throw ArgumentError.value(
+          varPattern,
+          'varPattern',
+          'must have a capture group naming the variable',
+        );
+      }
+    }
+  }
+
+  /// The default `${VAR}` placeholder pattern.
+  static const String defaultVarPattern = r'\$\{([A-Za-z0-9_]+)\}';
 
   /// Optional key prefix to include only env vars starting with this prefix.
   ///
@@ -383,8 +504,9 @@ class FlatEnvOptions {
   ///
   /// Only the provided parameters will be changed; all others will remain
   /// the same as in the original options object.
+  /// Pass [prefix] as `null` to clear it; omitting it keeps the current one.
   FlatEnvOptions copyWith({
-    String? prefix,
+    Object? prefix = _unset,
     bool? caseSensitive,
     bool? interpolate,
     bool? keepEmptyValues,
@@ -392,7 +514,7 @@ class FlatEnvOptions {
     Map<String, String>? defaults,
     Map<String, String>? merge,
   }) => FlatEnvOptions(
-    prefix: prefix ?? this.prefix,
+    prefix: identical(prefix, _unset) ? this.prefix : prefix as String?,
     caseSensitive: caseSensitive ?? this.caseSensitive,
     interpolate: interpolate ?? this.interpolate,
     keepEmptyValues: keepEmptyValues ?? this.keepEmptyValues,
@@ -400,4 +522,58 @@ class FlatEnvOptions {
     defaults: defaults ?? this.defaults,
     merge: merge ?? this.merge,
   );
+
+  @override
+  String toString() =>
+      'FlatEnvOptions(prefix: $prefix, caseSensitive: $caseSensitive, '
+      'interpolate: $interpolate, keepEmptyValues: $keepEmptyValues, '
+      'varPattern: $varPattern, defaults: ${defaults.length} entries, '
+      'merge: ${merge.length} entries)';
+
+  @override
+  bool operator ==(Object other) =>
+      other is FlatEnvOptions &&
+      other.prefix == prefix &&
+      other.caseSensitive == caseSensitive &&
+      other.interpolate == interpolate &&
+      other.keepEmptyValues == keepEmptyValues &&
+      other.varPattern == varPattern &&
+      _sameEntries(other.defaults, defaults) &&
+      _sameEntries(other.merge, merge);
+
+  @override
+  int get hashCode => Object.hash(
+    prefix,
+    caseSensitive,
+    interpolate,
+    keepEmptyValues,
+    varPattern,
+    _entriesHash(defaults),
+    _entriesHash(merge),
+  );
+}
+
+bool _sameEntries(Map<String, String> a, Map<String, String> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+
+  for (final e in a.entries) {
+    if (b[e.key] != e.value) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+int _entriesHash(Map<String, String> m) {
+  // Order-independent, so two options built from differently ordered maps
+  // that compare equal also hash equal.
+  var h = 0;
+  for (final e in m.entries) {
+    h ^= Object.hash(e.key, e.value);
+  }
+
+  return Object.hash(h, m.length);
 }

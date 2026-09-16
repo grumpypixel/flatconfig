@@ -62,7 +62,7 @@ void main() {
     });
 
     test('FlatEnvOptions.copyWith fallback and overrides', () {
-      const original = FlatEnvOptions(
+      final original = FlatEnvOptions(
         prefix: 'APP_',
         caseSensitive: true,
         interpolate: true,
@@ -117,7 +117,7 @@ void main() {
     });
 
     test('FlatEnvOptions default constructor values', () {
-      const options = FlatEnvOptions();
+      final options = FlatEnvOptions();
 
       expect(options.prefix, null);
       expect(options.caseSensitive, true);
@@ -129,7 +129,7 @@ void main() {
     });
 
     test('FlatEnvOptions custom constructor values', () {
-      const options = FlatEnvOptions(
+      final options = FlatEnvOptions(
         prefix: 'TEST_',
         caseSensitive: false,
         interpolate: false,

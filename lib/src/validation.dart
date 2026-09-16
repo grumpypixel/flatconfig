@@ -117,6 +117,17 @@ void checkCommentPrefix(String prefix) {
   }
 }
 
+/// Throws an [ArgumentError] if [depth] cannot be an include depth.
+///
+/// `FlatParseOptions` asserts this too, which catches a literal at compile
+/// time, but a release build drops the assert and a computed value would reach
+/// here unchecked.
+void checkIncludeDepth(int depth) {
+  if (depth < 0) {
+    throw ArgumentError.value(depth, 'maxIncludeDepth', 'Must not be negative');
+  }
+}
+
 /// Throws an [ArgumentError] unless [key] is valid.
 ///
 /// Used at every boundary where a key enters a document from outside. The

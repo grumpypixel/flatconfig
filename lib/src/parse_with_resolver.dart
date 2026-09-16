@@ -4,6 +4,7 @@ import 'ghostty_semantics.dart';
 import 'include_path_utils.dart';
 import 'include_resolver_core.dart';
 import 'options.dart';
+import 'validation.dart';
 
 /// Resolver-based parsing entry that mirrors Ghostty semantics and your
 /// file-based implementation, but operates on arbitrary resolvers.
@@ -55,6 +56,7 @@ FlatDocument _parseWithResolverRecursiveSync({
   required Map<String, FlatDocument> cache,
   required int depth,
 }) {
+  checkIncludeDepth(options.maxIncludeDepth);
   if (depth > options.maxIncludeDepth) {
     throw MaxIncludeDepthExceededException(
       currentUnit.id,
