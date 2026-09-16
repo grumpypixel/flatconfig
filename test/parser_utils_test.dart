@@ -18,18 +18,19 @@ void main() {
     });
 
     test(
-        'parseValue with strict mode throws on trailing characters after quote',
-        () {
-      expect(
-        () => parseValue(
-          '"value" extra',
-          strict: true,
-          lineNumber: 2,
-          rawLine: 'key = "value" extra',
-        ),
-        throwsA(isA<TrailingCharactersAfterQuoteException>()),
-      );
-    });
+      'parseValue with strict mode throws on trailing characters after quote',
+      () {
+        expect(
+          () => parseValue(
+            '"value" extra',
+            strict: true,
+            lineNumber: 2,
+            rawLine: 'key = "value" extra',
+          ),
+          throwsA(isA<TrailingCharactersAfterQuoteException>()),
+        );
+      },
+    );
 
     test('parseValue in lax mode handles unterminated quotes', () {
       final result = parseValue('"unterminated');
@@ -41,78 +42,113 @@ void main() {
       expect(result, '"value" extra');
     });
 
-    test('unescapeQuotesAndBackslashes handles escaped quotes and backslashes',
-        () {
-      expect(unescapeQuotesAndBackslashes(r'He said: \"hello\" \\ o/'),
-          r'He said: "hello" \ o/');
-      expect(unescapeQuotesAndBackslashes(r'no escapes'), 'no escapes');
-      expect(unescapeQuotesAndBackslashes(r'\\'), r'\');
-      expect(unescapeQuotesAndBackslashes(r'\"'), '"');
-    });
+    test(
+      'unescapeQuotesAndBackslashes handles escaped quotes and backslashes',
+      () {
+        expect(
+          unescapeQuotesAndBackslashes(r'He said: \"hello\" \\ o/'),
+          r'He said: "hello" \ o/',
+        );
+        expect(unescapeQuotesAndBackslashes(r'no escapes'), 'no escapes');
+        expect(unescapeQuotesAndBackslashes(r'\\'), r'\');
+        expect(unescapeQuotesAndBackslashes(r'\"'), '"');
+      },
+    );
 
     test('isUnescapedQuoteAt correctly identifies unescaped quotes', () {
       expect(isUnescapedQuoteAt('"hello"', 0), isTrue);
       expect(isUnescapedQuoteAt('"hello"', 6), isTrue);
       expect(isUnescapedQuoteAt(r'\"hello\"', 0), isFalse);
-      expect(isUnescapedQuoteAt(r'\"hello\"', 1),
-          isFalse); // escaped by backslash at 0
+      expect(
+        isUnescapedQuoteAt(r'\"hello\"', 1),
+        isFalse,
+      ); // escaped by backslash at 0
       expect(isUnescapedQuoteAt(r'\\"hello"', 1), isFalse);
-      expect(isUnescapedQuoteAt(r'\\"hello"', 2),
-          isTrue); // even number of backslashes
+      expect(
+        isUnescapedQuoteAt(r'\\"hello"', 2),
+        isTrue,
+      ); // even number of backslashes
       expect(isUnescapedQuoteAt('no quotes', 0), isFalse);
       expect(isUnescapedQuoteAt('', 0), isFalse);
     });
 
-    test('firstUnescapedQuote finds the first unescaped quote at or after from',
-        () {
-      expect(firstUnescapedQuote('"hello"', 1), 6);
-      expect(firstUnescapedQuote(r'\"hello\"', 0), -1); // all quotes escaped
-      expect(
-          firstUnescapedQuote(r'\\"hello"', 0), 2); // the backslash is escaped
-      expect(firstUnescapedQuote('no quotes', 0), -1);
-      expect(firstUnescapedQuote(r'\"', 0), -1);
-      expect(firstUnescapedQuote('', 0), -1);
-      expect(firstUnescapedQuote('"', 0), 0);
-      // The closer is the first one, not the last (SPEC.md 5.1).
-      expect(firstUnescapedQuote('"one" junk "two"', 1), 4);
-    });
+    test(
+      'firstUnescapedQuote finds the first unescaped quote at or after from',
+      () {
+        expect(firstUnescapedQuote('"hello"', 1), 6);
+        expect(firstUnescapedQuote(r'\"hello\"', 0), -1); // all quotes escaped
+        expect(
+          firstUnescapedQuote(r'\\"hello"', 0),
+          2,
+        ); // the backslash is escaped
+        expect(firstUnescapedQuote('no quotes', 0), -1);
+        expect(firstUnescapedQuote(r'\"', 0), -1);
+        expect(firstUnescapedQuote('', 0), -1);
+        expect(firstUnescapedQuote('"', 0), 0);
+        // The closer is the first one, not the last (SPEC.md 5.1).
+        expect(firstUnescapedQuote('"one" junk "two"', 1), 4);
+      },
+    );
 
     test('normalizeLineEndings handles various line ending scenarios', () {
       // Test with trailing newline
       expect(
-          normalizeLineEndings('line1\nline2\n',
-              lineTerminator: '\r\n', ensureTrailingNewline: false),
-          'line1\r\nline2\r\n');
+        normalizeLineEndings(
+          'line1\nline2\n',
+          lineTerminator: '\r\n',
+          ensureTrailingNewline: false,
+        ),
+        'line1\r\nline2\r\n',
+      );
 
       // Test without trailing newline
       expect(
-          normalizeLineEndings('line1\nline2',
-              lineTerminator: '\r\n', ensureTrailingNewline: false),
-          'line1\r\nline2');
+        normalizeLineEndings(
+          'line1\nline2',
+          lineTerminator: '\r\n',
+          ensureTrailingNewline: false,
+        ),
+        'line1\r\nline2',
+      );
 
       // Test ensureTrailingNewline
       expect(
-          normalizeLineEndings('line1\nline2',
-              lineTerminator: '\n', ensureTrailingNewline: true),
-          'line1\nline2\n');
+        normalizeLineEndings(
+          'line1\nline2',
+          lineTerminator: '\n',
+          ensureTrailingNewline: true,
+        ),
+        'line1\nline2\n',
+      );
 
       // Test CRLF input
       expect(
-          normalizeLineEndings('line1\r\nline2\r\n',
-              lineTerminator: '\n', ensureTrailingNewline: false),
-          'line1\nline2\n');
+        normalizeLineEndings(
+          'line1\r\nline2\r\n',
+          lineTerminator: '\n',
+          ensureTrailingNewline: false,
+        ),
+        'line1\nline2\n',
+      );
 
       // Test CR input
       expect(
-          normalizeLineEndings('line1\rline2\r',
-              lineTerminator: '\n', ensureTrailingNewline: false),
-          'line1\nline2\n');
+        normalizeLineEndings(
+          'line1\rline2\r',
+          lineTerminator: '\n',
+          ensureTrailingNewline: false,
+        ),
+        'line1\nline2\n',
+      );
     });
 
     test('normalizeLineEndings with empty lineTerminator throws', () {
       expect(
-        () => normalizeLineEndings('test',
-            lineTerminator: '', ensureTrailingNewline: false),
+        () => normalizeLineEndings(
+          'test',
+          lineTerminator: '',
+          ensureTrailingNewline: false,
+        ),
         throwsA(isA<AssertionError>()),
       );
     });
@@ -255,8 +291,10 @@ void main() {
       });
 
       test('handles complex escaped sequences', () {
-        final result = parseValue(r'"complex \"escaped\" \\sequence"',
-            decodeEscapesInQuoted: true);
+        final result = parseValue(
+          r'"complex \"escaped\" \\sequence"',
+          decodeEscapesInQuoted: true,
+        );
         expect(result, r'complex "escaped" \sequence');
       });
 

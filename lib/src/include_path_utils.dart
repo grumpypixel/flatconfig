@@ -35,11 +35,7 @@ ProcessedIncludePath processIncludePath(String rawPath) {
   var path = rawPath.trim();
 
   if (path.isEmpty) {
-    return ProcessedIncludePath(
-      path: '',
-      isOptional: false,
-      isEmpty: true,
-    );
+    return ProcessedIncludePath(path: '', isOptional: false, isEmpty: true);
   }
 
   final optional = path.startsWith(Constants.optionalIncludePrefix);
@@ -56,9 +52,5 @@ ProcessedIncludePath processIncludePath(String rawPath) {
   // even when the parser didn't decode quoted escapes.
   path = unescapeQuotesAndBackslashes(path);
 
-  return ProcessedIncludePath(
-    path: path,
-    isOptional: optional,
-    isEmpty: false,
-  );
+  return ProcessedIncludePath(path: path, isOptional: optional, isEmpty: false);
 }

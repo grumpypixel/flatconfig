@@ -13,11 +13,7 @@ void main() {
     });
 
     test('ignores empty include values', () {
-      final text = [
-        'config-file = ',
-        'a = 1',
-        'config-file =   ',
-      ].join('\n');
+      final text = ['config-file = ', 'a = 1', 'config-file =   '].join('\n');
       final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
         text,
         resolver: MemoryIncludeResolver(const {}),
@@ -79,11 +75,7 @@ void main() {
         'mem:i': 'k = from-include\n',
       }, prefix: 'mem:');
 
-      final text = [
-        'k = before',
-        'config-file = mem:i',
-        'k = tail',
-      ].join('\n');
+      final text = ['k = before', 'config-file = mem:i', 'k = tail'].join('\n');
 
       final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
         text,
@@ -113,9 +105,7 @@ void main() {
     });
 
     test('max include depth exceeded throws', () {
-      final mem = MemoryIncludeResolver({
-        'mem:a': 'k = v\n',
-      }, prefix: 'mem:');
+      final mem = MemoryIncludeResolver({'mem:a': 'k = v\n'}, prefix: 'mem:');
 
       expect(
         () => FlatConfigResolverIncludes.parseStringWithIncludes(

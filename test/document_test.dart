@@ -29,9 +29,7 @@ void main() {
     });
 
     test('supports null values (reset)', () {
-      final doc = FlatDocument(const [
-        FlatEntry('font-family', null),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('font-family', null)]);
       expect(doc['font-family'], isNull);
       expect(doc.valuesOf('font-family'), [null]);
     });
@@ -74,9 +72,7 @@ void main() {
     });
 
     test('entries list is unmodifiable', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('a', '1')]);
       expect(
         () => doc.entries.add(const FlatEntry('b', '2')),
         throwsUnsupportedError,
@@ -84,9 +80,7 @@ void main() {
     });
 
     test('valuesOf returns empty for missing key in non-empty doc', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('a', '1')]);
       expect(doc.valuesOf('missing'), isEmpty);
     });
 
@@ -159,25 +153,27 @@ void main() {
   });
 
   group('FlatDocument Utility', () {
-    test('cache() should populate expando caches for toMap() and/or valuesOf',
-        () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-        FlatEntry('a', '3'),
-      ]);
+    test(
+      'cache() should populate expando caches for toMap() and/or valuesOf',
+      () {
+        final doc = FlatDocument(const [
+          FlatEntry('a', '1'),
+          FlatEntry('b', '2'),
+          FlatEntry('a', '3'),
+        ]);
 
-      // Cache both maps
-      doc.cache(toMap: true, toValuesOf: true);
+        // Cache both maps
+        doc.cache(toMap: true, toValuesOf: true);
 
-      // Verify toMap is cached
-      expect(doc.toMap(), {'a': '3', 'b': '2'});
-      expect(doc['a'], '3');
+        // Verify toMap is cached
+        expect(doc.toMap(), {'a': '3', 'b': '2'});
+        expect(doc['a'], '3');
 
-      // Verify valuesOf is cached
-      expect(doc.valuesOf('a'), ['1', '3']);
-      expect(doc.valuesOf('b'), ['2']);
-    });
+        // Verify valuesOf is cached
+        expect(doc.valuesOf('a'), ['1', '3']);
+        expect(doc.valuesOf('b'), ['2']);
+      },
+    );
 
     test('cache() should not throw on empty document', () {
       final doc = FlatDocument.empty();
@@ -314,18 +310,20 @@ void main() {
       expect(entries.map((e) => e.key).toList(), ['a', 'c', 'e']);
     });
 
-    test('operator == should make two documents with identical entries equal',
-        () {
-      final doc1 = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
-      final doc2 = FlatDocument(const [
-        FlatEntry('a', '1'),
-        FlatEntry('b', '2'),
-      ]);
-      expect(doc1, equals(doc2));
-    });
+    test(
+      'operator == should make two documents with identical entries equal',
+      () {
+        final doc1 = FlatDocument(const [
+          FlatEntry('a', '1'),
+          FlatEntry('b', '2'),
+        ]);
+        final doc2 = FlatDocument(const [
+          FlatEntry('a', '1'),
+          FlatEntry('b', '2'),
+        ]);
+        expect(doc1, equals(doc2));
+      },
+    );
 
     test('operator == should make order differences unequal', () {
       final doc1 = FlatDocument(const [
@@ -408,11 +406,13 @@ void main() {
       // Trimming would hand back an entry the caller never asked for.
       expect(
         () => FlatEntry.validated(' theme ', 'dark'),
-        throwsA(isA<ArgumentError>().having(
-          (e) => e.message,
-          'message',
-          contains('must not have leading or trailing whitespace'),
-        )),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('must not have leading or trailing whitespace'),
+          ),
+        ),
       );
     });
 
@@ -420,11 +420,13 @@ void main() {
       void expectRejected(String key, String reason) {
         expect(
           () => FlatEntry.validated(key),
-          throwsA(isA<ArgumentError>().having(
-            (e) => e.message,
-            'message',
-            contains(reason),
-          )),
+          throwsA(
+            isA<ArgumentError>().having(
+              (e) => e.message,
+              'message',
+              contains(reason),
+            ),
+          ),
           reason: 'key "$key" should be rejected',
         );
       }
@@ -486,26 +488,31 @@ void main() {
     });
 
     test(
-        'should throw FormatException on empty/whitespace key when strict: true',
-        () {
-      expect(
-        () => FlatDocument.fromMap({'': 'value'}),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('must not be empty'),
-        )),
-      );
+      'should throw FormatException on empty/whitespace key when strict: true',
+      () {
+        expect(
+          () => FlatDocument.fromMap({'': 'value'}),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('must not be empty'),
+            ),
+          ),
+        );
 
-      expect(
-        () => FlatDocument.fromMap({'   ': 'value'}),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('must not have leading or trailing whitespace'),
-        )),
-      );
-    });
+        expect(
+          () => FlatDocument.fromMap({'   ': 'value'}),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('must not have leading or trailing whitespace'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('should skip invalid keys when strict: false', () {
       final map = {'valid': 'value', '': 'invalid', '   ': 'also invalid'};
@@ -562,21 +569,24 @@ void main() {
     });
 
     test(
-        'should throw FormatException if any entry has empty key (strict: true)',
-        () {
-      final entries = [
-        const FlatEntry('valid', 'value'),
-        const FlatEntry('', 'invalid'),
-      ];
-      expect(
-        () => FlatDocument.fromEntries(entries),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('must not be empty'),
-        )),
-      );
-    });
+      'should throw FormatException if any entry has empty key (strict: true)',
+      () {
+        final entries = [
+          const FlatEntry('valid', 'value'),
+          const FlatEntry('', 'invalid'),
+        ];
+        expect(
+          () => FlatDocument.fromEntries(entries),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('must not be empty'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('should drop invalid entries when strict: false', () {
       final entries = [
@@ -666,11 +676,13 @@ void main() {
       // The guard sits at document construction, so merge never has to check.
       expect(
         () => FlatDocument(const [FlatEntry('', 'invalid')]),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('must not be empty'),
-        )),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('must not be empty'),
+          ),
+        ),
       );
     });
 
@@ -698,20 +710,24 @@ void main() {
     test('should validate key when strict: true (throws on invalid)', () {
       expect(
         () => FlatDocument.single('', value: 'value'),
-        throwsA(isA<ArgumentError>().having(
-          (e) => e.message,
-          'message',
-          contains('must not be empty'),
-        )),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('must not be empty'),
+          ),
+        ),
       );
 
       expect(
         () => FlatDocument.single('   ', value: 'value'),
-        throwsA(isA<ArgumentError>().having(
-          (e) => e.message,
-          'message',
-          contains('must not have leading or trailing whitespace'),
-        )),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('must not have leading or trailing whitespace'),
+          ),
+        ),
       );
     });
 
@@ -742,22 +758,25 @@ void main() {
 
   group('FlatDocument.validateEntries', () {
     test(
-        'should throw FormatException if any entry has empty/whitespace key (strict: true)',
-        () {
-      final entries = [
-        const FlatEntry('valid', 'value'),
-        const FlatEntry('', 'invalid'),
-      ];
+      'should throw FormatException if any entry has empty/whitespace key (strict: true)',
+      () {
+        final entries = [
+          const FlatEntry('valid', 'value'),
+          const FlatEntry('', 'invalid'),
+        ];
 
-      expect(
-        () => FlatDocument.validateEntries(entries),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('must not be empty'),
-        )),
-      );
-    });
+        expect(
+          () => FlatDocument.validateEntries(entries),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('must not be empty'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('should do nothing when strict: false', () {
       final entries = [
@@ -765,14 +784,18 @@ void main() {
         const FlatEntry('', 'invalid'),
       ];
 
-      expect(() => FlatDocument.validateEntries(entries, strict: false),
-          returnsNormally);
+      expect(
+        () => FlatDocument.validateEntries(entries, strict: false),
+        returnsNormally,
+      );
     });
 
     test('should handle empty iterable gracefully (no throw)', () {
       expect(() => FlatDocument.validateEntries([]), returnsNormally);
-      expect(() => FlatDocument.validateEntries([], strict: false),
-          returnsNormally);
+      expect(
+        () => FlatDocument.validateEntries([], strict: false),
+        returnsNormally,
+      );
     });
 
     test('should handle mixed entries: only valid keys pass', () {
@@ -793,11 +816,13 @@ void main() {
 
       expect(
         () => FlatDocument.validateEntries(entries),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('must not have leading or trailing whitespace'),
-        )),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('must not have leading or trailing whitespace'),
+          ),
+        ),
       );
     });
   });

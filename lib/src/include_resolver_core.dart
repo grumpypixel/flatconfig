@@ -12,10 +12,7 @@ abstract class IncludeResolver {
 /// A resolved include: text content + canonical id for cycle detection.
 class IncludeUnit {
   /// Creates a new include unit with the given id and content.
-  IncludeUnit({
-    required this.id,
-    required this.content,
-  });
+  IncludeUnit({required this.id, required this.content});
 
   /// The canonical id of the include unit.
   final String id; // e.g., absolute file path or "mem:base.conf"

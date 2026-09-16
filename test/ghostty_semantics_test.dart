@@ -68,8 +68,11 @@ void main() {
         result.filteredTailEntries,
       );
 
-      expect(
-          finalDoc.valuesOf('x'), ['root', 'from-include-1', 'from-include-2']);
+      expect(finalDoc.valuesOf('x'), [
+        'root',
+        'from-include-1',
+        'from-include-2',
+      ]);
       expect(finalDoc['y'], 'allowed');
     });
   });

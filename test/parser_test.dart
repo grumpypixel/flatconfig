@@ -39,10 +39,7 @@ font-family =
       final doc = FlatConfig.parse(src);
 
       expect(doc['background'], '343028');
-      expect(
-        doc.valuesOf('shader'),
-        ['bloom=intense', 'vignette=soft'],
-      );
+      expect(doc.valuesOf('shader'), ['bloom=intense', 'vignette=soft']);
       expect(doc['font-family'], isNull);
 
       final pair = doc.getKeyValue('shader');
@@ -88,8 +85,7 @@ k = v
       expect(doc.valuesOf('feature'), [null]);
     });
 
-    test(
-        'duplicate keys preserve insertion order; indexer returns last '
+    test('duplicate keys preserve insertion order; indexer returns last '
         'value', () {
       const src = '''
 mode = a
@@ -115,7 +111,8 @@ mode = c
     });
 
     test('explicit null reset is non-blocking within same file', () {
-      const src = 'color = ffaa00\n'
+      const src =
+          'color = ffaa00\n'
           'color =\n'
           'color = aabbcc\n';
 
@@ -125,7 +122,8 @@ mode = c
     });
 
     test('quoted string handling', () {
-      const src = 'k1 = "   foo   "\n'
+      const src =
+          'k1 = "   foo   "\n'
           'k2 = ""\n'
           'k3 =   foo   \n'
           'k4 =';
@@ -210,9 +208,11 @@ mode = c
       final calls = <Map<String, Object>>[];
       FlatConfig.parse(
         src,
-        options: FlatParseOptions(onMissingEquals: (n, l) {
-          calls.add({'n': n, 'l': l});
-        }),
+        options: FlatParseOptions(
+          onMissingEquals: (n, l) {
+            calls.add({'n': n, 'l': l});
+          },
+        ),
       );
       expect(calls.length, 2);
       expect(calls[0]['n'], 2);
@@ -248,9 +248,7 @@ mode = c
       var missingCount = 0;
       final doc = FlatConfig.parse(
         src,
-        options: FlatParseOptions(
-          onMissingEquals: (_, _) => missingCount++,
-        ),
+        options: FlatParseOptions(onMissingEquals: (_, _) => missingCount++),
       );
       expect(doc['ok'], '1');
       expect(doc['foo'], '2');
@@ -281,10 +279,7 @@ mode = c
     });
 
     test('parseLines strict=true throws and onMissingEquals collects', () {
-      final lines = [
-        'x',
-        'k = v',
-      ];
+      final lines = ['x', 'k = v'];
       expect(
         () => FlatConfig.parseLines(
           lines,
@@ -315,16 +310,16 @@ mode = c
     test('strict=true throws on empty key', () {
       const src = '   = value';
       expect(
-        () => FlatConfig.parse(src,
-            options: const FlatParseOptions(strict: true)),
+        () => FlatConfig.parse(
+          src,
+          options: const FlatParseOptions(strict: true),
+        ),
         throwsFormatException,
       );
     });
 
     test('parseLines strict=true throws on empty key', () {
-      final lines = [
-        '= value',
-      ];
+      final lines = ['= value'];
       expect(
         () => FlatConfig.parseLines(
           lines,
@@ -345,31 +340,35 @@ mode = c
       expect(doc['k'], r'He said: \"hi\" \\ o/');
     });
 
-    test('decodeEscapesInQuoted=true but no escapes leaves string unchanged',
-        () {
-      const src = 'k = "plain"';
-      final doc = FlatConfig.parse(
-        src,
-        options: const FlatParseOptions(decodeEscapesInQuoted: true),
-      );
-      expect(doc['k'], 'plain');
-    });
+    test(
+      'decodeEscapesInQuoted=true but no escapes leaves string unchanged',
+      () {
+        const src = 'k = "plain"';
+        final doc = FlatConfig.parse(
+          src,
+          options: const FlatParseOptions(decodeEscapesInQuoted: true),
+        );
+        expect(doc['k'], 'plain');
+      },
+    );
 
-    test('tryParse decodeEscapesInQuoted=true with no escapes yields no issues',
-        () {
-      const src = 'a = "abc"\n# c\n';
-      var called = false;
-      final doc = FlatConfig.parse(
-        src,
-        options: FlatParseOptions(
-          decodeEscapesInQuoted: true,
-          onMissingEquals: (_, _) => called = true,
-          onEmptyKey: (_, _) => called = true,
-        ),
-      );
-      expect(called, isFalse);
-      expect(doc['a'], 'abc');
-    });
+    test(
+      'tryParse decodeEscapesInQuoted=true with no escapes yields no issues',
+      () {
+        const src = 'a = "abc"\n# c\n';
+        var called = false;
+        final doc = FlatConfig.parse(
+          src,
+          options: FlatParseOptions(
+            decodeEscapesInQuoted: true,
+            onMissingEquals: (_, _) => called = true,
+            onEmptyKey: (_, _) => called = true,
+          ),
+        );
+        expect(called, isFalse);
+        expect(doc['a'], 'abc');
+      },
+    );
 
     test(r'decodeEscapesInQuoted=true: only \" and \\ change; others kept', () {
       const src = r'k = "keep \n and \t; fix: \" and \\"';
@@ -399,10 +398,7 @@ mode = c
 
   group('FlatConfig.parseLines commentPrefixes edge cases', () {
     test('empty commentPrefix does not treat # as comment', () {
-      final lines = [
-        '# comment',
-        'k = v',
-      ];
+      final lines = ['# comment', 'k = v'];
 
       var called = false;
       final doc = FlatConfig.parseLines(
@@ -413,7 +409,9 @@ mode = c
       FlatConfig.parseLines(
         lines,
         options: FlatParseOptions(
-            onMissingEquals: (_, _) => called = true, commentPrefix: ''),
+          onMissingEquals: (_, _) => called = true,
+          commentPrefix: '',
+        ),
       );
       // '# comment' is not treated as a comment and therefore invalid (no '=')
       expect(called, isTrue);
@@ -433,9 +431,7 @@ mode = c
     });
 
     test('commentPrefix="#" treats # as comment (default)', () {
-      final doc = FlatConfig.parse(
-        'key = v\n# c',
-      );
+      final doc = FlatConfig.parse('key = v\n# c');
       expect(doc['key'], 'v');
       expect(doc.keys.toList(), ['key']);
     });
@@ -501,15 +497,12 @@ font-family =
       expect(doc['shader'], 'bloom=intense');
       expect(doc['font-family'], isNull);
       expect(doc['another'], 'value');
-      expect(
-        doc.keys.toList(),
-        [
-          'background',
-          'shader',
-          'font-family',
-          'another',
-        ],
-      );
+      expect(doc.keys.toList(), [
+        'background',
+        'shader',
+        'font-family',
+        'another',
+      ]);
     });
 
     test('parseLines ignores comments and empty lines', () {
@@ -614,7 +607,8 @@ shader = vignette=soft
         }
       });
 
-      const src = 'k1 = "   foo   "\n'
+      const src =
+          'k1 = "   foo   "\n'
           'k2 = ""\n'
           'k3 =   foo   \n'
           'k4 =\n';
@@ -637,7 +631,8 @@ shader = vignette=soft
         }
       });
 
-      const src = 'a=1\n'
+      const src =
+          'a=1\n'
           'b = 2\n'
           'c =   \n'
           'd = ctrl+z=close_surface\n'
@@ -700,10 +695,7 @@ shader = vignette=soft
       }
     });
 
-    final doc = FlatDocument(const [
-      FlatEntry('a', '1'),
-      FlatEntry('b', null),
-    ]);
+    final doc = FlatDocument(const [FlatEntry('a', '1'), FlatEntry('b', null)]);
 
     await file.writeFlat(doc);
     final content = file.readAsStringSync();
@@ -719,9 +711,7 @@ shader = vignette=soft
       }
     });
 
-    final doc = FlatDocument(const [
-      FlatEntry('only', 'x'),
-    ]);
+    final doc = FlatDocument(const [FlatEntry('only', 'x')]);
 
     await file.writeFlat(doc);
     final content = file.readAsStringSync();
@@ -730,25 +720,25 @@ shader = vignette=soft
 
   group('FlatConfig.encode (quoting behavior)', () {
     test(
-        'quotes values with leading/trailing spaces when quoteIfWhitespace=true',
-        () {
-      final doc = FlatDocument(const [
-        FlatEntry('k', '  spaced  '),
-      ]);
-      final out = doc.encode();
-      expect(out.trim(), 'k = "  spaced  "');
+      'quotes values with leading/trailing spaces when quoteIfWhitespace=true',
+      () {
+        final doc = FlatDocument(const [FlatEntry('k', '  spaced  ')]);
+        final out = doc.encode();
+        expect(out.trim(), 'k = "  spaced  "');
 
-      final reparsed = FlatConfig.parse(out);
-      expect(reparsed['k'], '  spaced  ');
-    });
+        final reparsed = FlatConfig.parse(out);
+        expect(reparsed['k'], '  spaced  ');
+      },
+    );
 
     test('alwaysQuote forces quoting for all non-null values', () {
       final doc = FlatDocument(const [
         FlatEntry('a', 'x'),
         FlatEntry('b', ' y '),
       ]);
-      final out =
-          doc.encode(options: const FlatEncodeOptions(alwaysQuote: true));
+      final out = doc.encode(
+        options: const FlatEncodeOptions(alwaysQuote: true),
+      );
       expect(out.split('\n')[0], 'a = "x"');
       expect(out.contains('b = " y "'), isTrue);
 
@@ -762,8 +752,8 @@ shader = vignette=soft
         FlatEntry('k', r'He said: "hello" \ o/'),
       ]);
       final out = doc.encode(
-          options:
-              const FlatEncodeOptions(alwaysQuote: true, escapeQuoted: true));
+        options: const FlatEncodeOptions(alwaysQuote: true, escapeQuoted: true),
+      );
       // Verify that quotes are escaped and the single backslash is doubled
       expect(out.contains(r'\"hello\"'), isTrue);
       expect(out.contains(r'\\ o/'), isTrue);
@@ -776,9 +766,7 @@ shader = vignette=soft
     });
 
     test('quotes values with leading/trailing tabs', () {
-      final doc = FlatDocument(const [
-        FlatEntry('k', '\tfoo\t'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('k', '\tfoo\t')]);
       final out = doc.encode();
       expect(out.trim(), 'k = "\tfoo\t"');
       final reparsed = FlatConfig.parse(out);
@@ -787,9 +775,7 @@ shader = vignette=soft
 
     test('quotes values with leading/trailing NBSP (U+00A0)', () {
       const nbsp = '\u00A0';
-      final doc = FlatDocument(const [
-        FlatEntry('k', '${nbsp}x$nbsp'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('k', '${nbsp}x$nbsp')]);
       final out = doc.encode();
       expect(out.contains('"'), isTrue);
       final reparsed = FlatConfig.parse(out);
@@ -797,9 +783,7 @@ shader = vignette=soft
     });
 
     test('quotes when value contains the separator', () {
-      final doc = FlatDocument(const [
-        FlatEntry('k', 'left=right'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('k', 'left=right')]);
       final out = doc.encode();
       expect(out.trim(), 'k = "left=right"');
       final reparsed = FlatConfig.parse(out);
@@ -807,9 +791,7 @@ shader = vignette=soft
     });
 
     test('quotes when value starts with the comment prefix after trim', () {
-      final doc = FlatDocument(const [
-        FlatEntry('k', '# danger'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('k', '# danger')]);
       final out = doc.encode(
         options: const FlatEncodeOptions(commentPrefix: '#'),
       );
@@ -819,9 +801,7 @@ shader = vignette=soft
     });
 
     test('quotes when value contains double quotes', () {
-      final doc = FlatDocument(const [
-        FlatEntry('k', 'say "hi"'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('k', 'say "hi"')]);
       final out = doc.encode();
       expect(out.contains(r'"say \"hi\""'), isTrue);
       final reparsed = FlatConfig.parse(out);
@@ -833,22 +813,20 @@ shader = vignette=soft
       // written as two physical lines and read back as 'a' plus a broken one.
       expect(
         () => FlatDocument(const [FlatEntry('k', 'a\nb')]),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('must not contain a line break'),
-        )),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('must not contain a line break'),
+          ),
+        ),
       );
     });
   });
 
   group('FlatConfig.fromMap / fromDynamicMap', () {
     test('fromMap preserves order and nulls become resets', () {
-      final map = {
-        'a': '1',
-        'b': null,
-        'c': ' x ',
-      };
+      final map = {'a': '1', 'b': null, 'c': ' x '};
       final doc = FlatConfig.fromMap(map);
       expect(doc.keys.toList(), ['a', 'b', 'c']);
       expect(doc.valuesOf('a'), ['1']);
@@ -861,20 +839,13 @@ shader = vignette=soft
     });
 
     test('fromDynamicMap uses default toString and custom encoder', () {
-      final doc1 = FlatConfig.fromDynamicMap({
-        'i': 42,
-        'b': true,
-        'n': null,
-      });
+      final doc1 = FlatConfig.fromDynamicMap({'i': 42, 'b': true, 'n': null});
       expect(doc1['i'], '42');
       expect(doc1['b'], 'true');
       expect(doc1['n'], isNull);
 
       final doc2 = FlatConfig.fromDynamicMap(
-        {
-          'i': 7,
-          's': ' x ',
-        },
+        {'i': 7, 's': ' x '},
         valueEncoder: (k, v) {
           if (v is int) {
             return '0x${v.toRadixString(16)}';
@@ -931,25 +902,27 @@ shader = vignette=soft
   });
 
   group('FlatConf streaming APIs', () {
-    test('parseFromStringStream handles BOM on first line and callbacks',
-        () async {
-      final lines = Stream.fromIterable(const [
-        '\u{FEFF}key = v',
-        'x = 1',
-        'invalid',
-        '# c',
-      ]);
+    test(
+      'parseFromStringStream handles BOM on first line and callbacks',
+      () async {
+        final lines = Stream.fromIterable(const [
+          '\u{FEFF}key = v',
+          'x = 1',
+          'invalid',
+          '# c',
+        ]);
 
-      var missingCount = 0;
-      final doc = await FlatConfig.parseFromStringStream(
-        lines,
-        options: FlatParseOptions(onMissingEquals: (_, _) => missingCount++),
-      );
+        var missingCount = 0;
+        final doc = await FlatConfig.parseFromStringStream(
+          lines,
+          options: FlatParseOptions(onMissingEquals: (_, _) => missingCount++),
+        );
 
-      expect(doc['key'], 'v');
-      expect(doc['x'], '1');
-      expect(missingCount, 1);
-    });
+        expect(doc['key'], 'v');
+        expect(doc['x'], '1');
+        expect(missingCount, 1);
+      },
+    );
 
     test('parseFromByteStream splits CRLF and parses entries', () async {
       final bytes = utf8.encode('a = 1\r\nb = 2\r\n');
@@ -964,9 +937,9 @@ shader = vignette=soft
 
     test('parseEntries yields only valid entries in order', () async {
       final bytes = utf8.encode('  # c\nkey = 1\nbad\nz = \n');
-      final entries =
-          await FlatConfig.parseEntries(Stream<List<int>>.value(bytes))
-              .toList();
+      final entries = await FlatConfig.parseEntries(
+        Stream<List<int>>.value(bytes),
+      ).toList();
 
       expect(entries.length, 2);
       expect(entries[0].key, 'key');
@@ -976,28 +949,28 @@ shader = vignette=soft
     });
 
     test(
-        'regex pairSeparator match at position 0 triggers empty-key callback (non-strict)',
-        () {
-      var emptyCalls = 0;
-      final doc = FlatConfig.parse(
-        '= v',
-        options: FlatParseOptions(
-          onEmptyKey: (_, _) => emptyCalls++,
-        ),
-      );
-      expect(emptyCalls, 1);
-      expect(doc.keys, isEmpty); // empty key line is ignored
-    });
+      'regex pairSeparator match at position 0 triggers empty-key callback (non-strict)',
+      () {
+        var emptyCalls = 0;
+        final doc = FlatConfig.parse(
+          '= v',
+          options: FlatParseOptions(onEmptyKey: (_, _) => emptyCalls++),
+        );
+        expect(emptyCalls, 1);
+        expect(doc.keys, isEmpty); // empty key line is ignored
+      },
+    );
 
     test(
-        'parseValue early return via custom separator and empty unquoted value',
-        () {
-      final doc = FlatConfig.parse(
-        'k ->   ',
-        options: const FlatParseOptions(),
-      );
-      expect(doc['k'], isNull);
-    });
+      'parseValue early return via custom separator and empty unquoted value',
+      () {
+        final doc = FlatConfig.parse(
+          'k ->   ',
+          options: const FlatParseOptions(),
+        );
+        expect(doc['k'], isNull);
+      },
+    );
   });
 
   group('Options copyWith coverage', () {
@@ -1055,8 +1028,9 @@ shader = vignette=soft
         'x = 1',
       ]);
 
-      final entries =
-          await FlatConfig.parseEntriesFromStringStream(lines).toList();
+      final entries = await FlatConfig.parseEntriesFromStringStream(
+        lines,
+      ).toList();
 
       expect(entries.first.key, 'key');
       expect(entries.first.value, 'v');
@@ -1087,11 +1061,7 @@ shader = vignette=soft
     });
 
     test('parseLines respects custom options', () {
-      const lines = [
-        '; comment',
-        'key = value',
-        'invalid line',
-      ];
+      const lines = ['; comment', 'key = value', 'invalid line'];
 
       var missingCount = 0;
       final doc = FlatConfig.parseLines(
@@ -1115,12 +1085,7 @@ shader = vignette=soft
     });
 
     test('parseLines handles list with only comments and empty lines', () {
-      const lines = [
-        '# comment',
-        '',
-        '   # indented comment',
-        '   ',
-      ];
+      const lines = ['# comment', '', '   # indented comment', '   '];
       final doc = FlatConfig.parseLines(lines);
 
       expect(doc, FlatDocument.empty());
@@ -1128,11 +1093,7 @@ shader = vignette=soft
     });
 
     test('parseLines processes valid entries correctly', () {
-      const lines = [
-        'a = 1',
-        'b = 2',
-        'c = 3',
-      ];
+      const lines = ['a = 1', 'b = 2', 'c = 3'];
       final doc = FlatConfig.parseLines(lines);
 
       expect(doc['a'], '1');
@@ -1142,11 +1103,7 @@ shader = vignette=soft
     });
 
     test('parseLines handles duplicate keys', () {
-      const lines = [
-        'key = first',
-        'key = second',
-        'key = third',
-      ];
+      const lines = ['key = first', 'key = second', 'key = third'];
       final doc = FlatConfig.parseLines(lines);
 
       expect(doc['key'], 'third');
@@ -1154,11 +1111,7 @@ shader = vignette=soft
     });
 
     test('parseLines with strict mode throws on invalid lines', () {
-      const lines = [
-        'valid = 1',
-        'invalid line',
-        'another = 2',
-      ];
+      const lines = ['valid = 1', 'invalid line', 'another = 2'];
 
       expect(
         () => FlatConfig.parseLines(
@@ -1419,11 +1372,13 @@ shader = vignette=soft
         expect(result, 'key=value');
       });
 
-      test('handles line that starts with comment prefix but is not a comment',
-          () {
-        final result = FlatConfig.preprocessLine('key#value', '#');
-        expect(result, 'key#value');
-      });
+      test(
+        'handles line that starts with comment prefix but is not a comment',
+        () {
+          final result = FlatConfig.preprocessLine('key#value', '#');
+          expect(result, 'key#value');
+        },
+      );
     });
   });
 

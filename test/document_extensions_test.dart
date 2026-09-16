@@ -4,23 +4,25 @@ import 'package:test/test.dart';
 void main() {
   group('FlatDocumentExtensions', () {
     group('collapse', () {
-      test('collapses duplicates, latest wins (default order firstOccurrence)',
-          () {
-        final doc = FlatDocument(const [
-          FlatEntry('a', '1'),
-          FlatEntry('b', 'x'),
-          FlatEntry('a', '2'),
-          FlatEntry('c', '3'),
-          FlatEntry('a', '4'),
-        ]);
+      test(
+        'collapses duplicates, latest wins (default order firstOccurrence)',
+        () {
+          final doc = FlatDocument(const [
+            FlatEntry('a', '1'),
+            FlatEntry('b', 'x'),
+            FlatEntry('a', '2'),
+            FlatEntry('c', '3'),
+            FlatEntry('a', '4'),
+          ]);
 
-        final collapsed = doc.collapse();
-        expect(collapsed.entries.map((e) => '${e.key}:${e.value}').toList(), [
-          'a:4', // at first occurrence position of 'a'
-          'b:x',
-          'c:3',
-        ]);
-      });
+          final collapsed = doc.collapse();
+          expect(collapsed.entries.map((e) => '${e.key}:${e.value}').toList(), [
+            'a:4', // at first occurrence position of 'a'
+            'b:x',
+            'c:3',
+          ]);
+        },
+      );
 
       test('order: lastWrite anchors at last occurrence index', () {
         final doc = FlatDocument(const [
@@ -183,8 +185,7 @@ void main() {
         expect(collapsed['k'], '2');
       });
 
-      test(
-          'relative order of different keys reflects anchors (no sorting '
+      test('relative order of different keys reflects anchors (no sorting '
           'artifacts)', () {
         final doc = FlatDocument(const [
           FlatEntry('a', '1'),
@@ -216,22 +217,23 @@ void main() {
       });
 
       test(
-          'ignoreResets option preserves previous values when encountering null',
-          () {
-        final doc = FlatDocument(const [
-          FlatEntry('a', '1'),
-          FlatEntry('a', null), // reset
-          FlatEntry('a', '3'),
-          FlatEntry('b', '2'),
-          FlatEntry('b', null), // reset
-        ]);
+        'ignoreResets option preserves previous values when encountering null',
+        () {
+          final doc = FlatDocument(const [
+            FlatEntry('a', '1'),
+            FlatEntry('a', null), // reset
+            FlatEntry('a', '3'),
+            FlatEntry('b', '2'),
+            FlatEntry('b', null), // reset
+          ]);
 
-        final collapsed = doc.collapse(ignoreResets: true);
-        expect(collapsed.entries.map((e) => '${e.key}:${e.value}').toList(), [
-          'a:3', // final value, ignoring the reset
-          'b:2', // previous value preserved, ignoring the reset
-        ]);
-      });
+          final collapsed = doc.collapse(ignoreResets: true);
+          expect(collapsed.entries.map((e) => '${e.key}:${e.value}').toList(), [
+            'a:3', // final value, ignoring the reset
+            'b:2', // previous value preserved, ignoring the reset
+          ]);
+        },
+      );
 
       test('ignoreResets with lastWrite order anchors correctly', () {
         final doc = FlatDocument(const [
@@ -442,21 +444,19 @@ void main() {
       });
 
       test('merge returns new document without mutating originals', () {
-        final doc1 = FlatDocument(const [
-          FlatEntry('a', '1'),
-        ]);
+        final doc1 = FlatDocument(const [FlatEntry('a', '1')]);
 
-        final doc2 = FlatDocument(const [
-          FlatEntry('b', '2'),
-        ]);
+        final doc2 = FlatDocument(const [FlatEntry('b', '2')]);
 
         final merged = doc1.merge(doc2);
 
         // Original documents should be unchanged
-        expect(
-            doc1.entries.map((e) => '${e.key}:${e.value}').toList(), ['a:1']);
-        expect(
-            doc2.entries.map((e) => '${e.key}:${e.value}').toList(), ['b:2']);
+        expect(doc1.entries.map((e) => '${e.key}:${e.value}').toList(), [
+          'a:1',
+        ]);
+        expect(doc2.entries.map((e) => '${e.key}:${e.value}').toList(), [
+          'b:2',
+        ]);
 
         // Merged document should be different
         expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
@@ -556,8 +556,10 @@ void main() {
           FlatEntry('a', '1'),
         ]);
         expect(doc.debugDump().split('\n'), ['[0] b = null', '[1] a = 1']);
-        expect(doc.debugDump(includeIndexes: false).split('\n'),
-            ['b = null', 'a = 1']);
+        expect(doc.debugDump(includeIndexes: false).split('\n'), [
+          'b = null',
+          'a = 1',
+        ]);
       });
 
       test('toPrettyString supports sorting and alignment', () {
@@ -566,7 +568,10 @@ void main() {
           FlatEntry('a', '1'),
         ]);
         final pretty = doc.toPrettyString(
-            includeIndexes: false, sortByKey: true, alignColumns: true);
+          includeIndexes: false,
+          sortByKey: true,
+          alignColumns: true,
+        );
         expect(pretty.split('\n'), ['a   = 1', 'bbb = 2']);
       });
 
@@ -576,7 +581,10 @@ void main() {
           FlatEntry('a', '1'),
         ]);
         final pretty = doc.toPrettyString(
-            includeIndexes: true, sortByKey: false, alignColumns: false);
+          includeIndexes: true,
+          sortByKey: false,
+          alignColumns: false,
+        );
         expect(pretty.split('\n'), ['[0] bbb = 2', '[1] a = 1']);
       });
 
@@ -590,9 +598,13 @@ void main() {
         final empty = FlatDocument(const []);
         expect(empty.toPrettyString(), '');
         expect(
-            empty.toPrettyString(
-                includeIndexes: false, sortByKey: true, alignColumns: true),
-            '');
+          empty.toPrettyString(
+            includeIndexes: false,
+            sortByKey: true,
+            alignColumns: true,
+          ),
+          '',
+        );
       });
 
       test('toPrettyString aligns columns with indexes and null values', () {
@@ -601,7 +613,10 @@ void main() {
           FlatEntry('bbbb', null),
         ]);
         final pretty = doc.toPrettyString(
-            includeIndexes: true, sortByKey: false, alignColumns: true);
+          includeIndexes: true,
+          sortByKey: false,
+          alignColumns: true,
+        );
         expect(pretty.split('\n'), ['[0] a    = 1', '[1] bbbb = null']);
       });
 
@@ -612,7 +627,10 @@ void main() {
           FlatEntry('a', 'x'),
         ]);
         final pretty = doc.toPrettyString(
-            includeIndexes: false, sortByKey: true, alignColumns: false);
+          includeIndexes: false,
+          sortByKey: true,
+          alignColumns: false,
+        );
         expect(pretty.split('\n'), ['a = x', 'k = 1', 'k = 2']);
       });
     });

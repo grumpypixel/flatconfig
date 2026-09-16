@@ -84,8 +84,10 @@ window.height = 768
 ''');
 
       final win = doc.slice('window.');
-      expect(win.toMap(),
-          equals({'window.width': '1024', 'window.height': '768'}));
+      expect(
+        win.toMap(),
+        equals({'window.width': '1024', 'window.height': '768'}),
+      );
     });
   });
 }

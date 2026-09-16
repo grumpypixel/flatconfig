@@ -19,23 +19,29 @@ void main() {
       expect(unit.toString(), contains('mem:x'));
     });
 
-    test('FileIncludeResolver.resolve returns null for missing target',
-        () async {
-      final temp =
-          await Directory.systemTemp.createTemp('flatconfig_resolver_');
-      try {
-        final resolver = FileIncludeResolver();
-        final missing =
-            resolver.resolve(p.join(temp.path, 'nope.conf'), fromId: temp.path);
-        expect(missing, isNull);
-      } finally {
-        await temp.delete(recursive: true);
-      }
-    });
+    test(
+      'FileIncludeResolver.resolve returns null for missing target',
+      () async {
+        final temp = await Directory.systemTemp.createTemp(
+          'flatconfig_resolver_',
+        );
+        try {
+          final resolver = FileIncludeResolver();
+          final missing = resolver.resolve(
+            p.join(temp.path, 'nope.conf'),
+            fromId: temp.path,
+          );
+          expect(missing, isNull);
+        } finally {
+          await temp.delete(recursive: true);
+        }
+      },
+    );
 
     test('FileIncludeResolver resolves relative to fromId directory', () async {
-      final temp =
-          await Directory.systemTemp.createTemp('flatconfig_resolver_');
+      final temp = await Directory.systemTemp.createTemp(
+        'flatconfig_resolver_',
+      );
       try {
         final base = File(p.join(temp.path, 'base.conf'))
           ..writeAsStringSync('ignored = true\n');
@@ -51,31 +57,34 @@ void main() {
     });
 
     test(
-        'FileIncludeResolver canonical id normalization on case-insensitive FS',
-        () async {
-      final temp =
-          await Directory.systemTemp.createTemp('flatconfig_resolver_');
-      try {
-        final file = File(p.join(temp.path, 'MiXeD.NaMe.CONF'))
-          ..writeAsStringSync('k = v\n');
-        final resolver = FileIncludeResolver();
-        final unit = resolver.resolve(file.path, fromId: null);
-        expect(unit, isNotNull);
-        // On Windows/macOS the id is lowercased; elsewhere keep as-is. This assertion
-        // is safe across platforms because lowercasing twice is idempotent.
-        if (Platform.isWindows || Platform.isMacOS) {
-          expect(unit!.id, equals(unit.id.toLowerCase()));
-        } else {
-          expect(unit!.id, equals(unit.id));
+      'FileIncludeResolver canonical id normalization on case-insensitive FS',
+      () async {
+        final temp = await Directory.systemTemp.createTemp(
+          'flatconfig_resolver_',
+        );
+        try {
+          final file = File(p.join(temp.path, 'MiXeD.NaMe.CONF'))
+            ..writeAsStringSync('k = v\n');
+          final resolver = FileIncludeResolver();
+          final unit = resolver.resolve(file.path, fromId: null);
+          expect(unit, isNotNull);
+          // On Windows/macOS the id is lowercased; elsewhere keep as-is. This assertion
+          // is safe across platforms because lowercasing twice is idempotent.
+          if (Platform.isWindows || Platform.isMacOS) {
+            expect(unit!.id, equals(unit.id.toLowerCase()));
+          } else {
+            expect(unit!.id, equals(unit.id));
+          }
+        } finally {
+          await temp.delete(recursive: true);
         }
-      } finally {
-        await temp.delete(recursive: true);
-      }
-    });
+      },
+    );
 
     test('MemoryIncludeResolver applies prefix when missing', () {
-      final mem =
-          core.MemoryIncludeResolver({'mem:a': 'k = v\n'}, prefix: 'mem:');
+      final mem = core.MemoryIncludeResolver({
+        'mem:a': 'k = v\n',
+      }, prefix: 'mem:');
       final unit = mem.resolve('a');
 
       expect(unit, isNotNull);
@@ -93,23 +102,26 @@ void main() {
       expect(unit!.content, contains('k = r1'));
     });
 
-    test('FileIncludeResolver.resolve works with absolute path and null fromId',
-        () async {
-      final temp =
-          await Directory.systemTemp.createTemp('flatconfig_resolver_');
-      try {
-        final f = File(p.join(temp.path, 'abs.conf'))
-          ..writeAsStringSync('k = file\n');
-        final resolver = FileIncludeResolver();
+    test(
+      'FileIncludeResolver.resolve works with absolute path and null fromId',
+      () async {
+        final temp = await Directory.systemTemp.createTemp(
+          'flatconfig_resolver_',
+        );
+        try {
+          final f = File(p.join(temp.path, 'abs.conf'))
+            ..writeAsStringSync('k = file\n');
+          final resolver = FileIncludeResolver();
 
-        final unit = resolver.resolve(f.path, fromId: null);
-        expect(unit, isNotNull);
-        expect(unit!.id, isNotEmpty);
-        expect(unit.content, contains('k = file'));
-      } finally {
-        await temp.delete(recursive: true);
-      }
-    });
+          final unit = resolver.resolve(f.path, fromId: null);
+          expect(unit, isNotNull);
+          expect(unit!.id, isNotEmpty);
+          expect(unit.content, contains('k = file'));
+        } finally {
+          await temp.delete(recursive: true);
+        }
+      },
+    );
 
     test('stub FileIncludeResolver returns null (web fallback class)', () {
       final s = stub.FileIncludeResolver();
@@ -118,10 +130,7 @@ void main() {
     });
 
     test('parseStringWithIncludes: no include leaves entries unchanged', () {
-      final text = [
-        'a = 1',
-        'b = 2',
-      ].join('\n');
+      final text = ['a = 1', 'b = 2'].join('\n');
       final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
         text,
         resolver: core.MemoryIncludeResolver(const {}),

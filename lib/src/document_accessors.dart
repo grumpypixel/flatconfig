@@ -39,11 +39,8 @@ typedef FlatConverter<T> = T Function(String value);
 ///   return int.tryParse(raw); // null → conversion failure
 /// });
 /// ```
-typedef FlatAdvancedConverter<T> = T? Function(
-  String? raw,
-  String key,
-  FlatDocument doc,
-);
+typedef FlatAdvancedConverter<T> =
+    T? Function(String? raw, String key, FlatDocument doc);
 
 /// Extensions for [FlatDocument] providing additional accessor and parsing helpers.
 ///
@@ -79,9 +76,7 @@ extension FlatDocumentAccessors on FlatDocument {
   String requireString(String key) {
     final v = this[key];
     if (v == null) {
-      throw const FormatException('Missing string').explain(
-        key: key,
-      );
+      throw const FormatException('Missing string').explain(key: key);
     }
 
     return v;
@@ -106,10 +101,7 @@ extension FlatDocumentAccessors on FlatDocument {
     final raw = this[key];
     final parsed = getBool(key);
     if (parsed == null) {
-      throw const FormatException('Expected bool').explain(
-        key: key,
-        got: raw,
-      );
+      throw const FormatException('Expected bool').explain(key: key, got: raw);
     }
 
     return parsed;
@@ -142,10 +134,9 @@ extension FlatDocumentAccessors on FlatDocument {
     final raw = this[key];
     final parsed = int.tryParse(raw ?? '');
     if (parsed == null) {
-      throw const FormatException('Expected integer').explain(
-        key: key,
-        got: raw,
-      );
+      throw const FormatException(
+        'Expected integer',
+      ).explain(key: key, got: raw);
     }
 
     return parsed;
@@ -164,10 +155,9 @@ extension FlatDocumentAccessors on FlatDocument {
     final raw = this[key];
     final parsed = tryParseFinite(raw);
     if (parsed == null) {
-      throw const FormatException('Expected double').explain(
-        key: key,
-        got: raw,
-      );
+      throw const FormatException(
+        'Expected double',
+      ).explain(key: key, got: raw);
     }
 
     return parsed;
@@ -190,10 +180,9 @@ extension FlatDocumentAccessors on FlatDocument {
   DateTime requireDateTime(String key) {
     final dt = getDateTime(key);
     if (dt == null) {
-      throw const FormatException('Expected ISO-8601 DateTime').explain(
-        key: key,
-        got: this[key],
-      );
+      throw const FormatException(
+        'Expected ISO-8601 DateTime',
+      ).explain(key: key, got: this[key]);
     }
 
     return dt;
@@ -242,10 +231,9 @@ extension FlatDocumentAccessors on FlatDocument {
   Duration requireDuration(String key) {
     final d = getDuration(key);
     if (d == null) {
-      throw const FormatException('Expected duration').explain(
-        key: key,
-        got: this[key],
-      );
+      throw const FormatException(
+        'Expected duration',
+      ).explain(key: key, got: this[key]);
     }
 
     return d;
@@ -305,10 +293,9 @@ extension FlatDocumentAccessors on FlatDocument {
   int requireBytes(String key) {
     final b = getBytes(key);
     if (b == null) {
-      throw const FormatException('Expected bytes').explain(
-        key: key,
-        got: this[key],
-      );
+      throw const FormatException(
+        'Expected bytes',
+      ).explain(key: key, got: this[key]);
     }
 
     return b;
@@ -328,10 +315,9 @@ extension FlatDocumentAccessors on FlatDocument {
   Uri requireUri(String key) {
     final u = getUri(key);
     if (u == null) {
-      throw const FormatException('Expected URI').explain(
-        key: key,
-        got: this[key],
-      );
+      throw const FormatException(
+        'Expected URI',
+      ).explain(key: key, got: this[key]);
     }
 
     return u;
@@ -354,7 +340,8 @@ extension FlatDocumentAccessors on FlatDocument {
     }
 
     final k = v.trim().toLowerCase();
-    final m = preNormalizedLowerMapping ??
+    final m =
+        preNormalizedLowerMapping ??
         {for (final e in mapping.entries) e.key.toLowerCase(): e.value};
 
     return m[k];
@@ -374,10 +361,9 @@ extension FlatDocumentAccessors on FlatDocument {
       preNormalizedLowerMapping: preNormalizedLowerMapping,
     );
     if (v == null) {
-      throw const FormatException('Expected enum').explain(
-        key: key,
-        got: this[key],
-      );
+      throw const FormatException(
+        'Expected enum',
+      ).explain(key: key, got: this[key]);
     }
 
     return v;
@@ -452,10 +438,9 @@ extension FlatDocumentAccessors on FlatDocument {
   int requireHexColor(String key, {bool cssAlphaAtEnd = true}) {
     final hex = getHexColor(key, cssAlphaAtEnd: cssAlphaAtEnd);
     if (hex == null) {
-      throw const FormatException('Expected hex color').explain(
-        key: key,
-        got: this[key],
-      );
+      throw const FormatException(
+        'Expected hex color',
+      ).explain(key: key, got: this[key]);
     }
 
     return hex;
@@ -484,10 +469,9 @@ extension FlatDocumentAccessors on FlatDocument {
   Map<String, int> requireColor(String key, {bool cssAlphaAtEnd = true}) {
     final color = getColor(key, cssAlphaAtEnd: cssAlphaAtEnd);
     if (color == null) {
-      throw const FormatException('Expected color').explain(
-        key: key,
-        got: this[key],
-      );
+      throw const FormatException(
+        'Expected color',
+      ).explain(key: key, got: this[key]);
     }
 
     return color;
@@ -518,8 +502,9 @@ extension FlatDocumentAccessors on FlatDocument {
   }) {
     final t = getColorTuple(key, cssAlphaAtEnd: cssAlphaAtEnd);
     if (t == null) {
-      throw const FormatException('Expected color')
-          .explain(key: key, got: this[key]);
+      throw const FormatException(
+        'Expected color',
+      ).explain(key: key, got: this[key]);
     }
 
     return t;
@@ -548,10 +533,7 @@ extension FlatDocumentAccessors on FlatDocument {
     if (i == null) {
       throw FormatException(
         'Expected int in range ${min ?? '-∞'}..${max ?? '∞'}',
-      ).explain(
-        key: key,
-        got: this[key],
-      );
+      ).explain(key: key, got: this[key]);
     }
 
     return i;
@@ -610,10 +592,7 @@ extension FlatDocumentAccessors on FlatDocument {
     if (d == null) {
       throw FormatException(
         'Expected double in range ${min ?? '-∞'}..${max ?? '∞'}',
-      ).explain(
-        key: key,
-        got: this[key],
-      );
+      ).explain(key: key, got: this[key]);
     }
 
     return d;
@@ -696,8 +675,12 @@ extension FlatDocumentAccessors on FlatDocument {
     bool trimItems = true,
     bool skipEmpty = true,
   }) =>
-      getSet(key,
-          separator: separator, trimItems: trimItems, skipEmpty: skipEmpty) ??
+      getSet(
+        key,
+        separator: separator,
+        trimItems: trimItems,
+        skipEmpty: skipEmpty,
+      ) ??
       const {};
 
   /// Parses "a:1,b:2" into a map. Trims keys/values when [trim]=true.
@@ -742,12 +725,7 @@ extension FlatDocumentAccessors on FlatDocument {
     String pairSep = ':',
     bool trim = true,
   }) {
-    final map = getMap(
-      key,
-      itemSep: itemSep,
-      pairSep: pairSep,
-      trim: trim,
-    );
+    final map = getMap(key, itemSep: itemSep, pairSep: pairSep, trim: trim);
 
     // return the same instance if already empty to allow const {}
     return map.isEmpty ? const {} : map;
@@ -811,8 +789,9 @@ extension FlatDocumentAccessors on FlatDocument {
   num requireNum(String key) {
     final n = getNum(key);
     if (n == null) {
-      throw const FormatException('Expected num')
-          .explain(key: key, got: this[key]);
+      throw const FormatException(
+        'Expected num',
+      ).explain(key: key, got: this[key]);
     }
 
     return n;
@@ -844,8 +823,9 @@ extension FlatDocumentAccessors on FlatDocument {
   double requireRatio(String key) {
     final r = getRatio(key);
     if (r == null) {
-      throw const FormatException('Expected ratio')
-          .explain(key: key, got: this[key]);
+      throw const FormatException(
+        'Expected ratio',
+      ).explain(key: key, got: this[key]);
     }
 
     return r;
@@ -856,10 +836,7 @@ extension FlatDocumentAccessors on FlatDocument {
   /// Accepts forms like "50%", "80 %", "0.8", or "80" (interpreted as 80%).
   /// By default values may exceed 1.0 (e.g. "150" -> 1.5).
   /// Set [clamp01] to true to clamp the result into [0.0, 1.0].
-  double? getPercent(
-    String key, {
-    bool clamp01 = false,
-  }) {
+  double? getPercent(String key, {bool clamp01 = false}) {
     final v = this[key];
     if (v == null) {
       return null;
@@ -910,10 +887,9 @@ extension FlatDocumentAccessors on FlatDocument {
   double requirePercent(String key) {
     final r = getPercent(key);
     if (r == null) {
-      throw const FormatException('Expected percent').explain(
-        key: key,
-        got: this[key],
-      );
+      throw const FormatException(
+        'Expected percent',
+      ).explain(key: key, got: this[key]);
     }
 
     return r;
@@ -938,10 +914,9 @@ extension FlatDocumentAccessors on FlatDocument {
   Object requireJson(String key) {
     final j = getJson(key);
     if (j == null) {
-      throw const FormatException('Expected JSON').explain(
-        key: key,
-        got: this[key],
-      );
+      throw const FormatException(
+        'Expected JSON',
+      ).explain(key: key, got: this[key]);
     }
 
     return j;
@@ -1044,9 +1019,7 @@ extension FlatDocumentAccessors on FlatDocument {
   void requireKeys(Iterable<String> keys) {
     for (final k in keys) {
       if (!has(k)) {
-        throw const FormatException('Missing required key').explain(
-          key: k,
-        );
+        throw const FormatException('Missing required key').explain(key: k);
       }
     }
   }
@@ -1061,9 +1034,7 @@ extension FlatDocumentAccessors on FlatDocument {
   }) {
     final map = caseSensitive
         ? toMap()
-        : {
-            for (final e in entries) e.key.toLowerCase(): e.value,
-          };
+        : {for (final e in entries) e.key.toLowerCase(): e.value};
 
     for (final key in keys) {
       final k = caseSensitive ? key : key.toLowerCase();
@@ -1216,12 +1187,7 @@ extension FlatDocumentAccessors on FlatDocument {
     bool trim = true,
     bool ignoreEmpty = true,
   }) {
-    final v = getAs<T>(
-      key,
-      convert,
-      trim: trim,
-      ignoreEmpty: ignoreEmpty,
-    );
+    final v = getAs<T>(key, convert, trim: trim, ignoreEmpty: ignoreEmpty);
 
     return v ?? defaultValue;
   }
@@ -1258,8 +1224,9 @@ extension FlatDocumentAccessors on FlatDocument {
     try {
       return convert(s);
     } catch (e) {
-      throw FormatException('Invalid value')
-          .explain(key: key, got: raw, cause: e);
+      throw FormatException(
+        'Invalid value',
+      ).explain(key: key, got: raw, cause: e);
     }
   }
 
@@ -1398,8 +1365,9 @@ extension FlatDocumentAccessors on FlatDocument {
     final out = <T>[];
     for (final raw in valuesOf(key)) {
       if (raw == null) {
-        throw const FormatException('Missing value')
-            .explain(key: key, got: null);
+        throw const FormatException(
+          'Missing value',
+        ).explain(key: key, got: null);
       }
 
       final s = trim ? raw.trim() : raw;
@@ -1410,8 +1378,9 @@ extension FlatDocumentAccessors on FlatDocument {
       try {
         out.add(convert(s));
       } catch (e) {
-        throw FormatException('Invalid value')
-            .explain(key: key, got: raw, cause: e);
+        throw FormatException(
+          'Invalid value',
+        ).explain(key: key, got: raw, cause: e);
       }
     }
 

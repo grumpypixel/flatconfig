@@ -28,10 +28,7 @@ extension FlatConfigResolverIncludes on FlatConfig {
     final visited = <String>{};
     final effectiveCache = cache ?? <String, FlatDocument>{};
 
-    final root = IncludeUnit(
-      id: originId ?? 'mem:<root>',
-      content: text,
-    );
+    final root = IncludeUnit(id: originId ?? 'mem:<root>', content: text);
 
     final result = _parseWithResolverRecursiveSync(
       currentUnit: root,

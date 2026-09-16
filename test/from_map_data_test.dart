@@ -17,10 +17,7 @@ void main() {
         ),
       );
 
-      expect(
-        doc['tags'],
-        'hello,"a,b","with ""quote"""',
-      );
+      expect(doc['tags'], 'hello,"a,b","with ""quote"""');
     });
 
     test('an item containing a newline cannot be stored', () {
@@ -38,11 +35,13 @@ void main() {
             csvItemEncoder: rfc4180CsvItemEncoder(','),
           ),
         ),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('must not contain a line break'),
-        )),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('must not contain a line break'),
+          ),
+        ),
       );
     });
 
@@ -58,10 +57,7 @@ void main() {
         ),
       );
 
-      expect(
-        doc['vals'],
-        'plain; "a; b"; no-quote',
-      );
+      expect(doc['vals'], 'plain; "a; b"; no-quote');
     });
 
     test('csvNullToken appears for nulls when dropNulls=false', () {
@@ -100,9 +96,7 @@ void main() {
     test('escapes separator in ROOT key segment', () {
       final doc = FlatConfig.fromMapData(
         {
-          'a.b': {
-            'c': 1,
-          },
+          'a.b': {'c': 1},
         },
         options: FlatMapDataOptions(
           keyEscaper: (k) => k.replaceAll('.', r'\.'),
@@ -117,9 +111,7 @@ void main() {
     test('escapes separator in CHILD key segment', () {
       final doc = FlatConfig.fromMapData(
         {
-          'parent': {
-            'x.y': 'v',
-          },
+          'parent': {'x.y': 'v'},
         },
         options: FlatMapDataOptions(
           keyEscaper: (k) => k.replaceAll('.', r'\.'),
@@ -152,24 +144,18 @@ void main() {
 
   group('fromMapData – list mode: multi', () {
     test('preserves order and encodes scalars', () {
-      final doc = FlatConfig.fromMapData(
-        {
-          'list': [1, 'a', true],
-        },
-        options: const FlatMapDataOptions(listMode: FlatListMode.multi),
-      );
+      final doc = FlatConfig.fromMapData({
+        'list': [1, 'a', true],
+      }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
 
       expect(doc.valuesOf('list'), ['1', 'a', 'true']);
       expect(doc['list'], 'true');
     });
 
     test('null handling with dropNulls=false/true', () {
-      final d1 = FlatConfig.fromMapData(
-        {
-          'nums': [1, null, 2],
-        },
-        options: const FlatMapDataOptions(listMode: FlatListMode.multi),
-      );
+      final d1 = FlatConfig.fromMapData({
+        'nums': [1, null, 2],
+      }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
       expect(d1.valuesOf('nums'), ['1', null, '2']);
 
       final d2 = FlatConfig.fromMapData(
@@ -185,15 +171,12 @@ void main() {
     });
 
     test('composite items default to JSON, can skip or error', () {
-      final jsonDoc = FlatConfig.fromMapData(
-        {
-          'items': [
-            {'a': 1},
-            [2, 3],
-          ],
-        },
-        options: const FlatMapDataOptions(listMode: FlatListMode.multi),
-      );
+      final jsonDoc = FlatConfig.fromMapData({
+        'items': [
+          {'a': 1},
+          [2, 3],
+        ],
+      }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
       expect(jsonDoc.valuesOf('items'), ['{"a":1}', '[2,3]']);
 
       final skipDoc = FlatConfig.fromMapData(
@@ -201,7 +184,7 @@ void main() {
           'items': [
             1,
             {'a': 1},
-            2
+            2,
           ],
         },
         options: const FlatMapDataOptions(
@@ -216,7 +199,7 @@ void main() {
           {
             'items': [
               1,
-              {'a': 1}
+              {'a': 1},
             ],
           },
           options: const FlatMapDataOptions(
@@ -224,11 +207,13 @@ void main() {
             onUnsupportedListItem: FlatUnsupportedListItem.error,
           ),
         ),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('Composite item in list not supported in multi mode'),
-        )),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('Composite item in list not supported in multi mode'),
+          ),
+        ),
       );
     });
   });
@@ -236,9 +221,7 @@ void main() {
   group('fromMapData – list mode: csv (additional)', () {
     test('empty list becomes empty string', () {
       final doc = FlatConfig.fromMapData(
-        {
-          'list': <Object?>[],
-        },
+        {'list': <Object?>[]},
         options: const FlatMapDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',',
@@ -268,7 +251,7 @@ void main() {
           'items': [
             1,
             {'a': 1},
-            2
+            2,
           ],
         },
         options: const FlatMapDataOptions(
@@ -284,7 +267,7 @@ void main() {
           {
             'items': [
               1,
-              {'a': 1}
+              {'a': 1},
             ],
           },
           options: const FlatMapDataOptions(
@@ -293,11 +276,13 @@ void main() {
             onUnsupportedListItem: FlatUnsupportedListItem.error,
           ),
         ),
-        throwsA(isA<FormatException>().having(
-          (e) => e.message,
-          'message',
-          contains('Composite item in list not supported in csv mode'),
-        )),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('Composite item in list not supported in csv mode'),
+          ),
+        ),
       );
     });
   });
@@ -309,7 +294,7 @@ void main() {
           'a': null,
           'b': [
             1,
-            {'m': 2}
+            {'m': 2},
           ],
         },
         options: FlatMapDataOptions(
@@ -345,18 +330,16 @@ void main() {
 
   group('fromMapData – scalar encoding', () {
     test('String, bool, num, enum, DateTime, Uri', () {
-      final doc = FlatConfig.fromMapData(
-        {
-          's': 'str',
-          'b1': true,
-          'b0': false,
-          'n1': 123,
-          'n2': 1.5,
-          'e': TestEnum.green,
-          'dt': DateTime.utc(2020, 1, 2, 3, 4, 5),
-          'u': Uri.parse('https://example.com/path?a=1'),
-        },
-      );
+      final doc = FlatConfig.fromMapData({
+        's': 'str',
+        'b1': true,
+        'b0': false,
+        'n1': 123,
+        'n2': 1.5,
+        'e': TestEnum.green,
+        'dt': DateTime.utc(2020, 1, 2, 3, 4, 5),
+        'u': Uri.parse('https://example.com/path?a=1'),
+      });
 
       expect(doc['s'], 'str');
       expect(doc['b1'], 'true');
@@ -378,23 +361,16 @@ void main() {
     });
 
     test('empty root key dropped when strict=false', () {
-      final doc = FlatConfig.fromMapData(
-        {
-          '': 1,
-        },
-        options: const FlatMapDataOptions(strict: false),
-      );
+      final doc = FlatConfig.fromMapData({
+        '': 1,
+      }, options: const FlatMapDataOptions(strict: false));
       expect(doc, isEmpty);
     });
 
     test('empty root with nested map flattens to child key', () {
-      final doc = FlatConfig.fromMapData(
-        {
-          '': {
-            'a': 1,
-          },
-        },
-      );
+      final doc = FlatConfig.fromMapData({
+        '': {'a': 1},
+      });
       expect(doc['a'], '1');
     });
   });
@@ -409,29 +385,27 @@ void main() {
   });
 
   group('fromMapData – edge cases (extras)', () {
-    test('empty root key with null: strict=true throws; strict=false drops it',
-        () {
-      expect(
-        () => FlatConfig.fromMapData(
-          {'': null},
-          options: const FlatMapDataOptions(strict: true),
-        ),
-        throwsA(isA<FormatException>()),
-      );
+    test(
+      'empty root key with null: strict=true throws; strict=false drops it',
+      () {
+        expect(
+          () => FlatConfig.fromMapData({
+            '': null,
+          }, options: const FlatMapDataOptions(strict: true)),
+          throwsA(isA<FormatException>()),
+        );
 
-      final doc = FlatConfig.fromMapData(
-        {'': null},
-        options: const FlatMapDataOptions(strict: false),
-      );
-      expect(doc, isEmpty);
-    });
+        final doc = FlatConfig.fromMapData({
+          '': null,
+        }, options: const FlatMapDataOptions(strict: false));
+        expect(doc, isEmpty);
+      },
+    );
 
     test('custom separator and keyEscaper work together', () {
       final doc = FlatConfig.fromMapData(
         {
-          'root.part': {
-            'child.part': 1,
-          },
+          'root.part': {'child.part': 1},
         },
         options: FlatMapDataOptions(
           separator: '/',
@@ -443,11 +417,7 @@ void main() {
     });
 
     test('insertion order of keys is preserved', () {
-      final doc = FlatConfig.fromMapData({
-        'z': 1,
-        'a': 2,
-        'm': 3,
-      });
+      final doc = FlatConfig.fromMapData({'z': 1, 'a': 2, 'm': 3});
 
       expect(doc.keys.toList(), ['z', 'a', 'm']);
     });

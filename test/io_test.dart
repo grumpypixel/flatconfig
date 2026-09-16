@@ -19,10 +19,7 @@ void main() {
 
       await file.writeFlat(
         doc,
-        options: const FlatEncodeOptions(
-          alwaysQuote: true,
-          escapeQuoted: true,
-        ),
+        options: const FlatEncodeOptions(alwaysQuote: true, escapeQuoted: true),
       );
 
       final content = file.readAsStringSync();
@@ -187,7 +184,8 @@ included_key = included_value
       file.writeAsBytesSync(bomPlus);
       var empty = false;
       await file.parseFlat(
-          options: FlatParseOptions(onEmptyKey: (_, _) => empty = true));
+        options: FlatParseOptions(onEmptyKey: (_, _) => empty = true),
+      );
       expect(empty, isTrue);
     });
 
@@ -196,8 +194,9 @@ included_key = included_value
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
       file.writeAsStringSync('   = value\n');
       expect(
-          () => file.parseFlat(options: const FlatParseOptions(strict: true)),
-          throwsFormatException);
+        () => file.parseFlat(options: const FlatParseOptions(strict: true)),
+        throwsFormatException,
+      );
     });
   });
 
@@ -220,7 +219,9 @@ included_key = included_value
       file.writeAsStringSync(' ; c\nok = "A"\n');
       final doc = file.parseFlatSync(
         options: const FlatParseOptions(
-            commentPrefix: ';', decodeEscapesInQuoted: true),
+          commentPrefix: ';',
+          decodeEscapesInQuoted: true,
+        ),
       );
       expect(doc['ok'], 'A');
       expect(doc.keys.toList(), ['ok']);
@@ -250,17 +251,19 @@ key2 = value2
   });
 
   group('FlatConfIO encode quoting extras', () {
-    test('quotes values with leading/trailing tabs when writing to file',
-        () async {
-      final file = File('test/tmp_io_quote_tab.conf');
-      addTearDown(() => file.existsSync() ? file.deleteSync() : null);
-      final doc = FlatDocument(const [FlatEntry('k', '\tfoo\t')]);
-      await file.writeFlat(doc);
-      final content = file.readAsStringSync().trim();
-      expect(content, 'k = "\tfoo\t"');
-      final reparsed = FlatConfig.parse(content);
-      expect(reparsed['k'], '\tfoo\t');
-    });
+    test(
+      'quotes values with leading/trailing tabs when writing to file',
+      () async {
+        final file = File('test/tmp_io_quote_tab.conf');
+        addTearDown(() => file.existsSync() ? file.deleteSync() : null);
+        final doc = FlatDocument(const [FlatEntry('k', '\tfoo\t')]);
+        await file.writeFlat(doc);
+        final content = file.readAsStringSync().trim();
+        expect(content, 'k = "\tfoo\t"');
+        final reparsed = FlatConfig.parse(content);
+        expect(reparsed['k'], '\tfoo\t');
+      },
+    );
   });
 
   group('parseFlatFile function', () {
@@ -304,34 +307,37 @@ key2 = value2
   });
 
   group('parseFileWithIncludes function', () {
-    test('parses file with includes using parseFileWithIncludes function',
-        () async {
-      final mainFile = File('test/tmp_parse_flat_file_with_includes.conf');
-      final includeFile = File('test/tmp_include_file.conf');
-      addTearDown(() {
-        if (mainFile.existsSync()) mainFile.deleteSync();
-        if (includeFile.existsSync()) includeFile.deleteSync();
-      });
+    test(
+      'parses file with includes using parseFileWithIncludes function',
+      () async {
+        final mainFile = File('test/tmp_parse_flat_file_with_includes.conf');
+        final includeFile = File('test/tmp_include_file.conf');
+        addTearDown(() {
+          if (mainFile.existsSync()) mainFile.deleteSync();
+          if (includeFile.existsSync()) includeFile.deleteSync();
+        });
 
-      // Create main file with include
-      mainFile.writeAsStringSync('''
+        // Create main file with include
+        mainFile.writeAsStringSync('''
 key1 = value1
 config-file = tmp_include_file.conf
 key2 = value2
 ''');
 
-      // Create include file
-      includeFile.writeAsStringSync('''
+        // Create include file
+        includeFile.writeAsStringSync('''
 included_key = included_value
 ''');
 
-      // Test the actual parseFileWithIncludes function
-      final doc = await parseFileWithIncludes(
-          'test/tmp_parse_flat_file_with_includes.conf');
-      expect(doc['key1'], 'value1');
-      expect(doc['included_key'], 'included_value');
-      expect(doc['key2'], 'value2');
-    });
+        // Test the actual parseFileWithIncludes function
+        final doc = await parseFileWithIncludes(
+          'test/tmp_parse_flat_file_with_includes.conf',
+        );
+        expect(doc['key1'], 'value1');
+        expect(doc['included_key'], 'included_value');
+        expect(doc['key2'], 'value2');
+      },
+    );
 
     test('parseFileWithIncludes with custom options', () async {
       final mainFile = File('test/tmp_parse_flat_file_with_includes_opts.conf');
@@ -403,9 +409,7 @@ included_key = included_value
       final file = File('test/tmp_save_to_file_opts.conf');
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      final doc = FlatDocument(const [
-        FlatEntry('k', 'value with spaces'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('k', 'value with spaces')]);
 
       await doc.saveToFile(
         'test/tmp_save_to_file_opts.conf',
@@ -421,9 +425,7 @@ included_key = included_value
       final file = File('test/tmp_save_to_file_sync_opts.conf');
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      final doc = FlatDocument(const [
-        FlatEntry('k', 'value with spaces'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('k', 'value with spaces')]);
 
       doc.saveToFileSync(
         'test/tmp_save_to_file_sync_opts.conf',

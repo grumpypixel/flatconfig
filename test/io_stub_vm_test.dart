@@ -11,10 +11,12 @@ void main() {
     expect(() => io.parseFlatFileSync('x'), throwsA(isA<UnsupportedError>()));
   });
 
-  test('io_stub.parseFileWithIncludes throws UnsupportedError (VM import)',
-      () async {
-    expect(io.parseFileWithIncludes('x'), throwsA(isA<UnsupportedError>()));
-  });
+  test(
+    'io_stub.parseFileWithIncludes throws UnsupportedError (VM import)',
+    () async {
+      expect(io.parseFileWithIncludes('x'), throwsA(isA<UnsupportedError>()));
+    },
+  );
 
   test('io_stub.writeFlat throws UnsupportedError (VM import)', () async {
     final doc = FlatDocument(const [FlatEntry('k', 'v')]);
@@ -50,7 +52,9 @@ void main() {
     test('Object.writeFlatSync throws UnsupportedError', () {
       final doc = FlatDocument(const [FlatEntry('k', 'v')]);
       expect(
-          () => Object().writeFlatSync(doc), throwsA(isA<UnsupportedError>()));
+        () => Object().writeFlatSync(doc),
+        throwsA(isA<UnsupportedError>()),
+      );
     });
   });
 }

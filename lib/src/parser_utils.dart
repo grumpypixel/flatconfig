@@ -174,9 +174,11 @@ bool isUnescapedQuoteAt(String s, int i) {
   } // '"'
 
   var backslashCount = 0;
-  for (var j = i - 1;
-      j >= 0 && s.codeUnitAt(j) == Constants.backslashCharCode;
-      j--) {
+  for (
+    var j = i - 1;
+    j >= 0 && s.codeUnitAt(j) == Constants.backslashCharCode;
+    j--
+  ) {
     backslashCount++;
   }
 
@@ -237,7 +239,8 @@ String normalizeLineEndings(
   assert(lineTerminator.isNotEmpty);
 
   // If the original had a trailing newline
-  final hadTrailingNewline = text.endsWith(Constants.crlf) ||
+  final hadTrailingNewline =
+      text.endsWith(Constants.crlf) ||
       text.endsWith(Constants.newline) ||
       text.endsWith(Constants.carriageReturn);
 

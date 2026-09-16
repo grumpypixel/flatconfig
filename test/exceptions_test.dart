@@ -11,15 +11,19 @@ void main() {
       expect(ex.message, contains('line 5'));
     });
 
-    test('TrailingCharactersAfterQuoteException creates with correct message',
-        () {
-      final ex =
-          TrailingCharactersAfterQuoteException(3, 'key = "value" extra');
-      expect(ex.lineNumber, 3);
-      expect(ex.rawLine, 'key = "value" extra');
-      expect(ex.message, contains('Trailing characters after quoted value'));
-      expect(ex.message, contains('line 3'));
-    });
+    test(
+      'TrailingCharactersAfterQuoteException creates with correct message',
+      () {
+        final ex = TrailingCharactersAfterQuoteException(
+          3,
+          'key = "value" extra',
+        );
+        expect(ex.lineNumber, 3);
+        expect(ex.rawLine, 'key = "value" extra');
+        expect(ex.message, contains('Trailing characters after quoted value'));
+        expect(ex.message, contains('line 3'));
+      },
+    );
 
     test('MissingEqualsException creates with correct message', () {
       final ex = MissingEqualsException(2, 'just a key');

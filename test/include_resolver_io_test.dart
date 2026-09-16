@@ -13,7 +13,9 @@ class _FailingSymlinkResolver extends FileIncludeResolver {
   String resolveCanonicalPath(File file) {
     // Simulate the case where resolveSymbolicLinksSync throws
     throw FileSystemException(
-        'Simulated symlink resolution failure', file.path);
+      'Simulated symlink resolution failure',
+      file.path,
+    );
   }
 }
 
@@ -311,8 +313,18 @@ void main() {
         File(realFile).writeAsStringSync('circular path content');
 
         // Try to access via a path with many circular traversals
-        final circularPath = p.join(dir1.path, 'todir2', 'todir1', 'todir2',
-            'todir1', 'todir2', 'todir1', '..', '..', 'real.conf');
+        final circularPath = p.join(
+          dir1.path,
+          'todir2',
+          'todir1',
+          'todir2',
+          'todir1',
+          'todir2',
+          'todir1',
+          '..',
+          '..',
+          'real.conf',
+        );
 
         unit = resolver.resolve(circularPath);
         if (unit != null) {
@@ -365,30 +377,32 @@ void main() {
       }
     });
 
-    test('handles resolveSymbolicLinksSync failure (uses fallback path)',
-        () async {
-      final temp = await Directory.systemTemp.createTemp('flatconfig_io_');
-      try {
-        // Create a real file
-        final testFile = p.join(temp.path, 'test.conf');
-        File(testFile).writeAsStringSync('fallback test content');
+    test(
+      'handles resolveSymbolicLinksSync failure (uses fallback path)',
+      () async {
+        final temp = await Directory.systemTemp.createTemp('flatconfig_io_');
+        try {
+          // Create a real file
+          final testFile = p.join(temp.path, 'test.conf');
+          File(testFile).writeAsStringSync('fallback test content');
 
-        // Use test resolver that throws on resolveSymbolicLinksSync
-        final resolver = _FailingSymlinkResolver();
-        final unit = resolver.resolve(testFile);
+          // Use test resolver that throws on resolveSymbolicLinksSync
+          final resolver = _FailingSymlinkResolver();
+          final unit = resolver.resolve(testFile);
 
-        // Should succeed using the fallback path (file.absolute.path)
-        expect(unit, isNotNull);
-        expect(unit!.content, equals('fallback test content'));
-        // The ID should be set using the fallback mechanism
-        expect(unit.id, isNotEmpty);
-        // On macOS, the normalized path should be lowercase
-        if (Platform.isMacOS) {
-          expect(unit.id, equals(unit.id.toLowerCase()));
+          // Should succeed using the fallback path (file.absolute.path)
+          expect(unit, isNotNull);
+          expect(unit!.content, equals('fallback test content'));
+          // The ID should be set using the fallback mechanism
+          expect(unit.id, isNotEmpty);
+          // On macOS, the normalized path should be lowercase
+          if (Platform.isMacOS) {
+            expect(unit.id, equals(unit.id.toLowerCase()));
+          }
+        } finally {
+          await temp.delete(recursive: true);
         }
-      } finally {
-        await temp.delete(recursive: true);
-      }
-    });
+      },
+    );
   });
 }

@@ -12,8 +12,9 @@ void main() {
   group('Config File Includes', () {
     late Directory tempDir;
     setUp(() async {
-      tempDir =
-          await Directory.systemTemp.createTemp('flatconfig_includes_test_');
+      tempDir = await Directory.systemTemp.createTemp(
+        'flatconfig_includes_test_',
+      );
     });
     tearDown(() async {
       // Guard against prior cleanup if a test removed it; ignore missing dir
@@ -95,50 +96,54 @@ cursor = 00ff00
       expect(entries[3].key, equals('cursor'));
     });
 
-    test('included file: explicit null reset is non-blocking within include',
-        () async {
-      // main includes theme; theme sets color, then resets, then sets again.
-      final mainFile = File('${tempDir.path}/main.conf');
-      await mainFile.writeAsString('''
+    test(
+      'included file: explicit null reset is non-blocking within include',
+      () async {
+        // main includes theme; theme sets color, then resets, then sets again.
+        final mainFile = File('${tempDir.path}/main.conf');
+        await mainFile.writeAsString('''
 config-file = theme.conf
 ''');
 
-      final themeFile = File('${tempDir.path}/theme.conf');
-      await themeFile.writeAsString('''
+        final themeFile = File('${tempDir.path}/theme.conf');
+        await themeFile.writeAsString('''
 color = ffaa00
 color =
 color = aabbcc
 ''');
 
-      final doc = await mainFile.parseWithIncludes();
+        final doc = await mainFile.parseWithIncludes();
 
-      expect(doc.valuesOf('color'), ['ffaa00', null, 'aabbcc']);
-      expect(doc['color'], 'aabbcc');
-    });
+        expect(doc.valuesOf('color'), ['ffaa00', null, 'aabbcc']);
+        expect(doc['color'], 'aabbcc');
+      },
+    );
 
-    test('include final value blocks later main overrides (with reset in tail)',
-        () async {
-      // include sets color to final value; main later resets and tries override
-      final mainFile = File('${tempDir.path}/main.conf');
-      await mainFile.writeAsString('''
+    test(
+      'include final value blocks later main overrides (with reset in tail)',
+      () async {
+        // include sets color to final value; main later resets and tries override
+        final mainFile = File('${tempDir.path}/main.conf');
+        await mainFile.writeAsString('''
 config-file = theme.conf
 color =
 color = 112233
 ''');
 
-      final themeFile = File('${tempDir.path}/theme.conf');
-      await themeFile.writeAsString('''
+        final themeFile = File('${tempDir.path}/theme.conf');
+        await themeFile.writeAsString('''
 color = ffaa00
 color =
 color = aabbcc
 ''');
 
-      final doc = await mainFile.parseWithIncludes();
+        final doc = await mainFile.parseWithIncludes();
 
-      // Ghostty semantics: tail entries for keys present in includes are filtered
-      expect(doc.valuesOf('color'), ['ffaa00', null, 'aabbcc']);
-      expect(doc['color'], 'aabbcc');
-    });
+        // Ghostty semantics: tail entries for keys present in includes are filtered
+        expect(doc.valuesOf('color'), ['ffaa00', null, 'aabbcc']);
+        expect(doc['color'], 'aabbcc');
+      },
+    );
 
     test('basic include functionality (sync)', () async {
       // Create main config file
@@ -227,17 +232,23 @@ config-file = missing.conf
       await sharedFile.writeAsString('theme = dark\nfont-size = 16\n');
 
       final main1 = File('${tempDir.path}/main1.conf');
-      await main1
-          .writeAsString('background = 343028\nconfig-file = shared.conf\n');
+      await main1.writeAsString(
+        'background = 343028\nconfig-file = shared.conf\n',
+      );
       final main2 = File('${tempDir.path}/main2.conf');
-      await main2
-          .writeAsString('foreground = f3d735\nconfig-file = shared.conf\n');
+      await main2.writeAsString(
+        'foreground = f3d735\nconfig-file = shared.conf\n',
+      );
 
       final cache = <String, FlatDocument>{};
-      final doc1 =
-          inc.FlatConfigIncludes.parseWithIncludesSync(main1, cache: cache);
-      final doc2 =
-          inc.FlatConfigIncludes.parseWithIncludesSync(main2, cache: cache);
+      final doc1 = inc.FlatConfigIncludes.parseWithIncludesSync(
+        main1,
+        cache: cache,
+      );
+      final doc2 = inc.FlatConfigIncludes.parseWithIncludesSync(
+        main2,
+        cache: cache,
+      );
 
       expect(doc1['background'], equals('343028'));
       expect(doc1['theme'], equals('dark'));
@@ -347,24 +358,27 @@ include = theme.conf
       );
     });
 
-    test('parseWithIncludesRecursiveSync method is testable in isolation',
-        () async {
-      final testFile = File('${tempDir.path}/test.conf');
-      await testFile
-          .writeAsString('background = 343028\nforeground = f3d735\n');
+    test(
+      'parseWithIncludesRecursiveSync method is testable in isolation',
+      () async {
+        final testFile = File('${tempDir.path}/test.conf');
+        await testFile.writeAsString(
+          'background = 343028\nforeground = f3d735\n',
+        );
 
-      final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
-        testFile,
-        options: const FlatParseOptions(),
-        readOptions: const FlatStreamReadOptions(),
-        visited: <String>{},
-        cache: <String, FlatDocument>{},
-      );
+        final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
+          testFile,
+          options: const FlatParseOptions(),
+          readOptions: const FlatStreamReadOptions(),
+          visited: <String>{},
+          cache: <String, FlatDocument>{},
+        );
 
-      expect(doc.length, equals(2));
-      expect(doc['background'], equals('343028'));
-      expect(doc['foreground'], equals('f3d735'));
-    });
+        expect(doc.length, equals(2));
+        expect(doc['background'], equals('343028'));
+        expect(doc['foreground'], equals('f3d735'));
+      },
+    );
 
     test('parseWithIncludesRecursiveSync handles cycle detection', () async {
       final testFile = File('${tempDir.path}/cycle.conf');
@@ -400,34 +414,36 @@ config-file = cycle.conf
       );
     });
 
-    test('parseWithIncludesRecursiveSync processes includes correctly',
-        () async {
-      final mainFile = File('${tempDir.path}/main.conf');
-      await mainFile.writeAsString('''
+    test(
+      'parseWithIncludesRecursiveSync processes includes correctly',
+      () async {
+        final mainFile = File('${tempDir.path}/main.conf');
+        await mainFile.writeAsString('''
 background = 343028
 config-file = theme.conf
 foreground = 000000
 ''');
 
-      final themeFile = File('${tempDir.path}/theme.conf');
-      await themeFile.writeAsString('''
+        final themeFile = File('${tempDir.path}/theme.conf');
+        await themeFile.writeAsString('''
 foreground = f3d735
 font-size = 14
 ''');
 
-      final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
-        mainFile,
-        options: const FlatParseOptions(),
-        readOptions: const FlatStreamReadOptions(),
-        visited: <String>{},
-        cache: <String, FlatDocument>{},
-      );
+        final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
+          mainFile,
+          options: const FlatParseOptions(),
+          readOptions: const FlatStreamReadOptions(),
+          visited: <String>{},
+          cache: <String, FlatDocument>{},
+        );
 
-      expect(doc.length, equals(3));
-      expect(doc['background'], equals('343028'));
-      expect(doc['foreground'], equals('f3d735'));
-      expect(doc['font-size'], equals('14'));
-    });
+        expect(doc.length, equals(3));
+        expect(doc['background'], equals('343028'));
+        expect(doc['foreground'], equals('f3d735'));
+        expect(doc['font-size'], equals('14'));
+      },
+    );
 
     test('parseWithIncludesRecursiveSync handles custom include key', () async {
       final mainFile = File('${tempDir.path}/main.conf');
@@ -472,33 +488,34 @@ config-file = ?optional.conf
     });
 
     test(
-        'parseWithIncludesRecursiveSync handles entries after include that do not override',
-        () async {
-      final mainFile = File('${tempDir.path}/main.conf');
-      await mainFile.writeAsString('''
+      'parseWithIncludesRecursiveSync handles entries after include that do not override',
+      () async {
+        final mainFile = File('${tempDir.path}/main.conf');
+        await mainFile.writeAsString('''
 background = 343028
 config-file = theme.conf
 new-key = new-value
 ''');
 
-      final themeFile = File('${tempDir.path}/theme.conf');
-      await themeFile.writeAsString('''
+        final themeFile = File('${tempDir.path}/theme.conf');
+        await themeFile.writeAsString('''
 foreground = f3d735
 ''');
 
-      final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
-        mainFile,
-        options: const FlatParseOptions(),
-        readOptions: const FlatStreamReadOptions(),
-        visited: <String>{},
-        cache: <String, FlatDocument>{},
-      );
+        final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
+          mainFile,
+          options: const FlatParseOptions(),
+          readOptions: const FlatStreamReadOptions(),
+          visited: <String>{},
+          cache: <String, FlatDocument>{},
+        );
 
-      expect(doc.length, equals(3));
-      expect(doc['background'], equals('343028'));
-      expect(doc['foreground'], equals('f3d735'));
-      expect(doc['new-key'], equals('new-value'));
-    });
+        expect(doc.length, equals(3));
+        expect(doc['background'], equals('343028'));
+        expect(doc['foreground'], equals('f3d735'));
+        expect(doc['new-key'], equals('new-value'));
+      },
+    );
 
     test('multiple includes', () async {
       // Create main config file
@@ -710,40 +727,42 @@ config-file = missing.conf
       }
     });
 
-    test('Ghostty semantics - later entries do not override includes',
-        () async {
-      // Create main config file
-      final mainFile = File('${tempDir.path}/main.conf');
-      await mainFile.writeAsString('''
+    test(
+      'Ghostty semantics - later entries do not override includes',
+      () async {
+        // Create main config file
+        final mainFile = File('${tempDir.path}/main.conf');
+        await mainFile.writeAsString('''
 background = 343028
 config-file = theme.conf
 background = 000000
 ''');
 
-      // Create included config file
-      final themeFile = File('${tempDir.path}/theme.conf');
-      await themeFile.writeAsString('''
+        // Create included config file
+        final themeFile = File('${tempDir.path}/theme.conf');
+        await themeFile.writeAsString('''
 background = f3d735
 foreground = 000000
 ''');
 
-      // Parse with includes
-      final doc = await mainFile.parseWithIncludes();
+        // Parse with includes
+        final doc = await mainFile.parseWithIncludes();
 
-      // Verify that the include's background value takes precedence
-      // (Ghostty semantics: includes are processed after current file)
-      expect(doc['background'], equals('f3d735'));
-      expect(doc['foreground'], equals('000000'));
+        // Verify that the include's background value takes precedence
+        // (Ghostty semantics: includes are processed after current file)
+        expect(doc['background'], equals('f3d735'));
+        expect(doc['foreground'], equals('000000'));
 
-      // Verify order
-      final entries = doc.entries.toList();
-      expect(entries[0].key, equals('background'));
-      expect(entries[0].value, equals('343028'));
-      expect(entries[1].key, equals('background'));
-      expect(entries[1].value, equals('f3d735'));
-      expect(entries[2].key, equals('foreground'));
-      expect(entries[2].value, equals('000000'));
-    });
+        // Verify order
+        final entries = doc.entries.toList();
+        expect(entries[0].key, equals('background'));
+        expect(entries[0].value, equals('343028'));
+        expect(entries[1].key, equals('background'));
+        expect(entries[1].value, equals('f3d735'));
+        expect(entries[2].key, equals('foreground'));
+        expect(entries[2].value, equals('000000'));
+      },
+    );
 
     test('parseWithIncludesFromPath convenience method', () async {
       // Create main config file
@@ -760,8 +779,9 @@ foreground = f3d735
 ''');
 
       // Parse with includes using path
-      final doc =
-          await FlatConfigIncludes.parseWithIncludesFromPath(mainFile.path);
+      final doc = await FlatConfigIncludes.parseWithIncludesFromPath(
+        mainFile.path,
+      );
 
       // Verify all entries are present
       expect(doc['background'], equals('343028'));
@@ -783,8 +803,9 @@ foreground = f3d735
 ''');
 
       // Parse with includes using path (sync)
-      final doc =
-          FlatConfigIncludes.parseWithIncludesFromPathSync(mainFile.path);
+      final doc = FlatConfigIncludes.parseWithIncludesFromPathSync(
+        mainFile.path,
+      );
 
       // Verify all entries are present
       expect(doc['background'], equals('343028'));
@@ -1002,38 +1023,40 @@ version = 2.0
       expect(doc['version'], equals('2.0'));
     });
 
-    test('configurable include key ignores default config-file directive',
-        () async {
-      // Create main config file with both custom and default include keys
-      final mainFile = File('${tempDir.path}/main.conf');
-      await mainFile.writeAsString('''
+    test(
+      'configurable include key ignores default config-file directive',
+      () async {
+        // Create main config file with both custom and default include keys
+        final mainFile = File('${tempDir.path}/main.conf');
+        await mainFile.writeAsString('''
 background = 343028
 include = theme.conf
 config-file = ignored.conf
 ''');
 
-      // Create included config file
-      final themeFile = File('${tempDir.path}/theme.conf');
-      await themeFile.writeAsString('''
+        // Create included config file
+        final themeFile = File('${tempDir.path}/theme.conf');
+        await themeFile.writeAsString('''
 foreground = f3d735
 ''');
 
-      // Create ignored config file
-      final ignoredFile = File('${tempDir.path}/ignored.conf');
-      await ignoredFile.writeAsString('''
+        // Create ignored config file
+        final ignoredFile = File('${tempDir.path}/ignored.conf');
+        await ignoredFile.writeAsString('''
 ignored = true
 ''');
 
-      // Parse with custom include key
-      final doc = await mainFile.parseWithIncludes(
-        options: const FlatParseOptions(includeKey: 'include'),
-      );
+        // Parse with custom include key
+        final doc = await mainFile.parseWithIncludes(
+          options: const FlatParseOptions(includeKey: 'include'),
+        );
 
-      // Verify only the custom include key was processed
-      expect(doc['background'], equals('343028'));
-      expect(doc['foreground'], equals('f3d735'));
-      expect(doc['ignored'], isNull);
-    });
+        // Verify only the custom include key was processed
+        expect(doc['background'], equals('343028'));
+        expect(doc['foreground'], equals('f3d735'));
+        expect(doc['ignored'], isNull);
+      },
+    );
 
     test('configurable include key with optional includes', () async {
       // Create main config file with custom include key and optional include
@@ -1142,48 +1165,55 @@ foreground = f3d735
       // This test verifies the escape decoding functionality works as intended
     });
 
-    test('include with null values blocks later entries (Ghostty semantics)',
-        () async {
-      // This test demonstrates the behavior mentioned by ChatGPT:
-      // When an include sets a key to null, it blocks later values of the same key
-      // This is part of the "Tail does not override includes" semantics
+    test(
+      'include with null values blocks later entries (Ghostty semantics)',
+      () async {
+        // This test demonstrates the behavior mentioned by ChatGPT:
+        // When an include sets a key to null, it blocks later values of the same key
+        // This is part of the "Tail does not override includes" semantics
 
-      final mainFile = File('${tempDir.path}/main.conf');
-      await mainFile.writeAsString('''
+        final mainFile = File('${tempDir.path}/main.conf');
+        await mainFile.writeAsString('''
 background = 343028
 config-file = reset.conf
 background = 000000
 new-key = new-value
 ''');
 
-      // Create included config file that sets background to null (reset)
-      final resetFile = File('${tempDir.path}/reset.conf');
-      await resetFile.writeAsString('''
+        // Create included config file that sets background to null (reset)
+        final resetFile = File('${tempDir.path}/reset.conf');
+        await resetFile.writeAsString('''
 background =
 foreground = 000000
 ''');
 
-      // Parse with includes
-      final doc = await mainFile.parseWithIncludes();
+        // Parse with includes
+        final doc = await mainFile.parseWithIncludes();
 
-      // Verify that the null value from the include blocks the later background = 000000
-      // The background should remain null (reset) from the include
-      expect(doc['background'], isNull);
-      expect(doc['foreground'], equals('000000')); // From include
-      expect(doc['new-key'],
-          equals('new-value')); // This should work as it's not in includes
+        // Verify that the null value from the include blocks the later background = 000000
+        // The background should remain null (reset) from the include
+        expect(doc['background'], isNull);
+        expect(doc['foreground'], equals('000000')); // From include
+        expect(
+          doc['new-key'],
+          equals('new-value'),
+        ); // This should work as it's not in includes
 
-      // Verify the order: pre-include entries, then include entries, then filtered tail
-      final entries = doc.entries.toList();
-      expect(entries[0].key, equals('background'));
-      expect(entries[0].value, equals('343028')); // Pre-include value
-      expect(entries[1].key, equals('background'));
-      expect(entries[1].value, isNull); // Reset from include
-      expect(entries[2].key, equals('foreground'));
-      expect(entries[2].value, equals('000000')); // From include
-      expect(entries[3].key, equals('new-key'));
-      expect(entries[3].value, equals('new-value')); // From tail (not blocked)
-    });
+        // Verify the order: pre-include entries, then include entries, then filtered tail
+        final entries = doc.entries.toList();
+        expect(entries[0].key, equals('background'));
+        expect(entries[0].value, equals('343028')); // Pre-include value
+        expect(entries[1].key, equals('background'));
+        expect(entries[1].value, isNull); // Reset from include
+        expect(entries[2].key, equals('foreground'));
+        expect(entries[2].value, equals('000000')); // From include
+        expect(entries[3].key, equals('new-key'));
+        expect(
+          entries[3].value,
+          equals('new-value'),
+        ); // From tail (not blocked)
+      },
+    );
 
     test('sync optional includes and quoted paths', () async {
       // Create main config file with optional and quoted includes
@@ -1205,16 +1235,18 @@ config-file = "themes/dark.conf"
       expect(doc['foreground'], equals('f3d735'));
     });
 
-    test('canonicalSync fallback path is covered via non-resolvable link',
-        () async {
-      // Use a file that likely cannot resolve symlinks (not a symlink)
-      final file = File('${tempDir.path}/plain.conf');
-      await file.writeAsString('key = v\n');
+    test(
+      'canonicalSync fallback path is covered via non-resolvable link',
+      () async {
+        // Use a file that likely cannot resolve symlinks (not a symlink)
+        final file = File('${tempDir.path}/plain.conf');
+        await file.writeAsString('key = v\n');
 
-      // Smoke-call the sync parser to ensure _canonicalSync fallback is exercised
-      final doc = inc.FlatConfigIncludes.parseWithIncludesSync(file);
-      expect(doc['key'], equals('v'));
-    });
+        // Smoke-call the sync parser to ensure _canonicalSync fallback is exercised
+        final doc = inc.FlatConfigIncludes.parseWithIncludesSync(file);
+        expect(doc['key'], equals('v'));
+      },
+    );
 
     test('main file does not exist throws exception', () async {
       // Create a reference to a non-existent main file
@@ -1305,29 +1337,31 @@ theme = light
       expect(entries[0].value, equals('light'));
     });
 
-    test('parseWithIncludesRecursive method is testable in isolation',
-        () async {
-      // Create a test file
-      final testFile = File('${tempDir.path}/test.conf');
-      await testFile.writeAsString('''
+    test(
+      'parseWithIncludesRecursive method is testable in isolation',
+      () async {
+        // Create a test file
+        final testFile = File('${tempDir.path}/test.conf');
+        await testFile.writeAsString('''
 background = 343028
 foreground = f3d735
 ''');
 
-      // Test the parseWithIncludesRecursive method directly
-      final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
-        testFile,
-        options: const FlatParseOptions(),
-        readOptions: const FlatStreamReadOptions(),
-        visited: <String>{},
-        cache: <String, FlatDocument>{},
-      );
+        // Test the parseWithIncludesRecursive method directly
+        final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
+          testFile,
+          options: const FlatParseOptions(),
+          readOptions: const FlatStreamReadOptions(),
+          visited: <String>{},
+          cache: <String, FlatDocument>{},
+        );
 
-      // Verify the document was parsed correctly
-      expect(doc.length, equals(2));
-      expect(doc['background'], equals('343028'));
-      expect(doc['foreground'], equals('f3d735'));
-    });
+        // Verify the document was parsed correctly
+        expect(doc.length, equals(2));
+        expect(doc['background'], equals('343028'));
+        expect(doc['foreground'], equals('f3d735'));
+      },
+    );
 
     test('parseWithIncludesRecursive handles cycle detection', () async {
       // Create a file that includes itself
@@ -1400,7 +1434,9 @@ font-size = 14
       expect(doc.length, equals(3));
       expect(doc['background'], equals('343028')); // From main file
       expect(
-          doc['foreground'], equals('f3d735')); // From include (not overridden)
+        doc['foreground'],
+        equals('f3d735'),
+      ); // From include (not overridden)
       expect(doc['font-size'], equals('14')); // From include
     });
 
@@ -1457,32 +1493,34 @@ config-file = ?optional.conf
       expect(doc['background'], equals('343028'));
     });
 
-    test('include path resolution works on Windows-like and POSIX paths',
-        () async {
-      // Arrange tmp structure:
-      // main.conf includes "sub/settings.conf" and "C:/abs/also.conf" (simulate)
-      // Use path package to build paths safely.
+    test(
+      'include path resolution works on Windows-like and POSIX paths',
+      () async {
+        // Arrange tmp structure:
+        // main.conf includes "sub/settings.conf" and "C:/abs/also.conf" (simulate)
+        // Use path package to build paths safely.
 
-      final main = File('${tempDir.path}/main.conf');
-      await main.writeAsString('''
+        final main = File('${tempDir.path}/main.conf');
+        await main.writeAsString('''
 config-file = sub/settings.conf
 foo = 1
 ''');
 
-      final subdir = Directory('${tempDir.path}/sub')..createSync();
-      final settingsFile = File('${subdir.path}/settings.conf');
-      await settingsFile.writeAsString('''
+        final subdir = Directory('${tempDir.path}/sub')..createSync();
+        final settingsFile = File('${subdir.path}/settings.conf');
+        await settingsFile.writeAsString('''
 bar = 2
 ''');
 
-      // Act
-      final doc = await main.parseWithIncludes();
+        // Act
+        final doc = await main.parseWithIncludes();
 
-      // Assert order & values
-      expect(doc['foo'], equals('1'));
-      expect(doc['bar'], equals('2'));
-      expect(doc.length, equals(2));
-    });
+        // Assert order & values
+        expect(doc['foo'], equals('1'));
+        expect(doc['bar'], equals('2'));
+        expect(doc.length, equals(2));
+      },
+    );
 
     test('include path resolution handles absolute paths correctly', () async {
       // Test that absolute paths are handled correctly
@@ -1506,56 +1544,54 @@ bar = 2
       expect(doc.length, equals(2));
     });
 
-    test('parseWithIncludes uses cache to avoid re-parsing same files',
-        () async {
-      // Create a shared include file
-      final sharedFile = File('${tempDir.path}/shared.conf');
-      await sharedFile.writeAsString('''
+    test(
+      'parseWithIncludes uses cache to avoid re-parsing same files',
+      () async {
+        // Create a shared include file
+        final sharedFile = File('${tempDir.path}/shared.conf');
+        await sharedFile.writeAsString('''
 theme = dark
 font-size = 16
 ''');
 
-      // Create two main files that both include the shared file
-      final main1 = File('${tempDir.path}/main1.conf');
-      await main1.writeAsString('''
+        // Create two main files that both include the shared file
+        final main1 = File('${tempDir.path}/main1.conf');
+        await main1.writeAsString('''
 background = 343028
 config-file = shared.conf
 ''');
 
-      final main2 = File('${tempDir.path}/main2.conf');
-      await main2.writeAsString('''
+        final main2 = File('${tempDir.path}/main2.conf');
+        await main2.writeAsString('''
 foreground = f3d735
 config-file = shared.conf
 ''');
 
-      // Parse both files with the same cache
-      final cache = <String, FlatDocument>{};
+        // Parse both files with the same cache
+        final cache = <String, FlatDocument>{};
 
-      final doc1 = await main1.parseWithIncludes(
-        cache: cache,
-      );
+        final doc1 = await main1.parseWithIncludes(cache: cache);
 
-      final doc2 = await main2.parseWithIncludes(
-        cache: cache,
-      );
+        final doc2 = await main2.parseWithIncludes(cache: cache);
 
-      // Both documents should have the shared entries
-      expect(doc1['theme'], equals('dark'));
-      expect(doc1['font-size'], equals('16'));
-      expect(doc1['background'], equals('343028'));
+        // Both documents should have the shared entries
+        expect(doc1['theme'], equals('dark'));
+        expect(doc1['font-size'], equals('16'));
+        expect(doc1['background'], equals('343028'));
 
-      expect(doc2['theme'], equals('dark'));
-      expect(doc2['font-size'], equals('16'));
-      expect(doc2['foreground'], equals('f3d735'));
+        expect(doc2['theme'], equals('dark'));
+        expect(doc2['font-size'], equals('16'));
+        expect(doc2['foreground'], equals('f3d735'));
 
-      // The cache should contain the shared file
-      final canonicalPath = await sharedFile.resolveSymbolicLinks();
-      final normalizedCanonicalPath = (Platform.isWindows || Platform.isMacOS)
-          ? canonicalPath.toLowerCase()
-          : canonicalPath;
-      expect(cache.containsKey(normalizedCanonicalPath), isTrue);
-      expect(cache[normalizedCanonicalPath]!['theme'], equals('dark'));
-    });
+        // The cache should contain the shared file
+        final canonicalPath = await sharedFile.resolveSymbolicLinks();
+        final normalizedCanonicalPath = (Platform.isWindows || Platform.isMacOS)
+            ? canonicalPath.toLowerCase()
+            : canonicalPath;
+        expect(cache.containsKey(normalizedCanonicalPath), isTrue);
+        expect(cache[normalizedCanonicalPath]!['theme'], equals('dark'));
+      },
+    );
 
     test('parseWithIncludes cache works with nested includes', () async {
       // Create a deeply nested include structure
@@ -1584,9 +1620,7 @@ config-file = level1.conf
 
       // Parse with cache
       final cache = <String, FlatDocument>{};
-      final doc = await main.parseWithIncludes(
-        cache: cache,
-      );
+      final doc = await main.parseWithIncludes(cache: cache);
 
       // Verify all settings are present
       expect(doc['root-setting'], equals('value0'));
@@ -1686,39 +1720,45 @@ color = blue
       expect(doc['theme'], equals('dark'));
       expect(doc['font-size'], equals('16')); // theme2 overrides theme1
       expect(doc['color'], equals('blue'));
-      expect(doc['foreground'],
-          equals('f3d735')); // From main file, not filtered out
-      expect(doc.length,
-          equals(6)); // 6 entries total (including duplicate font-size)
+      expect(
+        doc['foreground'],
+        equals('f3d735'),
+      ); // From main file, not filtered out
+      expect(
+        doc.length,
+        equals(6),
+      ); // 6 entries total (including duplicate font-size)
     });
 
-    test('parseWithIncludes handles optional includes with quoted paths',
-        () async {
-      // Create a file with optional quoted include paths
-      final mainFile = File('${tempDir.path}/main.conf');
-      await mainFile.writeAsString('''
+    test(
+      'parseWithIncludes handles optional includes with quoted paths',
+      () async {
+        // Create a file with optional quoted include paths
+        final mainFile = File('${tempDir.path}/main.conf');
+        await mainFile.writeAsString('''
 background = 343028
 config-file = ?"missing.conf"
 config-file = "theme.conf"
 foreground = f3d735
 ''');
 
-      // Create the theme file
-      final themeFile = File('${tempDir.path}/theme.conf');
-      await themeFile.writeAsString('''
+        // Create the theme file
+        final themeFile = File('${tempDir.path}/theme.conf');
+        await themeFile.writeAsString('''
 theme = dark
 font-size = 16
 ''');
 
-      // Parse the file - should handle missing optional include gracefully
-      final doc = await mainFile.parseWithIncludes();
+        // Parse the file - should handle missing optional include gracefully
+        final doc = await mainFile.parseWithIncludes();
 
-      // Should have all entries including the theme from the valid include
-      expect(doc['background'], equals('343028'));
-      expect(doc['foreground'], equals('f3d735'));
-      expect(doc['theme'], equals('dark'));
-      expect(doc['font-size'], equals('16'));
-      expect(doc.length, equals(4));
-    });
+        // Should have all entries including the theme from the valid include
+        expect(doc['background'], equals('343028'));
+        expect(doc['foreground'], equals('f3d735'));
+        expect(doc['theme'], equals('dark'));
+        expect(doc['font-size'], equals('16'));
+        expect(doc.length, equals(4));
+      },
+    );
   });
 }

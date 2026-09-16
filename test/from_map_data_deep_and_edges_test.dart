@@ -24,26 +24,24 @@ void main() {
   group('Deep nesting & mixed types', () {
     test('deeply nested maps with mixed scalars', () {
       final now = DateTime.utc(2025, 1, 2, 3, 4, 5);
-      final doc = FlatConfig.fromMapData(
-        {
-          'a': {
-            'b': {
-              'c': {
-                'd': {
-                  'e': {
-                    's': 'str',
-                    'n': 1.25,
-                    'b': false,
-                    'm': Mode.on,
-                    't': now,
-                    'u': Uri.parse('https://e/x'),
-                  }
-                }
-              }
-            }
-          }
+      final doc = FlatConfig.fromMapData({
+        'a': {
+          'b': {
+            'c': {
+              'd': {
+                'e': {
+                  's': 'str',
+                  'n': 1.25,
+                  'b': false,
+                  'm': Mode.on,
+                  't': now,
+                  'u': Uri.parse('https://e/x'),
+                },
+              },
+            },
+          },
         },
-      );
+      });
 
       expect(doc['a.b.c.d.e.s'], 'str');
       expect(doc['a.b.c.d.e.n'], '1.25');
@@ -59,7 +57,7 @@ void main() {
           {
             'name': 'blur',
             'params': [
-              {'radius': 3}
+              {'radius': 3},
             ],
           },
           'end',
@@ -75,49 +73,37 @@ void main() {
 
   group('Key/path edge cases', () {
     test('child non-string map key is stringified', () {
-      final doc = FlatConfig.fromMapData(
-        {
-          'a': {
-            42: 1,
-          },
-        },
-      );
+      final doc = FlatConfig.fromMapData({
+        'a': {42: 1},
+      });
 
       expect(doc['a.42'], '1');
     });
 
     test('root non-string map key is stringified', () {
-      final doc = FlatConfig.fromMapData(
-        {
-          42.toString(): {'x': 1}, // simulate non-string origin
-        },
-      );
+      final doc = FlatConfig.fromMapData({
+        42.toString(): {'x': 1}, // simulate non-string origin
+      });
 
       expect(doc['42.x'], '1');
     });
 
     test(
-        'child empty key produces path with trailing separator (documented behavior)',
-        () {
-      final doc = FlatConfig.fromMapData(
-        {
-          'parent': {
-            '': 'v',
-          }
-        },
-        options: const FlatMapDataOptions(separator: '.'),
-      );
+      'child empty key produces path with trailing separator (documented behavior)',
+      () {
+        final doc = FlatConfig.fromMapData({
+          'parent': {'': 'v'},
+        }, options: const FlatMapDataOptions(separator: '.'));
 
-      // This results in 'parent.' (not trimmed). Valid key in FlatDocument.
-      expect(doc['parent.'], 'v');
-    });
+        // This results in 'parent.' (not trimmed). Valid key in FlatDocument.
+        expect(doc['parent.'], 'v');
+      },
+    );
 
     test('custom separator with overlapping characters + keyEscaper', () {
       final doc = FlatConfig.fromMapData(
         {
-          'root:part': {
-            'child::part': 1,
-          }
+          'root:part': {'child::part': 1},
         },
         options: FlatMapDataOptions(
           separator: '::',
@@ -134,28 +120,30 @@ void main() {
   });
 
   group('valueEncoder order & keyEscaper together', () {
-    test('valueEncoder on root Map short-circuits traversal (beats keyEscaper)',
-        () {
-      final doc = FlatConfig.fromMapData(
-        {
-          'r.o.o.t': {'child': 1},
-        },
-        options: FlatMapDataOptions(
-          keyEscaper: (k) => k.replaceAll('.', r'\.'),
-          valueEncoder: (v, key) {
-            if (key == r'r\.o\.o\.t' && v is Map) {
-              return '<ROOT-FORCED>';
-            }
-
-            return null;
+    test(
+      'valueEncoder on root Map short-circuits traversal (beats keyEscaper)',
+      () {
+        final doc = FlatConfig.fromMapData(
+          {
+            'r.o.o.t': {'child': 1},
           },
-        ),
-      );
+          options: FlatMapDataOptions(
+            keyEscaper: (k) => k.replaceAll('.', r'\.'),
+            valueEncoder: (v, key) {
+              if (key == r'r\.o\.o\.t' && v is Map) {
+                return '<ROOT-FORCED>';
+              }
 
-      // Single forced entry at the root key (already escaped)
-      expect(doc.keys.length, 1);
-      expect(doc[r'r\.o\.o\.t'], '<ROOT-FORCED>');
-    });
+              return null;
+            },
+          ),
+        );
+
+        // Single forced entry at the root key (already escaped)
+        expect(doc.keys.length, 1);
+        expect(doc[r'r\.o\.o\.t'], '<ROOT-FORCED>');
+      },
+    );
   });
 
   group('CSV item encoder receives keyPath', () {
@@ -200,10 +188,9 @@ void main() {
     });
 
     test('empty list is empty string (csv)', () {
-      final doc = FlatConfig.fromMapData(
-        {'e': <Object?>[]},
-        options: const FlatMapDataOptions(listMode: FlatListMode.csv),
-      );
+      final doc = FlatConfig.fromMapData({
+        'e': <Object?>[],
+      }, options: const FlatMapDataOptions(listMode: FlatListMode.csv));
 
       expect(doc['e'], '');
     });
@@ -217,10 +204,9 @@ void main() {
     });
 
     test('dropNulls=true omits the key entirely', () {
-      final doc = FlatConfig.fromMapData(
-        {'k': null},
-        options: const FlatMapDataOptions(dropNulls: true),
-      );
+      final doc = FlatConfig.fromMapData({
+        'k': null,
+      }, options: const FlatMapDataOptions(dropNulls: true));
       expect(doc.valuesOf('k'), isEmpty);
       expect(doc['k'], isNull);
       expect(doc.keys.contains('k'), isFalse);
@@ -235,15 +221,17 @@ void main() {
       );
     });
 
-    test('Set falls back to JSON -> also throws by default (non-encodable)',
-        () {
-      expect(
-        () => FlatConfig.fromMapData({
-          's': {1, 2, 3}
-        }),
-        throwsA(isA<JsonUnsupportedObjectError>()),
-      );
-    });
+    test(
+      'Set falls back to JSON -> also throws by default (non-encodable)',
+      () {
+        expect(
+          () => FlatConfig.fromMapData({
+            's': {1, 2, 3},
+          }),
+          throwsA(isA<JsonUnsupportedObjectError>()),
+        );
+      },
+    );
 
     test('custom object with toJson() is JSON-encodable (root)', () {
       final doc = FlatConfig.fromMapData({'obj': _OkRoot()});
@@ -251,12 +239,9 @@ void main() {
     });
 
     test('custom object with toJson() in list encodes via JSON', () {
-      final doc = FlatConfig.fromMapData(
-        {
-          'l': [_OkVal(1), _OkVal(2)],
-        },
-        options: const FlatMapDataOptions(listMode: FlatListMode.multi),
-      );
+      final doc = FlatConfig.fromMapData({
+        'l': [_OkVal(1), _OkVal(2)],
+      }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
       expect(doc.valuesOf('l'), ['{"n":1}', '{"n":2}']);
     });
   });
@@ -285,10 +270,9 @@ void main() {
   group('Strict validation propagation', () {
     test('strict=false drops a whitespace-only key', () {
       // The parser trims keys, so '   ' could never be read back (SPEC.md 3).
-      final doc = FlatConfig.fromMapData(
-        {'   ': 'x'},
-        options: const FlatMapDataOptions(strict: false),
-      );
+      final doc = FlatConfig.fromMapData({
+        '   ': 'x',
+      }, options: const FlatMapDataOptions(strict: false));
 
       expect(doc, isEmpty);
     });
@@ -334,9 +318,7 @@ void main() {
     test('root and child containing :: are both escaped', () {
       final doc = FlatConfig.fromMapData(
         {
-          'root::part': {
-            'child::part': 1,
-          }
+          'root::part': {'child::part': 1},
         },
         options: FlatMapDataOptions(
           separator: '::',

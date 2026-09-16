@@ -144,9 +144,8 @@ FlatDocument buildGhosttyDocument(
   List<FlatEntry> preIncludeEntries,
   List<FlatEntry> includeEntries,
   List<FlatEntry> filteredTailEntries,
-) =>
-    FlatDocument([
-      ...preIncludeEntries,
-      ...includeEntries,
-      ...filteredTailEntries,
-    ]);
+) => FlatDocument([
+  ...preIncludeEntries,
+  ...includeEntries,
+  ...filteredTailEntries,
+]);

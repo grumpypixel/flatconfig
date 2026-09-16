@@ -70,10 +70,7 @@ class FlatConfig {
       return FlatDocument.empty();
     }
 
-    return parseLines(
-      lineSplitter.convert(source),
-      options: options,
-    );
+    return parseLines(lineSplitter.convert(source), options: options);
   }
 
   /// Parses a configuration from a list of lines.
@@ -104,11 +101,7 @@ class FlatConfig {
     for (final raw in lines) {
       lineNumber++;
 
-      final entry = parseLine(
-        raw,
-        lineNumber: lineNumber,
-        options: options,
-      );
+      final entry = parseLine(raw, lineNumber: lineNumber, options: options);
       if (entry != null) {
         out.add(entry);
       }
@@ -132,13 +125,12 @@ class FlatConfig {
     Stream<List<int>> stream, {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) async =>
-      parseFromStringStream(
-        stream.transform(readOptions.encoding.decoder).transform(
-              readOptions.lineSplitter,
-            ),
-        options: options,
-      );
+  }) async => parseFromStringStream(
+    stream
+        .transform(readOptions.encoding.decoder)
+        .transform(readOptions.lineSplitter),
+    options: options,
+  );
 
   /// Parses a configuration from a string stream.
   ///
@@ -158,11 +150,7 @@ class FlatConfig {
     await for (var raw in stream) {
       lineNumber++;
 
-      final entry = parseLine(
-        raw,
-        lineNumber: lineNumber,
-        options: options,
-      );
+      final entry = parseLine(raw, lineNumber: lineNumber, options: options);
 
       if (entry != null) {
         out.add(entry);
@@ -193,10 +181,7 @@ class FlatConfig {
         .transform(readOptions.encoding.decoder)
         .transform(readOptions.lineSplitter);
 
-    yield* parseEntriesFromStringStream(
-      lines,
-      options: options,
-    );
+    yield* parseEntriesFromStringStream(lines, options: options);
   }
 
   /// Lazily parses a string stream, yielding [FlatEntry]s as they are read.
@@ -214,11 +199,7 @@ class FlatConfig {
     await for (var raw in stream) {
       lineNumber++;
 
-      final entry = parseLine(
-        raw,
-        lineNumber: lineNumber,
-        options: options,
-      );
+      final entry = parseLine(raw, lineNumber: lineNumber, options: options);
       if (entry != null) {
         yield entry;
       }
@@ -280,7 +261,8 @@ class FlatConfig {
         valueEncoder ?? ((String key, dynamic value) => value?.toString());
 
     final out = <FlatEntry>[
-      for (final e in map.entries) FlatEntry(e.key, encodeValue(e.key, e.value))
+      for (final e in map.entries)
+        FlatEntry(e.key, encodeValue(e.key, e.value)),
     ];
 
     return FlatDocument(out);
@@ -296,8 +278,7 @@ class FlatConfig {
   static FlatDocument fromMapData(
     Map<String, Object?> data, {
     FlatMapDataOptions options = const FlatMapDataOptions(),
-  }) =>
-      flatDocumentFromMapData(data, options: options);
+  }) => flatDocumentFromMapData(data, options: options);
 
   /// Builds a [FlatDocument] from environment-like maps.
   ///

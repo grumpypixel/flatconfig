@@ -24,8 +24,9 @@ class Constants {
   static const pairSeparator = '=';
   static const quote = '"';
 
-  static final bytesRegex =
-      RegExp(r'^([+-]?\d+(?:\.\d+)?)(b|kb|mb|gb|tb|pb|kib|mib|gib|tib|pib)?$');
+  static final bytesRegex = RegExp(
+    r'^([+-]?\d+(?:\.\d+)?)(b|kb|mb|gb|tb|pb|kib|mib|gib|tib|pib)?$',
+  );
   static final durationRegex = RegExp(r'^([+-]?\d+(?:\.\d+)?)(ms|s|m|h|d)?$');
 
   static final hexColorRegex = RegExp(r'^[0-9a-f]+$');

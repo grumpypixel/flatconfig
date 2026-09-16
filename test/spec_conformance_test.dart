@@ -25,8 +25,13 @@ void main() {
       rejected.forEach((key, reason) {
         expect(
           () => FlatDocument([FlatEntry(key, 'v')]),
-          throwsA(isA<FormatException>()
-              .having((e) => e.message, 'message', contains(reason))),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains(reason),
+            ),
+          ),
           reason: 'key "$key"',
         );
       });
@@ -50,9 +55,11 @@ void main() {
           '"a b" = v',
           options: const FlatParseOptions(strict: true),
         ),
-        throwsA(isA<InvalidKeyException>()
-            .having((e) => e.key, 'key', '"a b"')
-            .having((e) => e.reason, 'reason', contains('double quote'))),
+        throwsA(
+          isA<InvalidKeyException>()
+              .having((e) => e.key, 'key', '"a b"')
+              .having((e) => e.reason, 'reason', contains('double quote')),
+        ),
       );
     });
 
@@ -76,10 +83,7 @@ void main() {
     test('lax: a second quoted run makes the token literal', () {
       // Closing at the last quote instead would silently yield
       // `one" junk "two`, which no one wrote and no one can detect.
-      expect(
-        FlatConfig.parse('a = "one" junk "two"')['a'],
-        '"one" junk "two"',
-      );
+      expect(FlatConfig.parse('a = "one" junk "two"')['a'], '"one" junk "two"');
     });
 
     test('strict: trailing content after the closer is an error', () {
@@ -183,20 +187,21 @@ void main() {
     test('escaping is on by default', () {
       expect(
         FlatDocument(const [FlatEntry('k', r'say "hi" \ ok')]).encode(),
-        'k = ' r'"say \"hi\" \\ ok"' '\n',
+        'k = '
+        r'"say \"hi\" \\ ok"'
+        '\n',
       );
     });
 
     test('a value that is only whitespace keeps it', () {
       expect(
-          FlatDocument(const [FlatEntry('k', '   ')]).encode(), 'k = "   "\n');
+        FlatDocument(const [FlatEntry('k', '   ')]).encode(),
+        'k = "   "\n',
+      );
     });
 
     test('a value starting with the comment prefix is quoted', () {
-      expect(
-        FlatDocument(const [FlatEntry('k', '#x')]).encode(),
-        'k = "#x"\n',
-      );
+      expect(FlatDocument(const [FlatEntry('k', '#x')]).encode(), 'k = "#x"\n');
     });
 
     test('a value containing a line break is rejected', () {
@@ -205,11 +210,13 @@ void main() {
       for (final bad in ['x\ny', 'x\r\ny', 'x\ry']) {
         expect(
           () => FlatDocument([FlatEntry('k', bad)]),
-          throwsA(isA<FormatException>().having(
-            (e) => e.message,
-            'message',
-            contains('must not contain a line break'),
-          )),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('must not contain a line break'),
+            ),
+          ),
         );
       }
     });
@@ -220,7 +227,9 @@ void main() {
 
     test('a non-empty document always ends with the terminator', () {
       expect(
-          FlatDocument(const [FlatEntry('k', 'v')]).encode(), endsWith('\n'));
+        FlatDocument(const [FlatEntry('k', 'v')]).encode(),
+        endsWith('\n'),
+      );
       expect(FlatDocument.empty().encode(), '');
     });
   });

@@ -9,11 +9,7 @@ void main() {
 
   group('FlatDocumentAccessors', () {
     test('getAs returns converted value, null on missing/empty/invalid', () {
-      final d = docOf({
-        'i1': ' 42 ',
-        'i2': 'x',
-        'empty_quoted': '',
-      });
+      final d = docOf({'i1': ' 42 ', 'i2': 'x', 'empty_quoted': ''});
 
       expect(d.getAs('i1', int.parse), 42);
       expect(d.getAs('i2', int.parse), isNull); // converter throws → null
@@ -29,38 +25,36 @@ void main() {
       expect(d.getAs('ws', (s) => s, trim: true), isNull);
     });
 
-    test('getAs with ignoreEmpty=false attempts conversion on empty string',
-        () {
-      final d = docOf({'empty': ''});
-      expect(d.getAs('empty', int.parse, ignoreEmpty: false), isNull);
-    });
+    test(
+      'getAs with ignoreEmpty=false attempts conversion on empty string',
+      () {
+        final d = docOf({'empty': ''});
+        expect(d.getAs('empty', int.parse, ignoreEmpty: false), isNull);
+      },
+    );
 
-    test('getAsOr returns converted value or default on missing/empty/invalid',
-        () {
-      final d = docOf({
-        'i1': '7',
-        'i2': 'x',
-        'empty_quoted': '',
-      });
+    test(
+      'getAsOr returns converted value or default on missing/empty/invalid',
+      () {
+        final d = docOf({'i1': '7', 'i2': 'x', 'empty_quoted': ''});
 
-      expect(d.getAsOr('i1', int.parse, 0), 7);
-      expect(d.getAsOr('i2', int.parse, 0), 0);
-      expect(d.getAsOr('missing', int.parse, 5), 5);
-      expect(d.getAsOr('empty_quoted', int.parse, 9), 9);
-    });
+        expect(d.getAsOr('i1', int.parse, 0), 7);
+        expect(d.getAsOr('i2', int.parse, 0), 0);
+        expect(d.getAsOr('missing', int.parse, 5), 5);
+        expect(d.getAsOr('empty_quoted', int.parse, 9), 9);
+      },
+    );
 
     test('requireAs returns value or throws with context', () {
-      final d = docOf({
-        'ok': ' 100 ',
-        'bad': 'x',
-        'empty_quoted': '',
-      });
+      final d = docOf({'ok': ' 100 ', 'bad': 'x', 'empty_quoted': ''});
 
       expect(d.requireAs('ok', int.parse), 100);
       expect(() => d.requireAs('missing', int.parse), throwsFormatException);
       expect(() => d.requireAs('bad', int.parse), throwsFormatException);
       expect(
-          () => d.requireAs('empty_quoted', int.parse), throwsFormatException);
+        () => d.requireAs('empty_quoted', int.parse),
+        throwsFormatException,
+      );
     });
 
     test('requireAs throws on converter error (invalid number)', () {
@@ -75,15 +69,14 @@ void main() {
         return raw.length; // empty string -> 0
       }
 
-      final d = docOf({
-        'a': ' x ',
-        'b': '',
-      });
+      final d = docOf({'a': ' x ', 'b': ''});
 
       // Default trim=false, ignoreEmpty=false: raw preserved
       expect(d.getAsWith<int>('a', conv), 3); // ' x ' length 3
       expect(
-          d.getAsWith<int>('b', conv), 0); // empty string length 0 -> not null
+        d.getAsWith<int>('b', conv),
+        0,
+      ); // empty string length 0 -> not null
 
       // With trim=true, the length becomes 1
       expect(d.getAsWith<int>('a', conv, trim: true), 1);
@@ -115,16 +108,16 @@ void main() {
         return w / h;
       }
 
-      final d = docOf({
-        'ok': ' 16 : 9 ',
-        'bad': 'x',
-        'empty_quoted': '',
-      });
+      final d = docOf({'ok': ' 16 : 9 ', 'bad': 'x', 'empty_quoted': ''});
 
-      expect(d.requireAsWith<double>('ok', conv, trim: true),
-          closeTo(16 / 9, 1e-9));
-      expect(() => d.requireAsWith<double>('missing', conv),
-          throwsFormatException);
+      expect(
+        d.requireAsWith<double>('ok', conv, trim: true),
+        closeTo(16 / 9, 1e-9),
+      );
+      expect(
+        () => d.requireAsWith<double>('missing', conv),
+        throwsFormatException,
+      );
       expect(() => d.requireAsWith<double>('bad', conv), throwsFormatException);
       expect(
         () => d.requireAsWith<double>('empty_quoted', conv, ignoreEmpty: true),
@@ -133,28 +126,30 @@ void main() {
     });
 
     test(
-        'getAllAs yields converted values and skips invalid/empty when configured',
-        () {
-      final d = FlatDocument(const [
-        FlatEntry('port', '8080'),
-        FlatEntry('port', 'bad'),
-        FlatEntry('port', null), // unquoted empty
-        FlatEntry('port', ''), // quoted empty
-        FlatEntry('port', '  7070  '),
-      ]);
+      'getAllAs yields converted values and skips invalid/empty when configured',
+      () {
+        final d = FlatDocument(const [
+          FlatEntry('port', '8080'),
+          FlatEntry('port', 'bad'),
+          FlatEntry('port', null), // unquoted empty
+          FlatEntry('port', ''), // quoted empty
+          FlatEntry('port', '  7070  '),
+        ]);
 
-      final it = d.getAllAs('port', int.parse).toList();
-      expect(it, [8080, 7070]); // bad/null/empty skipped, whitespace trimmed
+        final it = d.getAllAs('port', int.parse).toList();
+        expect(it, [8080, 7070]); // bad/null/empty skipped, whitespace trimmed
 
-      // Without trimming, whitespace is still accepted by int.parse
-      final itNoTrim = d.getAllAs('port', int.parse, trim: false).toList();
-      expect(itNoTrim, [8080, 7070]);
+        // Without trimming, whitespace is still accepted by int.parse
+        final itNoTrim = d.getAllAs('port', int.parse, trim: false).toList();
+        expect(itNoTrim, [8080, 7070]);
 
-      // With ignoreEmpty=false, empty quoted is attempted (int.parse('') throws) -> skipped
-      final itNoIgnoreEmpty =
-          d.getAllAs('port', int.parse, ignoreEmpty: false).toList();
-      expect(itNoIgnoreEmpty, [8080, 7070]);
-    });
+        // With ignoreEmpty=false, empty quoted is attempted (int.parse('') throws) -> skipped
+        final itNoIgnoreEmpty = d
+            .getAllAs('port', int.parse, ignoreEmpty: false)
+            .toList();
+        expect(itNoIgnoreEmpty, [8080, 7070]);
+      },
+    );
 
     test('requireAllAs returns list or throws on first invalid number', () {
       final ok = FlatDocument(const [
@@ -169,11 +164,15 @@ void main() {
         FlatEntry('n', null),
       ]);
       expect(
-          () => withNull.requireAllAs('n', int.parse), throwsFormatException);
+        () => withNull.requireAllAs('n', int.parse),
+        throwsFormatException,
+      );
 
       final withEmpty = FlatDocument(const [FlatEntry('n', '')]);
       expect(
-          () => withEmpty.requireAllAs('n', int.parse), throwsFormatException);
+        () => withEmpty.requireAllAs('n', int.parse),
+        throwsFormatException,
+      );
 
       final withBad = FlatDocument(const [FlatEntry('n', 'x')]);
       expect(() => withBad.requireAllAs('n', int.parse), throwsFormatException);
@@ -254,24 +253,28 @@ void main() {
       expect(d.getHexColor('rgb'), 0xFF00FF88); // expands + FF alpha
       expect(d.getHexColor('rgba'), 0xAA00FF88); // shorthand rgba -> aarrggbb
       expect(d.getHexColor('rrggbb'), 0xFF00FF88);
-      expect(d.getHexColor('aarrggbb', cssAlphaAtEnd: false),
-          0xAA00FF88); // traditional AARRGGBB format
+      expect(
+        d.getHexColor('aarrggbb', cssAlphaAtEnd: false),
+        0xAA00FF88,
+      ); // traditional AARRGGBB format
     });
 
-    test('getHexColor cssAlphaAtEnd parameter controls 8-digit interpretation',
-        () {
-      final d = docOf({
-        'css_style': '11223344', // RRGGBBAA format
-        'traditional': '44112233', // AARRGGBB format
-      });
+    test(
+      'getHexColor cssAlphaAtEnd parameter controls 8-digit interpretation',
+      () {
+        final d = docOf({
+          'css_style': '11223344', // RRGGBBAA format
+          'traditional': '44112233', // AARRGGBB format
+        });
 
-      // Default behavior (cssAlphaAtEnd = true): RRGGBBAA -> AARRGGBB
-      expect(d.getHexColor('css_style'), 0x44112233);
-      expect(d.getHexColor('css_style', cssAlphaAtEnd: true), 0x44112233);
+        // Default behavior (cssAlphaAtEnd = true): RRGGBBAA -> AARRGGBB
+        expect(d.getHexColor('css_style'), 0x44112233);
+        expect(d.getHexColor('css_style', cssAlphaAtEnd: true), 0x44112233);
 
-      // Traditional behavior (cssAlphaAtEnd = false): AARRGGBB -> AARRGGBB (no change)
-      expect(d.getHexColor('traditional', cssAlphaAtEnd: false), 0x44112233);
-    });
+        // Traditional behavior (cssAlphaAtEnd = false): AARRGGBB -> AARRGGBB (no change)
+        expect(d.getHexColor('traditional', cssAlphaAtEnd: false), 0x44112233);
+      },
+    );
 
     test('getHexColor works without # prefix', () {
       final d = docOf({
@@ -341,8 +344,7 @@ void main() {
       expect(c['b'], 0x99);
     });
 
-    test('getColor cssAlphaAtEnd parameter controls 8-digit interpretation',
-        () {
+    test('getColor cssAlphaAtEnd parameter controls 8-digit interpretation', () {
       final d = docOf({
         'css_style': '11223344', // RRGGBBAA format
         'traditional': '44112233', // AARRGGBB format
@@ -384,10 +386,14 @@ void main() {
 
     test('getList honors custom separator and keeps empties', () {
       final d = docOf({'l': 'a|  |b||c|'});
-      expect(
-        d.getList('l', separator: '|', skipEmpty: false),
-        ['a', '', 'b', '', 'c', ''],
-      );
+      expect(d.getList('l', separator: '|', skipEmpty: false), [
+        'a',
+        '',
+        'b',
+        '',
+        'c',
+        '',
+      ]);
     });
 
     test('getBytes returns null for empty string', () {
@@ -408,35 +414,38 @@ void main() {
       expect(() => d.requireString('missing'), throwsFormatException);
     });
 
-    test('getStringOr falls back on missing and unquoted empty; keeps quoted',
-        () {
-      final d = docOf({
-        'present': 'value',
-        'empty_unquoted':
-            null, // simulated by parser when value is unquoted empty
-        'empty_quoted': '', // simulated by parser when value is ""
-      });
+    test(
+      'getStringOr falls back on missing and unquoted empty; keeps quoted',
+      () {
+        final d = docOf({
+          'present': 'value',
+          'empty_unquoted':
+              null, // simulated by parser when value is unquoted empty
+          'empty_quoted': '', // simulated by parser when value is ""
+        });
 
-      expect(d.getStringOr('missing', 'def'), 'def');
-      expect(d.getStringOr('empty_unquoted', 'def'), 'def');
-      expect(d.getStringOr('present', 'def'), 'value');
-      expect(d.getStringOr('empty_quoted', 'def'), '');
-    });
+        expect(d.getStringOr('missing', 'def'), 'def');
+        expect(d.getStringOr('empty_unquoted', 'def'), 'def');
+        expect(d.getStringOr('present', 'def'), 'value');
+        expect(d.getStringOr('empty_quoted', 'def'), '');
+      },
+    );
 
     test(
-        'requireString returns string incl. empty quoted; throws on missing/unquoted empty',
-        () {
-      final d = docOf({
-        'present': 'x',
-        'empty_unquoted': null,
-        'empty_quoted': '',
-      });
+      'requireString returns string incl. empty quoted; throws on missing/unquoted empty',
+      () {
+        final d = docOf({
+          'present': 'x',
+          'empty_unquoted': null,
+          'empty_quoted': '',
+        });
 
-      expect(d.requireString('present'), 'x');
-      expect(d.requireString('empty_quoted'), '');
-      expect(() => d.requireString('missing'), throwsFormatException);
-      expect(() => d.requireString('empty_unquoted'), throwsFormatException);
-    });
+        expect(d.requireString('present'), 'x');
+        expect(d.requireString('empty_quoted'), '');
+        expect(() => d.requireString('missing'), throwsFormatException);
+        expect(() => d.requireString('empty_unquoted'), throwsFormatException);
+      },
+    );
 
     test('getIntOr / getDoubleOr fall back', () {
       final d = docOf({'i': 'x', 'd': 'y'});
@@ -490,10 +499,11 @@ void main() {
 
     test('getList without trimming preserves whitespace', () {
       final d = docOf({'l': ' a ,  b  ,c '});
-      expect(
-        d.getList('l', trimItems: false, skipEmpty: false),
-        [' a ', '  b  ', 'c '],
-      );
+      expect(d.getList('l', trimItems: false, skipEmpty: false), [
+        ' a ',
+        '  b  ',
+        'c ',
+      ]);
     });
 
     test('getStringTrimmed returns null when missing', () {
@@ -569,10 +579,7 @@ void main() {
     test('getEnum maps string to value with case-insensitive matching', () {
       // Define a local enum-like mapping for the test
       // (Dart enums can't be declared inside functions prior to certain SDKs)
-      final mode = {
-        'a': 'A',
-        'b': 'B',
-      };
+      final mode = {'a': 'A', 'b': 'B'};
       final doc = FlatDocument(const [
         FlatEntry('m1', 'A'),
         FlatEntry('m2', 'b'),
@@ -621,8 +628,10 @@ void main() {
       // #rgba -> rrggbbaa -> aarrggbb => alpha comes from the last nibble
       expect(doc.getHexColor('rgba'), 0x8800FF88);
       expect(doc.getHexColor('rrggbb'), 0xFF112233);
-      expect(doc.getHexColor('aarrggbb', cssAlphaAtEnd: false),
-          0x80112233); // traditional AARRGGBB format
+      expect(
+        doc.getHexColor('aarrggbb', cssAlphaAtEnd: false),
+        0x80112233,
+      ); // traditional AARRGGBB format
       expect(doc.getHexColor('bad'), isNull);
       expect(doc.getHexColor('missing'), isNull);
     });
@@ -642,9 +651,7 @@ void main() {
     });
 
     test('getColor returns ARGB components', () {
-      final doc = FlatDocument(const [
-        FlatEntry('c', '#336699'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('c', '#336699')]);
       final c = doc.getColor('c')!;
       expect(c['a'], 0xFF);
       expect(c['r'], 0x33);
@@ -653,27 +660,28 @@ void main() {
     });
 
     test(
-        'getColor cssAlphaAtEnd parameter controls 8-digit interpretation for FlatDocument',
-        () {
-      final doc = FlatDocument(const [
-        FlatEntry('css_style', '11223344'), // RRGGBBAA format
-        FlatEntry('traditional', '44112233'), // AARRGGBB format
-      ]);
+      'getColor cssAlphaAtEnd parameter controls 8-digit interpretation for FlatDocument',
+      () {
+        final doc = FlatDocument(const [
+          FlatEntry('css_style', '11223344'), // RRGGBBAA format
+          FlatEntry('traditional', '44112233'), // AARRGGBB format
+        ]);
 
-      // Default behavior (cssAlphaAtEnd = true): RRGGBBAA -> AARRGGBB
-      final cssColor = doc.getColor('css_style')!;
-      expect(cssColor['a'], 0x44);
-      expect(cssColor['r'], 0x11);
-      expect(cssColor['g'], 0x22);
-      expect(cssColor['b'], 0x33);
+        // Default behavior (cssAlphaAtEnd = true): RRGGBBAA -> AARRGGBB
+        final cssColor = doc.getColor('css_style')!;
+        expect(cssColor['a'], 0x44);
+        expect(cssColor['r'], 0x11);
+        expect(cssColor['g'], 0x22);
+        expect(cssColor['b'], 0x33);
 
-      // Traditional behavior (cssAlphaAtEnd = false): AARRGGBB -> AARRGGBB (no change)
-      final tradColor = doc.getColor('traditional', cssAlphaAtEnd: false)!;
-      expect(tradColor['a'], 0x44);
-      expect(tradColor['r'], 0x11);
-      expect(tradColor['g'], 0x22);
-      expect(tradColor['b'], 0x33);
-    });
+        // Traditional behavior (cssAlphaAtEnd = false): AARRGGBB -> AARRGGBB (no change)
+        final tradColor = doc.getColor('traditional', cssAlphaAtEnd: false)!;
+        expect(tradColor['a'], 0x44);
+        expect(tradColor['r'], 0x11);
+        expect(tradColor['g'], 0x22);
+        expect(tradColor['b'], 0x33);
+      },
+    );
 
     test('getHexColor invalid lengths and non-hex return null', () {
       final doc = FlatDocument(const [
@@ -687,25 +695,19 @@ void main() {
     });
 
     test('getList splits, trims and skips empties by default', () {
-      final doc = FlatDocument(const [
-        FlatEntry('l', 'a,  b , , c  '),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('l', 'a,  b , , c  ')]);
       expect(doc.getList('l'), ['a', 'b', 'c']);
       expect(doc.getList('missing'), isNull);
     });
 
     test('getSet builds a set; case-insensitive option', () {
-      final doc = FlatDocument(const [
-        FlatEntry('s', 'A, b, a, B '),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('s', 'A, b, a, B ')]);
       expect(doc.getSet('s')!.length, 2);
       expect(doc.getSet('s'), {'a', 'b'});
     });
 
     test('getSet custom separator and keep empties=false/true', () {
-      final doc = FlatDocument(const [
-        FlatEntry('s', 'A| |b||B|'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('s', 'A| |b||B|')]);
       // Default caseInsensitive=true
       expect(doc.getSet('s', separator: '|'), {'a', 'b'});
       // Keep empties -> empties are dropped by Set but we ensure parsing path
@@ -714,16 +716,20 @@ void main() {
       expect(l.length, 6);
     });
 
-    test('getList honors custom separator and keeps empties when configured',
-        () {
-      final doc = FlatDocument(const [
-        FlatEntry('l', 'a|  |b||c|'),
-      ]);
-      expect(
-        doc.getList('l', separator: '|', skipEmpty: false),
-        ['a', '', 'b', '', 'c', ''],
-      );
-    });
+    test(
+      'getList honors custom separator and keeps empties when configured',
+      () {
+        final doc = FlatDocument(const [FlatEntry('l', 'a|  |b||c|')]);
+        expect(doc.getList('l', separator: '|', skipEmpty: false), [
+          'a',
+          '',
+          'b',
+          '',
+          'c',
+          '',
+        ]);
+      },
+    );
 
     test('getBytes negatives and unknown unit return null', () {
       final doc = FlatDocument(const [
@@ -735,25 +741,23 @@ void main() {
     });
 
     test('getEnum works in case-sensitive mode only on exact match', () {
-      final doc = FlatDocument(const [
-        FlatEntry('m', 'A'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('m', 'A')]);
       final map = {'A': 1, 'B': 2};
       expect(doc.getEnum('m', map, caseInsensitive: false), 1);
       expect(doc.getEnum('m', {'a': 1}, caseInsensitive: false), isNull);
     });
 
     test('getStringTrimmed and requireString', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '  x  '),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('a', '  x  ')]);
       expect(doc.getTrimmed('a'), 'x');
       expect(() => doc.requireString('missing'), throwsFormatException);
     });
 
     test('getIntOr / getDoubleOr fall back', () {
-      final doc =
-          FlatDocument(const [FlatEntry('i', 'x'), FlatEntry('d', 'y')]);
+      final doc = FlatDocument(const [
+        FlatEntry('i', 'x'),
+        FlatEntry('d', 'y'),
+      ]);
       expect(doc.getIntOr('i', 7), 7);
       expect(doc.getDoubleOr('d', 3.5), 3.5);
     });
@@ -778,15 +782,21 @@ void main() {
       final preNormalized = {'alpha': 1, 'beta': 2};
 
       expect(
-          doc.requireEnum('m1', map, preNormalizedLowerMapping: preNormalized),
-          1);
+        doc.requireEnum('m1', map, preNormalizedLowerMapping: preNormalized),
+        1,
+      );
       expect(
-          doc.requireEnum('m2', map, preNormalizedLowerMapping: preNormalized),
-          2);
+        doc.requireEnum('m2', map, preNormalizedLowerMapping: preNormalized),
+        2,
+      );
       expect(
-          () => doc.requireEnum('missing', map,
-              preNormalizedLowerMapping: preNormalized),
-          throwsFormatException);
+        () => doc.requireEnum(
+          'missing',
+          map,
+          preNormalizedLowerMapping: preNormalized,
+        ),
+        throwsFormatException,
+      );
     });
 
     test('requireDuration and requireBytes', () {
@@ -801,9 +811,7 @@ void main() {
     });
 
     test('getDateTime / requireDateTime', () {
-      final doc = FlatDocument(const [
-        FlatEntry('ts', '2024-01-02T03:04:05Z'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('ts', '2024-01-02T03:04:05Z')]);
       expect(doc.getDateTime('ts')!.toUtc().year, 2024);
       expect(() => doc.requireDateTime('missing'), throwsFormatException);
     });
@@ -968,27 +976,29 @@ void main() {
       expect(() => d2.requireColor('bad'), throwsFormatException);
     });
 
-    test('requireColor cssAlphaAtEnd parameter controls 8-digit interpretation',
-        () {
-      final d = docOf({
-        'css_style': '11223344', // RRGGBBAA format
-        'traditional': '44112233', // AARRGGBB format
-      });
+    test(
+      'requireColor cssAlphaAtEnd parameter controls 8-digit interpretation',
+      () {
+        final d = docOf({
+          'css_style': '11223344', // RRGGBBAA format
+          'traditional': '44112233', // AARRGGBB format
+        });
 
-      // Default behavior (cssAlphaAtEnd = true): RRGGBBAA -> AARRGGBB
-      final cssColor = d.requireColor('css_style');
-      expect(cssColor['a'], 0x44);
-      expect(cssColor['r'], 0x11);
-      expect(cssColor['g'], 0x22);
-      expect(cssColor['b'], 0x33);
+        // Default behavior (cssAlphaAtEnd = true): RRGGBBAA -> AARRGGBB
+        final cssColor = d.requireColor('css_style');
+        expect(cssColor['a'], 0x44);
+        expect(cssColor['r'], 0x11);
+        expect(cssColor['g'], 0x22);
+        expect(cssColor['b'], 0x33);
 
-      // Traditional behavior (cssAlphaAtEnd = false): AARRGGBB -> AARRGGBB (no change)
-      final tradColor = d.requireColor('traditional', cssAlphaAtEnd: false);
-      expect(tradColor['a'], 0x44);
-      expect(tradColor['r'], 0x11);
-      expect(tradColor['g'], 0x22);
-      expect(tradColor['b'], 0x33);
-    });
+        // Traditional behavior (cssAlphaAtEnd = false): AARRGGBB -> AARRGGBB (no change)
+        final tradColor = d.requireColor('traditional', cssAlphaAtEnd: false);
+        expect(tradColor['a'], 0x44);
+        expect(tradColor['r'], 0x11);
+        expect(tradColor['g'], 0x22);
+        expect(tradColor['b'], 0x33);
+      },
+    );
 
     test('getIntInRange returns null when parse fails', () {
       final d = docOf({'ix': 'oops'});
@@ -1013,12 +1023,13 @@ void main() {
     test('getDurationOr uses default on missing/invalid', () {
       final d = docOf({'t': 'xs'});
       expect(
-          d.getDurationOr('missing', const Duration(seconds: 2)).inSeconds, 2);
+        d.getDurationOr('missing', const Duration(seconds: 2)).inSeconds,
+        2,
+      );
       expect(
-          d
-              .getDurationOr('t', const Duration(milliseconds: 150))
-              .inMilliseconds,
-          150);
+        d.getDurationOr('t', const Duration(milliseconds: 150)).inMilliseconds,
+        150,
+      );
     });
 
     test('getNum parses int/double and returns null on invalid/missing', () {
@@ -1030,8 +1041,13 @@ void main() {
     });
 
     test('getPercent and requirePercent', () {
-      final d = docOf(
-          {'p1': '50%', 'p2': ' 80 % ', 'p3': '0.25', 'p4': '80', 'neg': '-1'});
+      final d = docOf({
+        'p1': '50%',
+        'p2': ' 80 % ',
+        'p3': '0.25',
+        'p4': '80',
+        'neg': '-1',
+      });
       expect(d.getPercent('p1'), closeTo(0.5, 1e-9));
       expect(d.getPercent('p2'), closeTo(0.8, 1e-9));
       expect(d.getPercent('p3'), closeTo(0.25, 1e-9));
@@ -1055,8 +1071,10 @@ void main() {
       expect(d.getPercent('p2'), closeTo(1.5, 1e-9));
       expect(d.getPercent('p3'), closeTo(0.25, 1e-9));
       expect(d.getPercent('p4'), closeTo(2.0, 1e-9));
-      expect(d.getPercent('p5'),
-          closeTo(-0.1, 1e-9)); // negative percentages are allowed
+      expect(
+        d.getPercent('p5'),
+        closeTo(-0.1, 1e-9),
+      ); // negative percentages are allowed
       expect(d.getPercent('p6'), closeTo(0.8, 1e-9));
 
       // With clamping
@@ -1064,8 +1082,10 @@ void main() {
       expect(d.getPercent('p2', clamp01: true), closeTo(1.0, 1e-9));
       expect(d.getPercent('p3', clamp01: true), closeTo(0.25, 1e-9));
       expect(d.getPercent('p4', clamp01: true), closeTo(1.0, 1e-9));
-      expect(d.getPercent('p5', clamp01: true),
-          closeTo(0.0, 1e-9)); // negative values are clamped to 0.0
+      expect(
+        d.getPercent('p5', clamp01: true),
+        closeTo(0.0, 1e-9),
+      ); // negative values are clamped to 0.0
       expect(d.getPercent('p6', clamp01: true), closeTo(0.8, 1e-9));
     });
 
@@ -1076,21 +1096,23 @@ void main() {
       expect(d.isDisabled('missing', defaultValue: true), isFalse);
     });
 
-    test('getJson parses valid JSON values and returns null on invalid/missing',
-        () {
-      final d = docOf({
-        'obj': '{"a":1, "b":[2,3]}',
-        'arr': '[1,2,3]',
-        'bad': '{not json}',
-      });
-      final obj = d.getJson('obj') as Map<String, dynamic>;
-      expect(obj['a'], 1);
-      expect((obj['b'] as List).length, 2);
-      final arr = d.getJson('arr') as List<dynamic>;
-      expect(arr, [1, 2, 3]);
-      expect(d.getJson('bad'), isNull);
-      expect(d.getJson('missing'), isNull);
-    });
+    test(
+      'getJson parses valid JSON values and returns null on invalid/missing',
+      () {
+        final d = docOf({
+          'obj': '{"a":1, "b":[2,3]}',
+          'arr': '[1,2,3]',
+          'bad': '{not json}',
+        });
+        final obj = d.getJson('obj') as Map<String, dynamic>;
+        expect(obj['a'], 1);
+        expect((obj['b'] as List).length, 2);
+        final arr = d.getJson('arr') as List<dynamic>;
+        expect(arr, [1, 2, 3]);
+        expect(d.getJson('bad'), isNull);
+        expect(d.getJson('missing'), isNull);
+      },
+    );
 
     test('requireJson throws on missing/invalid and returns decoded value', () {
       final d = docOf({'x': '{"k":"v"}'});
@@ -1098,7 +1120,9 @@ void main() {
       expect(j['k'], 'v');
       expect(() => d.requireJson('missing'), throwsFormatException);
       expect(
-          () => docOf({'bad': 'x'}).requireJson('bad'), throwsFormatException);
+        () => docOf({'bad': 'x'}).requireJson('bad'),
+        throwsFormatException,
+      );
     });
 
     test('isOneOf supports case-insensitive matching by default', () {
@@ -1122,7 +1146,7 @@ void main() {
         'r2': '4:3',
         'bad1': '16-',
         'bad2': 'x:y',
-        'bad3': '1:0'
+        'bad3': '1:0',
       });
       expect(d.getRatio('r1')!, closeTo(16 / 9, 1e-9));
       expect(d.getRatio('r2')!, closeTo(4 / 3, 1e-9));
@@ -1144,54 +1168,55 @@ void main() {
     });
 
     test(
-        'getListOfDocuments parses list of mini-documents with default separators',
-        () {
-      final d = docOf({
-        'servers': 'host=foo,port=8080 | host=bar,port=9090 | invalid | ,',
-      });
-      final list = d.getListOfDocuments('servers')!;
-      expect(list.length, 2);
-      expect(list[0].entries, [
-        const FlatEntry('host', 'foo'),
-        const FlatEntry('port', '8080'),
-      ]);
-      expect(list[1].entries, [
-        const FlatEntry('host', 'bar'),
-        const FlatEntry('port', '9090'),
-      ]);
-    });
+      'getListOfDocuments parses list of mini-documents with default separators',
+      () {
+        final d = docOf({
+          'servers': 'host=foo,port=8080 | host=bar,port=9090 | invalid | ,',
+        });
+        final list = d.getListOfDocuments('servers')!;
+        expect(list.length, 2);
+        expect(list[0].entries, [
+          const FlatEntry('host', 'foo'),
+          const FlatEntry('port', '8080'),
+        ]);
+        expect(list[1].entries, [
+          const FlatEntry('host', 'bar'),
+          const FlatEntry('port', '9090'),
+        ]);
+      },
+    );
 
     test(
-        'getListOfDocuments supports custom list/item separators and quoted values',
-        () {
-      final d = docOf({
-        'cfg': 'k1="v=1";k2=2  /  x=3;y=" a , b "',
-      });
-      final list = d.getListOfDocuments(
-        'cfg',
-        listSep: '/',
-        itemSep: ';',
-        decodeEscapesInQuoted: true,
-      )!;
-      expect(list.length, 2);
-      expect(list[0].entries, [
-        const FlatEntry('k1', 'v=1'),
-        const FlatEntry('k2', '2'),
-      ]);
-      expect(list[1].entries, [
-        const FlatEntry('x', '3'),
-        const FlatEntry('y', ' a , b '),
-      ]);
-    });
+      'getListOfDocuments supports custom list/item separators and quoted values',
+      () {
+        final d = docOf({'cfg': 'k1="v=1";k2=2  /  x=3;y=" a , b "'});
+        final list = d.getListOfDocuments(
+          'cfg',
+          listSep: '/',
+          itemSep: ';',
+          decodeEscapesInQuoted: true,
+        )!;
+        expect(list.length, 2);
+        expect(list[0].entries, [
+          const FlatEntry('k1', 'v=1'),
+          const FlatEntry('k2', '2'),
+        ]);
+        expect(list[1].entries, [
+          const FlatEntry('x', '3'),
+          const FlatEntry('y', ' a , b '),
+        ]);
+      },
+    );
 
     test(
-        'getListOfDocuments returns null when key missing and empty list for only invalid/empty',
-        () {
-      final d1 = docOf({});
-      expect(d1.getListOfDocuments('missing'), isNull);
-      final d2 = docOf({'s': ' | | '});
-      expect(d2.getListOfDocuments('s')!, isEmpty);
-    });
+      'getListOfDocuments returns null when key missing and empty list for only invalid/empty',
+      () {
+        final d1 = docOf({});
+        expect(d1.getListOfDocuments('missing'), isNull);
+        final d2 = docOf({'s': ' | | '});
+        expect(d2.getListOfDocuments('s')!, isEmpty);
+      },
+    );
 
     test('getHostPort parses host, host:port and IPv6 bracket forms', () {
       final d = docOf({
@@ -1241,10 +1266,18 @@ void main() {
 
     test('getListOrEmpty respects custom separator and options', () {
       final d = docOf({'list': 'a|b||c|'});
-      expect(d.getListOrEmpty('list', separator: '|', skipEmpty: false),
-          ['a', 'b', '', 'c', '']);
-      expect(d.getListOrEmpty('list', separator: '|', skipEmpty: true),
-          ['a', 'b', 'c']);
+      expect(d.getListOrEmpty('list', separator: '|', skipEmpty: false), [
+        'a',
+        'b',
+        '',
+        'c',
+        '',
+      ]);
+      expect(d.getListOrEmpty('list', separator: '|', skipEmpty: true), [
+        'a',
+        'b',
+        'c',
+      ]);
     });
 
     test('getSetOrEmpty returns empty set when key is missing', () {
@@ -1260,10 +1293,15 @@ void main() {
 
     test('getSetOrEmpty respects custom separator and options', () {
       final d = docOf({'set': 'A|a||B|'});
-      expect(d.getSetOrEmpty('set', separator: '|', skipEmpty: false),
-          {'a', 'b', ''});
-      expect(
-          d.getSetOrEmpty('set', separator: '|', skipEmpty: true), {'a', 'b'});
+      expect(d.getSetOrEmpty('set', separator: '|', skipEmpty: false), {
+        'a',
+        'b',
+        '',
+      });
+      expect(d.getSetOrEmpty('set', separator: '|', skipEmpty: true), {
+        'a',
+        'b',
+      });
     });
 
     test('getMapOrEmpty returns empty map when key is missing', () {
@@ -1299,7 +1337,7 @@ void main() {
       final map = d.getMap('data', itemSep: ',', pairSep: '=');
       expect(map, {
         'key1': '"value with = sign"',
-        'key2': 'normal value'
+        'key2': 'normal value',
       }); // Wrong parsing!
 
       // getDocument() uses quote-aware parsing - IS quote-aware
@@ -1311,18 +1349,18 @@ void main() {
       ]);
     });
 
-    test('getMap vs getDocument quote-awareness with comma in quoted value',
-        () {
+    test('getMap vs getDocument quote-awareness with comma in quoted value', () {
       // Another example showing the difference with commas inside quoted values
 
-      final d =
-          docOf({'data': 'key1="value, with, commas", key2=normal value'});
+      final d = docOf({
+        'data': 'key1="value, with, commas", key2=normal value',
+      });
 
       // getMap() will incorrectly split on commas inside the quoted value
       final map = d.getMap('data', itemSep: ',', pairSep: '=');
       expect(map, {
         'key1': '"value',
-        'key2': 'normal value'
+        'key2': 'normal value',
       }); // Wrong! Missing middle part
 
       // getDocument() correctly handles commas inside quoted values
@@ -1348,27 +1386,28 @@ void main() {
     });
 
     test(
-        'getColorTuple cssAlphaAtEnd parameter controls 8-digit interpretation',
-        () {
-      final d = docOf({
-        'css_style': '11223344', // RRGGBBAA format
-        'traditional': '44112233', // AARRGGBB format
-      });
+      'getColorTuple cssAlphaAtEnd parameter controls 8-digit interpretation',
+      () {
+        final d = docOf({
+          'css_style': '11223344', // RRGGBBAA format
+          'traditional': '44112233', // AARRGGBB format
+        });
 
-      // Default behavior (cssAlphaAtEnd = true): RRGGBBAA -> AARRGGBB
-      final cssTuple = d.getColorTuple('css_style')!;
-      expect(cssTuple.$1, 0x44); // alpha
-      expect(cssTuple.$2, 0x11); // red
-      expect(cssTuple.$3, 0x22); // green
-      expect(cssTuple.$4, 0x33); // blue
+        // Default behavior (cssAlphaAtEnd = true): RRGGBBAA -> AARRGGBB
+        final cssTuple = d.getColorTuple('css_style')!;
+        expect(cssTuple.$1, 0x44); // alpha
+        expect(cssTuple.$2, 0x11); // red
+        expect(cssTuple.$3, 0x22); // green
+        expect(cssTuple.$4, 0x33); // blue
 
-      // Traditional behavior (cssAlphaAtEnd = false): AARRGGBB -> AARRGGBB (no change)
-      final tradTuple = d.getColorTuple('traditional', cssAlphaAtEnd: false)!;
-      expect(tradTuple.$1, 0x44); // alpha
-      expect(tradTuple.$2, 0x11); // red
-      expect(tradTuple.$3, 0x22); // green
-      expect(tradTuple.$4, 0x33); // blue
-    });
+        // Traditional behavior (cssAlphaAtEnd = false): AARRGGBB -> AARRGGBB (no change)
+        final tradTuple = d.getColorTuple('traditional', cssAlphaAtEnd: false)!;
+        expect(tradTuple.$1, 0x44); // alpha
+        expect(tradTuple.$2, 0x11); // red
+        expect(tradTuple.$3, 0x22); // green
+        expect(tradTuple.$4, 0x33); // blue
+      },
+    );
 
     test('getColorTuple returns null when hex invalid', () {
       final d = docOf({'c': '#ggg'});
@@ -1394,28 +1433,31 @@ void main() {
     });
 
     test(
-        'requireColorTuple cssAlphaAtEnd parameter controls 8-digit interpretation',
-        () {
-      final d = docOf({
-        'css_style': '11223344', // RRGGBBAA format
-        'traditional': '44112233', // AARRGGBB format
-      });
+      'requireColorTuple cssAlphaAtEnd parameter controls 8-digit interpretation',
+      () {
+        final d = docOf({
+          'css_style': '11223344', // RRGGBBAA format
+          'traditional': '44112233', // AARRGGBB format
+        });
 
-      // Default behavior (cssAlphaAtEnd = true): RRGGBBAA -> AARRGGBB
-      final cssTuple = d.requireColorTuple('css_style');
-      expect(cssTuple.$1, 0x44); // alpha
-      expect(cssTuple.$2, 0x11); // red
-      expect(cssTuple.$3, 0x22); // green
-      expect(cssTuple.$4, 0x33); // blue
+        // Default behavior (cssAlphaAtEnd = true): RRGGBBAA -> AARRGGBB
+        final cssTuple = d.requireColorTuple('css_style');
+        expect(cssTuple.$1, 0x44); // alpha
+        expect(cssTuple.$2, 0x11); // red
+        expect(cssTuple.$3, 0x22); // green
+        expect(cssTuple.$4, 0x33); // blue
 
-      // Traditional behavior (cssAlphaAtEnd = false): AARRGGBB -> AARRGGBB (no change)
-      final tradTuple =
-          d.requireColorTuple('traditional', cssAlphaAtEnd: false);
-      expect(tradTuple.$1, 0x44); // alpha
-      expect(tradTuple.$2, 0x11); // red
-      expect(tradTuple.$3, 0x22); // green
-      expect(tradTuple.$4, 0x33); // blue
-    });
+        // Traditional behavior (cssAlphaAtEnd = false): AARRGGBB -> AARRGGBB (no change)
+        final tradTuple = d.requireColorTuple(
+          'traditional',
+          cssAlphaAtEnd: false,
+        );
+        expect(tradTuple.$1, 0x44); // alpha
+        expect(tradTuple.$2, 0x11); // red
+        expect(tradTuple.$3, 0x22); // green
+        expect(tradTuple.$4, 0x33); // blue
+      },
+    );
 
     test('requireNum throws on missing/invalid and returns parsed value', () {
       final d1 = docOf({'i': '42', 'd': '3.14'});
@@ -1533,32 +1575,29 @@ void main() {
     });
 
     test('firstValueOf(key) should return null if key not found', () {
-      final doc = FlatDocument(const [
-        FlatEntry('key1', 'value1'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('key1', 'value1')]);
 
       expect(doc.firstValueOf('missing'), isNull);
     });
 
     test(
-        'lastValueOf(key) should return most recent value (alias to this[key])',
-        () {
-      final doc = FlatDocument(const [
-        FlatEntry('key1', 'first'),
-        FlatEntry('key2', 'only'),
-        FlatEntry('key1', 'second'),
-        FlatEntry('key1', 'last'),
-      ]);
+      'lastValueOf(key) should return most recent value (alias to this[key])',
+      () {
+        final doc = FlatDocument(const [
+          FlatEntry('key1', 'first'),
+          FlatEntry('key2', 'only'),
+          FlatEntry('key1', 'second'),
+          FlatEntry('key1', 'last'),
+        ]);
 
-      expect(doc.lastValueOf('key1'), 'last');
-      expect(doc.lastValueOf('key2'), 'only');
-      expect(doc.lastValueOf('key1'), doc['key1']); // should be equivalent
-    });
+        expect(doc.lastValueOf('key1'), 'last');
+        expect(doc.lastValueOf('key2'), 'only');
+        expect(doc.lastValueOf('key1'), doc['key1']); // should be equivalent
+      },
+    );
 
     test('lastValueOf(key) should return null if missing', () {
-      final doc = FlatDocument(const [
-        FlatEntry('key1', 'value1'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('key1', 'value1')]);
 
       expect(doc.lastValueOf('missing'), isNull);
     });

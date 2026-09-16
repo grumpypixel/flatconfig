@@ -21,22 +21,14 @@ Future<FlatDocument> parseFlatFile(
   String path, {
   FlatParseOptions options = const FlatParseOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-}) async =>
-    File(path).parseFlat(
-      options: options,
-      readOptions: readOptions,
-    );
+}) async => File(path).parseFlat(options: options, readOptions: readOptions);
 
 /// Reads and parses a configuration file synchronously from [path].
 FlatDocument parseFlatFileSync(
   String path, {
   FlatParseOptions options = const FlatParseOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-}) =>
-    File(path).parseFlatSync(
-      options: options,
-      readOptions: readOptions,
-    );
+}) => File(path).parseFlatSync(options: options, readOptions: readOptions);
 
 /// Reads a configuration file with includes and parses it into a [FlatDocument].
 ///
@@ -52,13 +44,12 @@ Future<FlatDocument> parseFileWithIncludes(
   FlatParseOptions options = const FlatParseOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
   Map<String, FlatDocument>? cache,
-}) async =>
-    FlatConfigIncludes.parseWithIncludesFromPath(
-      path,
-      options: options,
-      readOptions: readOptions,
-      cache: cache,
-    );
+}) async => FlatConfigIncludes.parseWithIncludesFromPath(
+  path,
+  options: options,
+  readOptions: readOptions,
+  cache: cache,
+);
 
 /// Writes a [FlatDocument] to a file asynchronously.
 ///
@@ -118,10 +109,7 @@ extension FlatConfigIO on File {
         .transform(readOptions.encoding.decoder)
         .transform(readOptions.lineSplitter);
 
-    return FlatConfig.parseFromStringStream(
-      lines,
-      options: options,
-    );
+    return FlatConfig.parseFromStringStream(lines, options: options);
   }
 
   /// Parses this file synchronously into a [FlatDocument].
@@ -156,13 +144,12 @@ extension FlatConfigIO on File {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) =>
-      FlatConfigIncludes.parseWithIncludesSync(
-        this,
-        options: options,
-        readOptions: readOptions,
-        cache: cache,
-      );
+  }) => FlatConfigIncludes.parseWithIncludesSync(
+    this,
+    options: options,
+    readOptions: readOptions,
+    cache: cache,
+  );
 
   /// Writes a [FlatDocument] to this file asynchronously.
   ///

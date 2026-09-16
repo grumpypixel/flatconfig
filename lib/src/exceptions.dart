@@ -17,10 +17,10 @@ abstract class FlatParseException extends FormatException {
     this.rawLine, {
     int? column,
   }) : super(
-          _composeMessage(message, lineNumber, rawLine, column ?? 0),
-          rawLine,
-          column ?? 0,
-        );
+         _composeMessage(message, lineNumber, rawLine, column ?? 0),
+         rawLine,
+         column ?? 0,
+       );
 
   /// The 1-based line number where the error occurred.
   ///
@@ -39,8 +39,7 @@ abstract class FlatParseException extends FormatException {
     int line,
     String raw,
     int column,
-  ) =>
-      '$base at line $line, column $column: $raw';
+  ) => '$base at line $line, column $column: $raw';
 }
 
 /// Thrown when a key-value pair is missing a separator (e.g., '=').
@@ -51,11 +50,8 @@ abstract class FlatParseException extends FormatException {
 /// Example of invalid line: `background 343028` (missing `=`)
 class MissingEqualsException extends FlatParseException {
   /// Creates a new [MissingEqualsException].
-  MissingEqualsException(
-    int lineNumber,
-    String rawLine, {
-    int? column,
-  }) : super(errorMissingEquals, lineNumber, rawLine, column: column);
+  MissingEqualsException(int lineNumber, String rawLine, {int? column})
+    : super(errorMissingEquals, lineNumber, rawLine, column: column);
 }
 
 /// Thrown when a key is empty (e.g., '= value').
@@ -66,11 +62,8 @@ class MissingEqualsException extends FlatParseException {
 /// Example of invalid line: `= 343028` (empty key)
 class EmptyKeyException extends FlatParseException {
   /// Creates a new [EmptyKeyException].
-  EmptyKeyException(
-    int lineNumber,
-    String rawLine, {
-    int? column,
-  }) : super(errorEmptyKey, lineNumber, rawLine, column: column);
+  EmptyKeyException(int lineNumber, String rawLine, {int? column})
+    : super(errorEmptyKey, lineNumber, rawLine, column: column);
 }
 
 /// Thrown when a key breaks one of the rules in SPEC.md 3.
@@ -106,11 +99,8 @@ class InvalidKeyException extends FlatParseException {
 /// Example of invalid line: `title = "My Application` (missing closing quote)
 class UnterminatedQuoteException extends FlatParseException {
   /// Creates a new [UnterminatedQuoteException].
-  UnterminatedQuoteException(
-    int lineNumber,
-    String rawLine, {
-    int? column,
-  }) : super(errorUnterminatedQuote, lineNumber, rawLine, column: column);
+  UnterminatedQuoteException(int lineNumber, String rawLine, {int? column})
+    : super(errorUnterminatedQuote, lineNumber, rawLine, column: column);
 }
 
 /// Thrown when characters appear after a properly closed quoted value.
@@ -134,11 +124,7 @@ class TrailingCharactersAfterQuoteException extends FlatParseException {
 /// directive, such as a missing required file or a circular include.
 class ConfigIncludeException extends FormatException {
   /// Creates a new [ConfigIncludeException].
-  ConfigIncludeException(
-    super.message,
-    this.filePath, {
-    this.includePath,
-  });
+  ConfigIncludeException(super.message, this.filePath, {this.includePath});
 
   /// The path of the file that was being processed when the error occurred.
   final String filePath;
@@ -153,14 +139,12 @@ class ConfigIncludeException extends FormatException {
 /// which would lead to infinite recursion.
 class CircularIncludeException extends ConfigIncludeException {
   /// Creates a new [CircularIncludeException].
-  CircularIncludeException(
-    this.includingFile,
-    this.canonicalPath,
-  ) : super(
-          'Circular include detected: cycle at "$canonicalPath" (included by "$includingFile")',
-          includingFile,
-          includePath: canonicalPath,
-        );
+  CircularIncludeException(this.includingFile, this.canonicalPath)
+    : super(
+        'Circular include detected: cycle at "$canonicalPath" (included by "$includingFile")',
+        includingFile,
+        includePath: canonicalPath,
+      );
 
   /// The file that was trying to include the circular reference.
   final String includingFile;
@@ -179,14 +163,12 @@ class CircularIncludeException extends ConfigIncludeException {
 /// that doesn't exist and the include is not marked as optional (no `?` prefix).
 class MissingIncludeException extends ConfigIncludeException {
   /// Creates a new [MissingIncludeException].
-  MissingIncludeException(
-    this.includingFile,
-    this.missingPath,
-  ) : super(
-          'Required include file not found: "$missingPath" (required by "$includingFile")',
-          includingFile,
-          includePath: missingPath,
-        );
+  MissingIncludeException(this.includingFile, this.missingPath)
+    : super(
+        'Required include file not found: "$missingPath" (required by "$includingFile")',
+        includingFile,
+        includePath: missingPath,
+      );
 
   /// The file that was trying to include the missing file.
   final String includingFile;
@@ -205,14 +187,11 @@ class MissingIncludeException extends ConfigIncludeException {
 /// path canonicalization fails or the include graph is excessively deep.
 class MaxIncludeDepthExceededException extends ConfigIncludeException {
   /// Creates a new [MaxIncludeDepthExceededException].
-  MaxIncludeDepthExceededException(
-    String filePath,
-    this.depth,
-    this.maxDepth,
-  ) : super(
-          'Maximum include depth exceeded at "$filePath" (depth=$depth, max=$maxDepth)',
-          filePath,
-        );
+  MaxIncludeDepthExceededException(String filePath, this.depth, this.maxDepth)
+    : super(
+        'Maximum include depth exceeded at "$filePath" (depth=$depth, max=$maxDepth)',
+        filePath,
+      );
 
   /// The current include depth at the time of failure.
   final int depth;
@@ -249,7 +228,10 @@ extension FormatExceptionExplain on FormatException {
     final causeSuffix = cause == null ? '' : " (cause: $cause)";
 
     return FormatException(
-        '$message for "$key"$suffix$causeSuffix', source, offset);
+      '$message for "$key"$suffix$causeSuffix',
+      source,
+      offset,
+    );
   }
 }
 

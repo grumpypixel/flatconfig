@@ -43,10 +43,7 @@ void main() {
 
   group('Object extension includes stubs', () {
     test('parseWithIncludes on Object throws UnsupportedError', () async {
-      expect(
-        Object().parseWithIncludes(),
-        throwsA(isA<UnsupportedError>()),
-      );
+      expect(Object().parseWithIncludes(), throwsA(isA<UnsupportedError>()));
     });
 
     test('parseWithIncludesSync on Object throws UnsupportedError', () {

@@ -16,10 +16,7 @@ void main() {
       expect(copy1.lineTerminator, '\n');
 
       // Test overrides
-      final copy2 = original.copyWith(
-        encoding: latin1,
-        lineTerminator: '\r\n',
-      );
+      final copy2 = original.copyWith(encoding: latin1, lineTerminator: '\r\n');
       expect(copy2.encoding, latin1);
       expect(copy2.lineTerminator, '\r\n');
 
@@ -114,10 +111,7 @@ void main() {
       expect(copy3.merge, {'MERGE': 'value'}); // unchanged
 
       // Test empty defaults/merge
-      final copy5 = original.copyWith(
-        defaults: {},
-        merge: {},
-      );
+      final copy5 = original.copyWith(defaults: {}, merge: {});
       expect(copy5.defaults, <String, String>{});
       expect(copy5.merge, <String, String>{});
     });

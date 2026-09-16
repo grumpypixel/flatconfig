@@ -5,11 +5,7 @@ void main() {
   group('FlatConfig.fromEnvironment', () {
     group('basic loading', () {
       test('loads simple env map into FlatDocument', () {
-        final env = {
-          'HOST': 'localhost',
-          'PORT': '8080',
-          'DEBUG': 'true',
-        };
+        final env = {'HOST': 'localhost', 'PORT': '8080', 'DEBUG': 'true'};
 
         final doc = FlatConfig.fromEnvironment(env);
 
@@ -27,11 +23,7 @@ void main() {
       });
 
       test('preserves key order', () {
-        final env = {
-          'ZULU': 'z',
-          'ALPHA': 'a',
-          'MIKE': 'm',
-        };
+        final env = {'ZULU': 'z', 'ALPHA': 'a', 'MIKE': 'm'};
 
         final doc = FlatConfig.fromEnvironment(env);
         final keys = doc.keys.toList();
@@ -66,11 +58,9 @@ void main() {
         );
 
         expect(
-            doc.toMap(),
-            equals({
-              'APP_HOST': 'api.example.com',
-              'APP_PORT': '8080',
-            }));
+          doc.toMap(),
+          equals({'APP_HOST': 'api.example.com', 'APP_PORT': '8080'}),
+        );
       });
 
       test('includes keys with case-insensitive prefix matching', () {
@@ -83,46 +73,37 @@ void main() {
 
         final doc = FlatConfig.fromEnvironment(
           env,
-          options: const FlatEnvOptions(
-            prefix: 'APP_',
-            caseSensitive: false,
-          ),
+          options: const FlatEnvOptions(prefix: 'APP_', caseSensitive: false),
         );
 
         expect(
-            doc.toMap(),
-            equals({
-              'app_host': 'localhost',
-              'APP_PORT': '8080',
-              'App_Debug': 'true',
-            }));
-      });
-
-      test('preserves original key case even with case-insensitive matching',
-          () {
-        final env = {
-          'aPp_HoSt': 'localhost',
-          'APP_PORT': '8080',
-        };
-
-        final doc = FlatConfig.fromEnvironment(
-          env,
-          options: const FlatEnvOptions(
-            prefix: 'app_',
-            caseSensitive: false,
-          ),
+          doc.toMap(),
+          equals({
+            'app_host': 'localhost',
+            'APP_PORT': '8080',
+            'App_Debug': 'true',
+          }),
         );
-
-        final keys = doc.keys.toList();
-        expect(keys, contains('aPp_HoSt'));
-        expect(keys, contains('APP_PORT'));
       });
+
+      test(
+        'preserves original key case even with case-insensitive matching',
+        () {
+          final env = {'aPp_HoSt': 'localhost', 'APP_PORT': '8080'};
+
+          final doc = FlatConfig.fromEnvironment(
+            env,
+            options: const FlatEnvOptions(prefix: 'app_', caseSensitive: false),
+          );
+
+          final keys = doc.keys.toList();
+          expect(keys, contains('aPp_HoSt'));
+          expect(keys, contains('APP_PORT'));
+        },
+      );
 
       test('returns empty document when no keys match prefix', () {
-        final env = {
-          'HOST': 'localhost',
-          'PORT': '8080',
-        };
+        final env = {'HOST': 'localhost', 'PORT': '8080'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -133,10 +114,7 @@ void main() {
       });
 
       test('handles empty prefix as no filtering', () {
-        final env = {
-          'HOST': 'localhost',
-          'PORT': '8080',
-        };
+        final env = {'HOST': 'localhost', 'PORT': '8080'};
 
         final doc1 = FlatConfig.fromEnvironment(
           env,
@@ -169,9 +147,7 @@ void main() {
       });
 
       test('replaces missing variables with empty string', () {
-        final env = {
-          'URL': 'https://\${HOST}:\${PORT}',
-        };
+        final env = {'URL': 'https://\${HOST}:\${PORT}'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -211,10 +187,7 @@ void main() {
       });
 
       test('does not interpolate when interpolate is false', () {
-        final env = {
-          'HOST': 'localhost',
-          'URL': 'https://\${HOST}',
-        };
+        final env = {'HOST': 'localhost', 'URL': 'https://\${HOST}'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -225,9 +198,7 @@ void main() {
       });
 
       test('skips interpolation on null values', () {
-        final env = {
-          'HOST': 'localhost',
-        };
+        final env = {'HOST': 'localhost'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -242,10 +213,7 @@ void main() {
       });
 
       test('handles values without placeholders', () {
-        final env = {
-          'HOST': 'localhost',
-          'PORT': '8080',
-        };
+        final env = {'HOST': 'localhost', 'PORT': '8080'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -257,9 +225,7 @@ void main() {
       });
 
       test('interpolates from merged environment (defaults + env + merge)', () {
-        final env = {
-          'PORT': '8080',
-        };
+        final env = {'PORT': '8080'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -329,9 +295,7 @@ void main() {
       });
 
       test('applies all three sources correctly', () {
-        final env = {
-          'B': 'env-b',
-        };
+        final env = {'B': 'env-b'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -350,11 +314,7 @@ void main() {
 
     group('empty values', () {
       test('keeps empty string values when keepEmptyValues is true', () {
-        final env = {
-          'KEY1': 'value',
-          'KEY2': '',
-          'KEY3': 'another',
-        };
+        final env = {'KEY1': 'value', 'KEY2': '', 'KEY3': 'another'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -362,60 +322,42 @@ void main() {
         );
 
         expect(
-            doc.toMap(),
-            equals({
-              'KEY1': 'value',
-              'KEY2': '',
-              'KEY3': 'another',
-            }));
+          doc.toMap(),
+          equals({'KEY1': 'value', 'KEY2': '', 'KEY3': 'another'}),
+        );
       });
 
       test('drops empty string values when keepEmptyValues is false', () {
-        final env = {
-          'KEY1': 'value',
-          'KEY2': '',
-          'KEY3': 'another',
-        };
+        final env = {'KEY1': 'value', 'KEY2': '', 'KEY3': 'another'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
           options: const FlatEnvOptions(keepEmptyValues: false),
         );
 
-        expect(
-            doc.toMap(),
-            equals({
-              'KEY1': 'value',
-              'KEY3': 'another',
-            }));
+        expect(doc.toMap(), equals({'KEY1': 'value', 'KEY3': 'another'}));
       });
 
       test(
-          'drops empty values from defaults and merge when keepEmptyValues is false',
-          () {
-        final env = {'B': ''};
+        'drops empty values from defaults and merge when keepEmptyValues is false',
+        () {
+          final env = {'B': ''};
 
-        final doc = FlatConfig.fromEnvironment(
-          env,
-          options: const FlatEnvOptions(
-            keepEmptyValues: false,
-            defaults: {'A': '', 'B': 'value'},
-            merge: {'C': '', 'D': 'value'},
-          ),
-        );
+          final doc = FlatConfig.fromEnvironment(
+            env,
+            options: const FlatEnvOptions(
+              keepEmptyValues: false,
+              defaults: {'A': '', 'B': 'value'},
+              merge: {'C': '', 'D': 'value'},
+            ),
+          );
 
-        expect(
-            doc.toMap(),
-            equals({
-              'D': 'value',
-            }));
-      });
+          expect(doc.toMap(), equals({'D': 'value'}));
+        },
+      );
 
       test('treats whitespace as non-empty', () {
-        final env = {
-          'KEY1': ' ',
-          'KEY2': '\t',
-        };
+        final env = {'KEY1': ' ', 'KEY2': '\t'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -431,11 +373,13 @@ void main() {
         // whether the environment deserves a skip-instead-of-throw policy.
         expect(
           () => FlatConfig.fromEnvironment({'KEY': 'a\nb'}),
-          throwsA(isA<FormatException>().having(
-            (e) => e.message,
-            'message',
-            contains('must not contain a line break'),
-          )),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('must not contain a line break'),
+            ),
+          ),
         );
       });
     });
@@ -455,19 +399,13 @@ void main() {
         final clean = doc.stripPrefix('APP_');
 
         expect(
-            clean.toMap(),
-            equals({
-              'HOST': 'api.example.com',
-              'PORT': '8080',
-              'DEBUG': 'true',
-            }));
+          clean.toMap(),
+          equals({'HOST': 'api.example.com', 'PORT': '8080', 'DEBUG': 'true'}),
+        );
       });
 
       test('works with collapse()', () {
-        final env = {
-          'KEY1': 'value1',
-          'KEY2': 'value2',
-        };
+        final env = {'KEY1': 'value1', 'KEY2': 'value2'};
 
         final doc = FlatConfig.fromEnvironment(env);
         final collapsed = doc.collapse();
@@ -484,12 +422,7 @@ void main() {
         final doc2 = FlatConfig.fromEnvironment(env2);
         final merged = doc1.merge(doc2);
 
-        expect(
-            merged.toMap(),
-            equals({
-              'HOST': 'localhost',
-              'PORT': '8080',
-            }));
+        expect(merged.toMap(), equals({'HOST': 'localhost', 'PORT': '8080'}));
       });
 
       test('works with slice()', () {
@@ -503,11 +436,9 @@ void main() {
         final sliced = doc.slice('APP_');
 
         expect(
-            sliced.toMap(),
-            equals({
-              'APP_HOST': 'localhost',
-              'APP_PORT': '8080',
-            }));
+          sliced.toMap(),
+          equals({'APP_HOST': 'localhost', 'APP_PORT': '8080'}),
+        );
       });
     });
 
@@ -554,10 +485,7 @@ void main() {
       });
 
       test('handles Unicode characters', () {
-        final env = {
-          'GREETING': 'Hello 世界 🌍',
-          'EMOJI': '🚀💻🎉',
-        };
+        final env = {'GREETING': 'Hello 世界 🌍', 'EMOJI': '🚀💻🎉'};
 
         final doc = FlatConfig.fromEnvironment(env);
 
@@ -568,10 +496,7 @@ void main() {
       test('handles circular reference in interpolation (no recursion)', () {
         // Single-pass interpolation means circular refs just produce
         // the placeholder text of the other variable
-        final env = {
-          'A': '\${B}',
-          'B': '\${A}',
-        };
+        final env = {'A': '\${B}', 'B': '\${A}'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -606,10 +531,7 @@ void main() {
       });
 
       test('custom varPattern works', () {
-        final env = {
-          'HOST': 'localhost',
-          'URL': '\$HOST/api',
-        };
+        final env = {'HOST': 'localhost', 'URL': '\$HOST/api'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -634,10 +556,7 @@ void main() {
 
         final doc = FlatConfig.fromEnvironment(
           env,
-          options: const FlatEnvOptions(
-            prefix: 'APP_',
-            interpolate: true,
-          ),
+          options: const FlatEnvOptions(prefix: 'APP_', interpolate: true),
         );
         final clean = doc.stripPrefix('APP_');
 
@@ -648,10 +567,7 @@ void main() {
       });
 
       test('layering defaults, env, and overrides', () {
-        final env = {
-          'HOST': 'prod.example.com',
-          'PORT': '8080',
-        };
+        final env = {'HOST': 'prod.example.com', 'PORT': '8080'};
 
         final doc = FlatConfig.fromEnvironment(
           env,
@@ -662,10 +578,7 @@ void main() {
               'DEBUG': 'true',
               'LOG_LEVEL': 'info',
             },
-            merge: {
-              'ENV': 'production',
-              'DEBUG': 'false',
-            },
+            merge: {'ENV': 'production', 'DEBUG': 'false'},
           ),
         );
 

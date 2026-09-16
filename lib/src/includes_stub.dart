@@ -18,8 +18,7 @@ extension FlatConfigIncludes on FlatConfig {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) async =>
-      _unsupported('FlatConfigIncludes.parseWithIncludes');
+  }) async => _unsupported('FlatConfigIncludes.parseWithIncludes');
 
   /// Synchronous variant of [parseWithIncludes].
   ///
@@ -29,8 +28,7 @@ extension FlatConfigIncludes on FlatConfig {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) =>
-      _unsupported('FlatConfigIncludes.parseWithIncludesSync');
+  }) => _unsupported('FlatConfigIncludes.parseWithIncludesSync');
 
   /// Parses a configuration file from a path with include support.
   ///
@@ -40,8 +38,7 @@ extension FlatConfigIncludes on FlatConfig {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) async =>
-      _unsupported('FlatConfigIncludes.parseWithIncludesFromPath');
+  }) async => _unsupported('FlatConfigIncludes.parseWithIncludesFromPath');
 
   /// Synchronous variant of [parseWithIncludesFromPath].
   ///
@@ -51,8 +48,7 @@ extension FlatConfigIncludes on FlatConfig {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) =>
-      _unsupported('FlatConfigIncludes.parseWithIncludesFromPathSync');
+  }) => _unsupported('FlatConfigIncludes.parseWithIncludesFromPathSync');
 }
 
 /// In includes.dart `FileIncludes` is an extension on `File`.
@@ -79,6 +75,5 @@ extension FileIncludesStub on Object {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) async =>
-      _unsupported('File.parseWithIncludes');
+  }) async => _unsupported('File.parseWithIncludes');
 }

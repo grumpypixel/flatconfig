@@ -89,15 +89,11 @@ FlatDocument flatDocumentFromMapData(
   final entries = <FlatEntry>[];
 
   for (final e in data.entries) {
-    final root =
-        options.keyEscaper != null ? options.keyEscaper!(e.key) : e.key;
+    final root = options.keyEscaper != null
+        ? options.keyEscaper!(e.key)
+        : e.key;
 
-    flattenValue(
-      keyPath: root,
-      value: e.value,
-      options: options,
-      out: entries,
-    );
+    flattenValue(keyPath: root, value: e.value, options: options, out: entries);
   }
 
   return FlatDocument.fromEntries(entries, strict: options.strict);
@@ -113,8 +109,11 @@ void flattenValue({
   required List<FlatEntry> out,
 }) {
   // Highest priority: user-supplied encoder may force a specific representation for ANY value.
-  final forced =
-      _tryValueOverride(value: value, keyPath: keyPath, options: options);
+  final forced = _tryValueOverride(
+    value: value,
+    keyPath: keyPath,
+    options: options,
+  );
   if (forced != null) {
     out.add(FlatEntry(keyPath, forced));
 
@@ -132,8 +131,11 @@ void flattenValue({
 
   // Scalar branch.
   if (_isScalar(value)) {
-    final encoded =
-        encodeValue(value: value, keyPath: keyPath, options: options);
+    final encoded = encodeValue(
+      value: value,
+      keyPath: keyPath,
+      options: options,
+    );
     out.add(FlatEntry(keyPath, encoded));
 
     return;
@@ -144,11 +146,18 @@ void flattenValue({
     final map = value;
     for (final entry in map.entries) {
       final rawChild = entry.key.toString();
-      final childKey =
-          _toChildPath(parent: keyPath, child: rawChild, options: options);
+      final childKey = _toChildPath(
+        parent: keyPath,
+        child: rawChild,
+        options: options,
+      );
 
       flattenValue(
-          keyPath: childKey, value: entry.value, options: options, out: out);
+        keyPath: childKey,
+        value: entry.value,
+        options: options,
+        out: out,
+      );
     }
 
     return;
@@ -160,7 +169,11 @@ void flattenValue({
 
     if (options.listMode == FlatListMode.multi) {
       _emitListAsMulti(
-          keyPath: keyPath, list: list, options: options, out: out);
+        keyPath: keyPath,
+        list: list,
+        options: options,
+        out: out,
+      );
 
       return;
     }
@@ -261,8 +274,9 @@ String _toChildPath({
   required String child,
   required FlatMapDataOptions options,
 }) {
-  final safeChild =
-      options.keyEscaper != null ? options.keyEscaper!(child) : child;
+  final safeChild = options.keyEscaper != null
+      ? options.keyEscaper!(child)
+      : child;
 
   if (parent.isEmpty) {
     return safeChild;
@@ -278,8 +292,11 @@ void _emitListAsMulti({
   required List<FlatEntry> out,
 }) {
   for (final item in list) {
-    final forced =
-        _tryValueOverride(value: item, keyPath: keyPath, options: options);
+    final forced = _tryValueOverride(
+      value: item,
+      keyPath: keyPath,
+      options: options,
+    );
     if (forced != null) {
       out.add(FlatEntry(keyPath, forced));
 
@@ -295,8 +312,11 @@ void _emitListAsMulti({
     }
 
     if (_isScalar(item)) {
-      final encoded =
-          encodeValue(value: item, keyPath: keyPath, options: options);
+      final encoded = encodeValue(
+        value: item,
+        keyPath: keyPath,
+        options: options,
+      );
       out.add(FlatEntry(keyPath, encoded));
 
       continue;
@@ -308,7 +328,8 @@ void _emitListAsMulti({
 
     if (options.onUnsupportedListItem == FlatUnsupportedListItem.error) {
       throw const FormatException(
-          'Composite item in list not supported in multi mode');
+        'Composite item in list not supported in multi mode',
+      );
     }
 
     final json = encodeJson(item);
@@ -325,8 +346,11 @@ void _emitListAsCsv({
   final items = <String>[];
 
   for (final item in list) {
-    final forced =
-        _tryValueOverride(value: item, keyPath: keyPath, options: options);
+    final forced = _tryValueOverride(
+      value: item,
+      keyPath: keyPath,
+      options: options,
+    );
     if (forced != null) {
       items.add(forced);
 
@@ -342,8 +366,11 @@ void _emitListAsCsv({
     }
 
     if (_isScalar(item)) {
-      final encoded =
-          encodeValue(value: item, keyPath: keyPath, options: options);
+      final encoded = encodeValue(
+        value: item,
+        keyPath: keyPath,
+        options: options,
+      );
       items.add(encoded);
 
       continue;
@@ -355,7 +382,8 @@ void _emitListAsCsv({
 
     if (options.onUnsupportedListItem == FlatUnsupportedListItem.error) {
       throw const FormatException(
-          'Composite item in list not supported in csv mode');
+        'Composite item in list not supported in csv mode',
+      );
     }
 
     final json = encodeJson(item);

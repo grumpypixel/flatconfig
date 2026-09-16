@@ -116,13 +116,8 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// When [strict] is `true` (default), an empty or whitespace-only key
   /// causes a [FormatException]. When `false`, such keys are silently
   /// ignored and not included in the resulting document.
-  factory FlatDocument.fromMap(
-    Map<String, String?> map, {
-    bool strict = true,
-  }) {
-    final out = [
-      for (final e in map.entries) FlatEntry(e.key, e.value),
-    ];
+  factory FlatDocument.fromMap(Map<String, String?> map, {bool strict = true}) {
+    final out = [for (final e in map.entries) FlatEntry(e.key, e.value)];
 
     return FlatDocument(strict ? out : _keepValidEntries(out));
   }
@@ -172,12 +167,11 @@ class FlatDocument extends Iterable<FlatEntry> {
     String key, {
     String? value,
     bool strict = true,
-  }) =>
-      FlatDocument(
-        strict
-            ? [FlatEntry.validated(key, value)]
-            : _keepValidEntries([FlatEntry(key, value)]),
-      );
+  }) => FlatDocument(
+    strict
+        ? [FlatEntry.validated(key, value)]
+        : _keepValidEntries([FlatEntry(key, value)]),
+  );
 
   // Private const constructor used internally
   const FlatDocument._(this.entries);
@@ -394,7 +388,7 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// for the key, or null if the key is not found or has an empty value.
   String? getString(String key) => this[key];
 
-// Validates a collection of [FlatEntry] objects.
+  // Validates a collection of [FlatEntry] objects.
   ///
   /// When [strict] is `true` (default), this method checks that all
   /// entries have non-empty keys after trimming whitespace. If any key is
@@ -468,6 +462,6 @@ class FlatDocument extends Iterable<FlatEntry> {
 /// Backs the `strict: false` mode of the document factories, which drop bad
 /// entries instead of throwing.
 List<FlatEntry> _keepValidEntries(Iterable<FlatEntry> entries) => [
-      for (final e in entries)
-        if (invalidEntryReason(e) == null) e,
-    ];
+  for (final e in entries)
+    if (invalidEntryReason(e) == null) e,
+];

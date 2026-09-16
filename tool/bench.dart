@@ -62,208 +62,248 @@ void main(List<String> args) async {
   print('');
 
   // Sync-Benches (subtract baseline)
-  _printStats(_measureSync(
-    label: 'parse(String)',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final d = FlatConfig.parse(sample);
-      _sink ^= d.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'parse(String)',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final d = FlatConfig.parse(sample);
+        _sink ^= d.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'encode(Document, default)',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final s = doc.encode();
-      _sink ^= s.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'encode(Document, default)',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final s = doc.encode();
+        _sink ^= s.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'encode(Document, escaped+alwaysQuote)',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final s = doc.encode(
-        options: const FlatEncodeOptions(
-          escapeQuoted: true,
-          alwaysQuote: true,
-        ),
-      );
-      _sink ^= s.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'encode(Document, escaped+alwaysQuote)',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final s = doc.encode(
+          options: const FlatEncodeOptions(
+            escapeQuoted: true,
+            alwaysQuote: true,
+          ),
+        );
+        _sink ^= s.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'whereKey("k0").toList()',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final l = doc.whereKey('k0').toList();
-      _sink ^= l.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'whereKey("k0").toList()',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final l = doc.whereKey('k0').toList();
+        _sink ^= l.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'whereKeys(5 items).toList()',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final l = doc.whereKeys(['k0', 'k1', 'k2', 'k3', 'k4']).toList();
-      _sink ^= l.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'whereKeys(5 items).toList()',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final l = doc.whereKeys(['k0', 'k1', 'k2', 'k3', 'k4']).toList();
+        _sink ^= l.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'whereValue("v0").toList()',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final l = doc.whereValue('v0').toList();
-      _sink ^= l.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'whereValue("v0").toList()',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final l = doc.whereValue('v0').toList();
+        _sink ^= l.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'keys.toList()',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final l = doc.keys.toList();
-      _sink ^= l.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'keys.toList()',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final l = doc.keys.toList();
+        _sink ^= l.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'has("k0")',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final b = doc.has('k0');
-      _sink ^= b ? 1 : 0;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'has("k0")',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final b = doc.has('k0');
+        _sink ^= b ? 1 : 0;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'firstValueOf("k0")',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final s = doc.firstValueOf('k0');
-      _sink ^= (s?.length ?? 0);
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'firstValueOf("k0")',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final s = doc.firstValueOf('k0');
+        _sink ^= (s?.length ?? 0);
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'valuesOf("k0")',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final l = doc.valuesOf('k0');
-      _sink ^= l.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'valuesOf("k0")',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final l = doc.valuesOf('k0');
+        _sink ^= l.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'getInt("k0") / getBool / getDouble',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      _sink ^= (doc.getInt('k0') ?? 0);
-      _sink ^= (doc.getBool('k0') == true ? 1 : 0);
-      _sink ^= (doc.getDouble('k0')?.toInt() ?? 0);
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'getInt("k0") / getBool / getDouble',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        _sink ^= (doc.getInt('k0') ?? 0);
+        _sink ^= (doc.getBool('k0') == true ? 1 : 0);
+        _sink ^= (doc.getDouble('k0')?.toInt() ?? 0);
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'collapse()',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final d = doc.collapse();
-      _sink ^= d.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'collapse()',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final d = doc.collapse();
+        _sink ^= d.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'getDocument("mini")',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final sub = docPairs.getDocument('mini');
-      _sink ^= sub.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'getDocument("mini")',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final sub = docPairs.getDocument('mini');
+        _sink ^= sub.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'getListOfDocuments("servers")',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final list = docListOfDocs.getListOfDocuments('servers') ?? const [];
-      _sink ^= list.length;
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'getListOfDocuments("servers")',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        final list = docListOfDocs.getListOfDocuments('servers') ?? const [];
+        _sink ^= list.length;
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'getHexColor(AA at end, cssAlphaAtEnd=true)',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      _sink ^= (docColors.getHexColor('cRrGgBbAa', cssAlphaAtEnd: true) ?? 0);
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'getHexColor(AA at end, cssAlphaAtEnd=true)',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        _sink ^= (docColors.getHexColor('cRrGgBbAa', cssAlphaAtEnd: true) ?? 0);
+      },
+    ).minus(baseline),
+  );
 
-  _printStats(_measureSync(
-    label: 'getHexColor(AA at front, cssAlphaAtEnd=false)',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      _sink ^= (docColors.getHexColor('cAaRrGgBb', cssAlphaAtEnd: false) ?? 0);
-    },
-  ).minus(baseline));
+  _printStats(
+    _measureSync(
+      label: 'getHexColor(AA at front, cssAlphaAtEnd=false)',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        _sink ^=
+            (docColors.getHexColor('cAaRrGgBb', cssAlphaAtEnd: false) ?? 0);
+      },
+    ).minus(baseline),
+  );
 
   // Async-Benches (separate; subtracting baseline is less meaningful)
   print('');
-  _printStats(await _measureAsync(
-    label: 'parse(File.parseFlat)',
-    iterations: iterations,
-    repeats: repeats,
-    body: () async {
-      final d = await io.parseFlatFile(file.path);
-      _sink ^= d.length;
-    },
-  ));
+  _printStats(
+    await _measureAsync(
+      label: 'parse(File.parseFlat)',
+      iterations: iterations,
+      repeats: repeats,
+      body: () async {
+        final d = await io.parseFlatFile(file.path);
+        _sink ^= d.length;
+      },
+    ),
+  );
 
-  _printStats(await _measureAsync(
-    label: 'parseFromByteStream(Stream.value(bytes))',
-    iterations: iterations,
-    repeats: repeats,
-    body: () async {
-      final d = await FlatConfig.parseFromByteStream(Stream.value(bytes));
-      _sink ^= d.length;
-    },
-  ));
+  _printStats(
+    await _measureAsync(
+      label: 'parseFromByteStream(Stream.value(bytes))',
+      iterations: iterations,
+      repeats: repeats,
+      body: () async {
+        final d = await FlatConfig.parseFromByteStream(Stream.value(bytes));
+        _sink ^= d.length;
+      },
+    ),
+  );
 
-  _printStats(await _measureAsync(
-    label: 'parseEntries(file.openRead()) [stream]',
-    iterations: iterations,
-    repeats: repeats,
-    body: () async {
-      var c = 0;
-      await for (final e in FlatConfig.parseEntries(file.openRead())) {
-        c ^= (e.value?.length ?? 0);
-      }
-      _sink ^= c;
-    },
-  ));
+  _printStats(
+    await _measureAsync(
+      label: 'parseEntries(file.openRead()) [stream]',
+      iterations: iterations,
+      repeats: repeats,
+      body: () async {
+        var c = 0;
+        await for (final e in FlatConfig.parseEntries(file.openRead())) {
+          c ^= (e.value?.length ?? 0);
+        }
+        _sink ^= c;
+      },
+    ),
+  );
 
   // Includes benches (cold vs. warm cache)
   final incDir = await Directory.systemTemp.createTemp('flatconfig_bench_inc_');
-  final mainInc = File('${incDir.path}/main.conf')..writeAsStringSync('''
+  final mainInc = File('${incDir.path}/main.conf')
+    ..writeAsStringSync('''
 # main
 app = bench
 config-file = theme.conf
@@ -283,28 +323,36 @@ feature-a = on
 feature-b = off
 ''');
 
-  _printStats(await _measureAsync(
-    label: 'parseWithIncludes (cold)',
-    iterations: iterations,
-    repeats: repeats,
-    body: () async {
-      final d = await FlatConfigIncludes.parseWithIncludes(mainInc,
-          cache: <String, FlatDocument>{});
-      _sink ^= d.length;
-    },
-  ));
+  _printStats(
+    await _measureAsync(
+      label: 'parseWithIncludes (cold)',
+      iterations: iterations,
+      repeats: repeats,
+      body: () async {
+        final d = await FlatConfigIncludes.parseWithIncludes(
+          mainInc,
+          cache: <String, FlatDocument>{},
+        );
+        _sink ^= d.length;
+      },
+    ),
+  );
 
   final includesCache = <String, FlatDocument>{};
-  _printStats(await _measureAsync(
-    label: 'parseWithIncludes (warm cache)',
-    iterations: iterations,
-    repeats: repeats,
-    body: () async {
-      final d = await FlatConfigIncludes.parseWithIncludes(mainInc,
-          cache: includesCache);
-      _sink ^= d.length;
-    },
-  ));
+  _printStats(
+    await _measureAsync(
+      label: 'parseWithIncludes (warm cache)',
+      iterations: iterations,
+      repeats: repeats,
+      body: () async {
+        final d = await FlatConfigIncludes.parseWithIncludes(
+          mainInc,
+          cache: includesCache,
+        );
+        _sink ^= d.length;
+      },
+    ),
+  );
 
   // Cleanup includes temp directory
   try {
@@ -315,35 +363,39 @@ feature-b = off
 
   // Strict vs. Lax
   final strictSample = '# ok\nonlykey\nk = v\n';
-  _printStats(_measureSync(
-    label: 'parse(String, lax)',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      final d = FlatConfig.parse(
-        strictSample,
-        options: const FlatParseOptions(strict: false),
-      );
-      _sink ^= d.length;
-    },
-  ).minus(baseline));
-
-  _printStats(_measureSync(
-    label: 'parse(String, strict)',
-    iterations: iterations,
-    repeats: repeats,
-    body: () {
-      try {
+  _printStats(
+    _measureSync(
+      label: 'parse(String, lax)',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
         final d = FlatConfig.parse(
           strictSample,
-          options: const FlatParseOptions(strict: true),
+          options: const FlatParseOptions(strict: false),
         );
-        _sink ^= d.length; // will not be reached
-      } catch (_) {
-        _sink ^= 1; // error path is counted
-      }
-    },
-  ).minus(baseline));
+        _sink ^= d.length;
+      },
+    ).minus(baseline),
+  );
+
+  _printStats(
+    _measureSync(
+      label: 'parse(String, strict)',
+      iterations: iterations,
+      repeats: repeats,
+      body: () {
+        try {
+          final d = FlatConfig.parse(
+            strictSample,
+            options: const FlatParseOptions(strict: true),
+          );
+          _sink ^= d.length; // will not be reached
+        } catch (_) {
+          _sink ^= 1; // error path is counted
+        }
+      },
+    ).minus(baseline),
+  );
 
   // Prevents the compiler from optimizing "everything" away
   stdout.writeln('\n(ignore) sink=$_sink');
@@ -393,12 +445,13 @@ class BenchStats {
 
 void _printStats(BenchStats s) {
   stdout.writeln(
-      '${s.label.padRight(42)} median=${s.median.toStringAsFixed(0)}µs '
-      '(${s.medianPerIter.toStringAsFixed(1)}µs/iter, '
-      '${s.opsPerSecMedian.toStringAsFixed(1)} ops/s)   '
-      'best=${s.best}µs '
-      '(${s.bestPerIter.toStringAsFixed(1)}µs/iter, '
-      '${s.opsPerSecBest.toStringAsFixed(1)} ops/s)');
+    '${s.label.padRight(42)} median=${s.median.toStringAsFixed(0)}µs '
+    '(${s.medianPerIter.toStringAsFixed(1)}µs/iter, '
+    '${s.opsPerSecMedian.toStringAsFixed(1)} ops/s)   '
+    'best=${s.best}µs '
+    '(${s.bestPerIter.toStringAsFixed(1)}µs/iter, '
+    '${s.opsPerSecBest.toStringAsFixed(1)} ops/s)',
+  );
 }
 
 BenchStats _measureSync({

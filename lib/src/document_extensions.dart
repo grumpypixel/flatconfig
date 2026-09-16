@@ -63,8 +63,9 @@ extension FlatDocumentExtensions on FlatDocument {
     bool Function(String key)? isMultiValueKey,
     bool ignoreResets = false,
   }) {
-    final multiSet =
-        multiValueKeys is Set<String> ? multiValueKeys : multiValueKeys.toSet();
+    final multiSet = multiValueKeys is Set<String>
+        ? multiValueKeys
+        : multiValueKeys.toSet();
 
     bool isMulti(String k) =>
         multiSet.contains(k) || (isMultiValueKey?.call(k) ?? false);
@@ -156,13 +157,12 @@ extension FlatDocumentExtensions on FlatDocument {
   /// // background = 343028
   /// // title = My App
   /// ```
-  String encode({
-    FlatEncodeOptions options = const FlatEncodeOptions(),
-  }) {
+  String encode({FlatEncodeOptions options = const FlatEncodeOptions()}) {
     String quoteIfNeeded(String v) {
       final hasLeadingOrTrailingWhitespace = v != v.trim();
       final containsSeparator = v.contains(Constants.pairSeparator);
-      final startsWithComment = options.commentPrefix.isNotEmpty &&
+      final startsWithComment =
+          options.commentPrefix.isNotEmpty &&
           v.trimLeft().startsWith(options.commentPrefix);
       final containsDoubleQuote = v.contains(Constants.quote);
       final containsNewline =
@@ -171,7 +171,8 @@ extension FlatDocumentExtensions on FlatDocument {
       // An empty string must be quoted: a bare `key = ` is the wire form of an
       // explicit reset, so emitting it here would turn '' into null on the way
       // back (SPEC.md 6).
-      final needsQuoting = v.isEmpty ||
+      final needsQuoting =
+          v.isEmpty ||
           options.alwaysQuote ||
           (options.quoteIfWhitespace && hasLeadingOrTrailingWhitespace) ||
           containsSeparator ||

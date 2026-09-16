@@ -24,37 +24,26 @@ void main() {
     });
 
     test('null-valued keys fail by default (ignoreNulls: true)', () {
-      final doc = FlatDocument(const [
-        FlatEntry('present-null', null),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('present-null', null)]);
 
       expect(doc.hasAllKeys(['present-null']), isFalse);
     });
 
     test('null-valued keys pass when ignoreNulls is false', () {
-      final doc = FlatDocument(const [
-        FlatEntry('present-null', null),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('present-null', null)]);
 
-      expect(
-        doc.hasAllKeys(['present-null'], ignoreNulls: false),
-        isTrue,
-      );
+      expect(doc.hasAllKeys(['present-null'], ignoreNulls: false), isTrue);
     });
 
     test('empty string value counts as present (not null)', () {
-      final doc = FlatDocument(const [
-        FlatEntry('empty', ''),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('empty', '')]);
 
       expect(doc.hasAllKeys(['empty']), isTrue);
       expect(doc.hasAllKeys(['empty'], ignoreNulls: false), isTrue);
     });
 
     test('caseSensitive: true (default) respects case differences', () {
-      final doc = FlatDocument(const [
-        FlatEntry('Host', 'localhost'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('Host', 'localhost')]);
 
       expect(doc.hasAllKeys(['host']), isFalse);
       expect(doc.hasAllKeys(['Host']), isTrue);
@@ -66,10 +55,7 @@ void main() {
         FlatEntry('PORT', '8080'),
       ]);
 
-      expect(
-        doc.hasAllKeys(['host', 'port'], caseSensitive: false),
-        isTrue,
-      );
+      expect(doc.hasAllKeys(['host', 'port'], caseSensitive: false), isTrue);
     });
 
     test('case-insensitive map uses last write for duplicates', () {
@@ -80,10 +66,7 @@ void main() {
       ]);
 
       // Default ignoreNulls -> false because last write is null
-      expect(
-        doc.hasAllKeys(['port'], caseSensitive: false),
-        isFalse,
-      );
+      expect(doc.hasAllKeys(['port'], caseSensitive: false), isFalse);
 
       // When ignoreNulls is false, presence with null is acceptable
       expect(
@@ -93,9 +76,7 @@ void main() {
     });
 
     test('empty keys iterable returns true (vacuous truth)', () {
-      final doc = FlatDocument(const [
-        FlatEntry('a', '1'),
-      ]);
+      final doc = FlatDocument(const [FlatEntry('a', '1')]);
 
       expect(doc.hasAllKeys([]), isTrue);
     });
@@ -125,10 +106,7 @@ HOST =
 ''');
 
       // null → treated as missing with ignoreNulls=true
-      expect(
-        doc.hasAllKeys(['host'], caseSensitive: false),
-        isFalse,
-      );
+      expect(doc.hasAllKeys(['host'], caseSensitive: false), isFalse);
 
       // null accepted when ignoreNulls=false
       expect(
@@ -172,47 +150,51 @@ b =
     });
 
     test(
-        'case-insensitive collision: earlier non-null, later null (last write wins)',
-        () {
-      final doc = FlatDocument(const [
-        FlatEntry('Port', '8080'),
-        FlatEntry('PORT', null), // later null
-      ]);
+      'case-insensitive collision: earlier non-null, later null (last write wins)',
+      () {
+        final doc = FlatDocument(const [
+          FlatEntry('Port', '8080'),
+          FlatEntry('PORT', null), // later null
+        ]);
 
-      // ignoreNulls=true → false (null counts as not present)
-      expect(doc.hasAllKeys(['port'], caseSensitive: false), isFalse);
+        // ignoreNulls=true → false (null counts as not present)
+        expect(doc.hasAllKeys(['port'], caseSensitive: false), isFalse);
 
-      // ignoreNulls=false → true (null accepted as present)
-      expect(
-        doc.hasAllKeys(['port'], caseSensitive: false, ignoreNulls: false),
-        isTrue,
-      );
-    });
+        // ignoreNulls=false → true (null accepted as present)
+        expect(
+          doc.hasAllKeys(['port'], caseSensitive: false, ignoreNulls: false),
+          isTrue,
+        );
+      },
+    );
 
     test(
-        'case-insensitive collision: earlier null, later non-null (last write wins)',
-        () {
-      final doc = FlatDocument(const [
-        FlatEntry('PORT', null),
-        FlatEntry('port', '8080'), // later non-null
-      ]);
+      'case-insensitive collision: earlier null, later non-null (last write wins)',
+      () {
+        final doc = FlatDocument(const [
+          FlatEntry('PORT', null),
+          FlatEntry('port', '8080'), // later non-null
+        ]);
 
-      expect(doc.hasAllKeys(['PORT'], caseSensitive: false), isTrue);
-    });
+        expect(doc.hasAllKeys(['PORT'], caseSensitive: false), isTrue);
+      },
+    );
 
     test('empty value "" is not null and counts as present by default', () {
       final doc = FlatDocument(const [FlatEntry('k', '')]);
       expect(doc.hasAllKeys(['k']), isTrue);
     });
 
-    test('whitespace-only value is present after parsing quoted vs. unquoted',
-        () {
-      final quoted = FlatConfig.parse('k = "   "'); // preserved whitespace
-      expect(quoted.hasAllKeys(['k']), isTrue);
+    test(
+      'whitespace-only value is present after parsing quoted vs. unquoted',
+      () {
+        final quoted = FlatConfig.parse('k = "   "'); // preserved whitespace
+        expect(quoted.hasAllKeys(['k']), isTrue);
 
-      final unquoted = FlatConfig.parse('k =   '); // becomes null reset
-      expect(unquoted.hasAllKeys(['k']), isFalse);
-      expect(unquoted.hasAllKeys(['k'], ignoreNulls: false), isTrue);
-    });
+        final unquoted = FlatConfig.parse('k =   '); // becomes null reset
+        expect(unquoted.hasAllKeys(['k']), isFalse);
+        expect(unquoted.hasAllKeys(['k'], ignoreNulls: false), isTrue);
+      },
+    );
   });
 }

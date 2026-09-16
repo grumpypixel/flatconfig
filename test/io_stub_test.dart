@@ -18,18 +18,12 @@ void main() {
   });
 
   test('parseFileWithIncludes throws UnsupportedError on web/wasm', () async {
-    expect(
-      io.parseFileWithIncludes('path'),
-      throwsA(isA<UnsupportedError>()),
-    );
+    expect(io.parseFileWithIncludes('path'), throwsA(isA<UnsupportedError>()));
   });
 
   test('writeFlat throws UnsupportedError on web/wasm', () async {
     final doc = FlatDocument(const [FlatEntry('a', '1')]);
-    expect(
-      io.writeFlat('path', doc),
-      throwsA(isA<UnsupportedError>()),
-    );
+    expect(io.writeFlat('path', doc), throwsA(isA<UnsupportedError>()));
   });
 
   test('writeFlatSync throws UnsupportedError on web/wasm', () {
@@ -49,25 +43,16 @@ void main() {
 
   group('Object extension stubs', () {
     test('parseFlat throws UnsupportedError', () async {
-      expect(
-        Object().parseFlat(),
-        throwsA(isA<UnsupportedError>()),
-      );
+      expect(Object().parseFlat(), throwsA(isA<UnsupportedError>()));
     });
 
     test('parseFlatSync throws UnsupportedError', () {
-      expect(
-        () => Object().parseFlatSync(),
-        throwsA(isA<UnsupportedError>()),
-      );
+      expect(() => Object().parseFlatSync(), throwsA(isA<UnsupportedError>()));
     });
 
     test('writeFlat throws UnsupportedError', () async {
       final doc = FlatDocument(const [FlatEntry('k', 'v')]);
-      expect(
-        Object().writeFlat(doc),
-        throwsA(isA<UnsupportedError>()),
-      );
+      expect(Object().writeFlat(doc), throwsA(isA<UnsupportedError>()));
     });
 
     test('writeFlatSync throws UnsupportedError', () {

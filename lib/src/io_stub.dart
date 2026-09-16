@@ -22,16 +22,14 @@ Future<FlatDocument> parseFlatFile(
   String path, {
   FlatParseOptions options = const FlatParseOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-}) async =>
-    _unsupported('parseFlatFile');
+}) async => _unsupported('parseFlatFile');
 
 /// Synchronous variant of [parseFlatFile].
 FlatDocument parseFlatFileSync(
   String path, {
   FlatParseOptions options = const FlatParseOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-}) =>
-    _unsupported('parseFlatFileSync');
+}) => _unsupported('parseFlatFileSync');
 
 /// Parses a flat config file with include support from [path].
 ///
@@ -42,8 +40,7 @@ Future<FlatDocument> parseFileWithIncludes(
   FlatParseOptions options = const FlatParseOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
   Map<String, FlatDocument>? cache,
-}) async =>
-    _unsupported('parseFileWithIncludes');
+}) async => _unsupported('parseFileWithIncludes');
 
 /// Writes a FlatDocument to a file (async).
 Future<void> writeFlat(
@@ -51,8 +48,7 @@ Future<void> writeFlat(
   FlatDocument doc, {
   FlatEncodeOptions options = const FlatEncodeOptions(),
   FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
-}) async =>
-    _unsupported('writeFlat');
+}) async => _unsupported('writeFlat');
 
 /// Writes a FlatDocument to a file (sync).
 void writeFlatSync(
@@ -60,8 +56,7 @@ void writeFlatSync(
   FlatDocument doc, {
   FlatEncodeOptions options = const FlatEncodeOptions(),
   FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
-}) =>
-    _unsupported('writeFlatSync');
+}) => _unsupported('writeFlatSync');
 
 /// Placeholder type mirroring the VM-only `FlatConfigIO` extension namespace.
 ///
@@ -75,8 +70,7 @@ extension FlatConfigIOStub on Object {
   Future<FlatDocument> parseFlat({
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) async =>
-      _unsupported('File.parseFlat');
+  }) async => _unsupported('File.parseFlat');
 
   /// Synchronous variant of [parseFlat].
   ///
@@ -84,8 +78,7 @@ extension FlatConfigIOStub on Object {
   FlatDocument parseFlatSync({
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) =>
-      _unsupported('File.parseFlatSync');
+  }) => _unsupported('File.parseFlatSync');
 
   /// Parses a configuration file with include support synchronously.
   ///
@@ -94,8 +87,7 @@ extension FlatConfigIOStub on Object {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) =>
-      _unsupported('File.parseWithIncludesSync');
+  }) => _unsupported('File.parseWithIncludesSync');
 
   /// Writes a FlatDocument to a file asynchronously.
   ///
@@ -104,8 +96,7 @@ extension FlatConfigIOStub on Object {
     FlatDocument doc, {
     FlatEncodeOptions options = const FlatEncodeOptions(),
     FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
-  }) async =>
-      _unsupported('File.writeFlat');
+  }) async => _unsupported('File.writeFlat');
 
   /// Writes a FlatDocument to a file synchronously.
   ///
@@ -114,6 +105,5 @@ extension FlatConfigIOStub on Object {
     FlatDocument doc, {
     FlatEncodeOptions options = const FlatEncodeOptions(),
     FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
-  }) =>
-      _unsupported('File.writeFlatSync');
+  }) => _unsupported('File.writeFlatSync');
 }

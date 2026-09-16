@@ -62,14 +62,13 @@ extension FlatConfigIncludes on FlatConfig {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) async =>
-      parseWithIncludesRecursive(
-        file,
-        options: options,
-        readOptions: readOptions,
-        visited: <String>{},
-        cache: cache ?? <String, FlatDocument>{},
-      );
+  }) async => parseWithIncludesRecursive(
+    file,
+    options: options,
+    readOptions: readOptions,
+    visited: <String>{},
+    cache: cache ?? <String, FlatDocument>{},
+  );
 
   /// Synchronous variant of [parseWithIncludes].
   ///
@@ -80,14 +79,13 @@ extension FlatConfigIncludes on FlatConfig {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) =>
-      parseWithIncludesRecursiveSync(
-        file,
-        options: options,
-        readOptions: readOptions,
-        visited: <String>{},
-        cache: cache ?? <String, FlatDocument>{},
-      );
+  }) => parseWithIncludesRecursiveSync(
+    file,
+    options: options,
+    readOptions: readOptions,
+    visited: <String>{},
+    cache: cache ?? <String, FlatDocument>{},
+  );
 
   /// Parses a configuration file with includes from a file path.
   ///
@@ -103,13 +101,12 @@ extension FlatConfigIncludes on FlatConfig {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) async =>
-      parseWithIncludes(
-        File(path),
-        options: options,
-        readOptions: readOptions,
-        cache: cache,
-      );
+  }) async => parseWithIncludes(
+    File(path),
+    options: options,
+    readOptions: readOptions,
+    cache: cache,
+  );
 
   /// Synchronous variant of [parseWithIncludesFromPath].
   static FlatDocument parseWithIncludesFromPathSync(
@@ -117,13 +114,12 @@ extension FlatConfigIncludes on FlatConfig {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) =>
-      parseWithIncludesSync(
-        File(path),
-        options: options,
-        readOptions: readOptions,
-        cache: cache,
-      );
+  }) => parseWithIncludesSync(
+    File(path),
+    options: options,
+    readOptions: readOptions,
+    cache: cache,
+  );
 
   /// Resolves a canonical path for a file, handling symbolic links.
   ///
@@ -169,14 +165,15 @@ extension FlatConfigIncludes on FlatConfig {
   /// and recursive parsing of included files.
   @visibleForTesting
   static Future<List<FlatEntry>> processIncludes(
-      List<String> includePaths,
-      File baseFile,
-      String canonicalPath,
-      FlatParseOptions options,
-      FlatStreamReadOptions readOptions,
-      Set<String> visited,
-      Map<String, FlatDocument> cache,
-      {int depth = 0}) async {
+    List<String> includePaths,
+    File baseFile,
+    String canonicalPath,
+    FlatParseOptions options,
+    FlatStreamReadOptions readOptions,
+    Set<String> visited,
+    Map<String, FlatDocument> cache, {
+    int depth = 0,
+  }) async {
     final includeEntries = <FlatEntry>[];
     for (final include in includePaths) {
       final processed = processIncludePath(include);
@@ -268,7 +265,10 @@ extension FlatConfigIncludes on FlatConfig {
     // Enforce maximum include depth
     if (depth > options.maxIncludeDepth) {
       throw MaxIncludeDepthExceededException(
-          file.path, depth, options.maxIncludeDepth);
+        file.path,
+        depth,
+        options.maxIncludeDepth,
+      );
     }
     // Canonicalize the path for cycle detection
     final canonicalPath = await _canonical(file);
@@ -345,7 +345,10 @@ extension FlatConfigIncludes on FlatConfig {
   }) {
     if (depth > options.maxIncludeDepth) {
       throw MaxIncludeDepthExceededException(
-          file.path, depth, options.maxIncludeDepth);
+        file.path,
+        depth,
+        options.maxIncludeDepth,
+      );
     }
 
     final canonicalPath = _canonicalSync(file);
@@ -448,11 +451,10 @@ extension FileIncludes on File {
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
-  }) async =>
-      FlatConfigIncludes.parseWithIncludes(
-        this,
-        options: options,
-        readOptions: readOptions,
-        cache: cache,
-      );
+  }) async => FlatConfigIncludes.parseWithIncludes(
+    this,
+    options: options,
+    readOptions: readOptions,
+    cache: cache,
+  );
 }

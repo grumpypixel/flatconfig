@@ -127,16 +127,19 @@ void main() {
         final encoded = original.encode();
         final actual = FlatConfig.parse(encoded);
         if (actual.entries.toString() != original.entries.toString()) {
-          failures.add('  ${_visible(encoded)}\n'
-              '    expected ${original.entries}\n'
-              '    actual   ${actual.entries}');
+          failures.add(
+            '  ${_visible(encoded)}\n'
+            '    expected ${original.entries}\n'
+            '    actual   ${actual.entries}',
+          );
         }
       }
 
       expect(
         failures,
         isEmpty,
-        reason: '${failures.length}/200 documents did not round-trip:\n'
+        reason:
+            '${failures.length}/200 documents did not round-trip:\n'
             '${failures.take(5).join('\n')}',
       );
     });

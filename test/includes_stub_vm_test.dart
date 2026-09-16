@@ -39,8 +39,10 @@ void main() {
     });
 
     test('Object.parseWithIncludesSync throws UnsupportedError', () {
-      expect(() => Object().parseWithIncludesSync(),
-          throwsA(isA<UnsupportedError>()));
+      expect(
+        () => Object().parseWithIncludesSync(),
+        throwsA(isA<UnsupportedError>()),
+      );
     });
   });
 }

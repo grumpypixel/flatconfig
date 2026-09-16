@@ -96,17 +96,15 @@ class FlatParseOptions {
     int? maxIncludeDepth,
     OnErrorHandler? onMissingEquals,
     OnErrorHandler? onEmptyKey,
-  }) =>
-      FlatParseOptions(
-        commentPrefix: commentPrefix ?? this.commentPrefix,
-        decodeEscapesInQuoted:
-            decodeEscapesInQuoted ?? this.decodeEscapesInQuoted,
-        strict: strict ?? this.strict,
-        includeKey: includeKey ?? this.includeKey,
-        maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
-        onMissingEquals: onMissingEquals ?? this.onMissingEquals,
-        onEmptyKey: onEmptyKey ?? this.onEmptyKey,
-      );
+  }) => FlatParseOptions(
+    commentPrefix: commentPrefix ?? this.commentPrefix,
+    decodeEscapesInQuoted: decodeEscapesInQuoted ?? this.decodeEscapesInQuoted,
+    strict: strict ?? this.strict,
+    includeKey: includeKey ?? this.includeKey,
+    maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
+    onMissingEquals: onMissingEquals ?? this.onMissingEquals,
+    onEmptyKey: onEmptyKey ?? this.onEmptyKey,
+  );
 }
 
 /// Options for reading configuration data from a byte stream.
@@ -138,11 +136,10 @@ class FlatStreamReadOptions {
   FlatStreamReadOptions copyWith({
     Encoding? encoding,
     LineSplitter? lineSplitter,
-  }) =>
-      FlatStreamReadOptions(
-        encoding: encoding ?? this.encoding,
-        lineSplitter: lineSplitter ?? this.lineSplitter,
-      );
+  }) => FlatStreamReadOptions(
+    encoding: encoding ?? this.encoding,
+    lineSplitter: lineSplitter ?? this.lineSplitter,
+  );
 }
 
 /// Options for writing configuration data to a byte stream.
@@ -174,11 +171,10 @@ class FlatStreamWriteOptions {
   FlatStreamWriteOptions copyWith({
     Encoding? encoding,
     String? lineTerminator,
-  }) =>
-      FlatStreamWriteOptions(
-        encoding: encoding ?? this.encoding,
-        lineTerminator: lineTerminator ?? this.lineTerminator,
-      );
+  }) => FlatStreamWriteOptions(
+    encoding: encoding ?? this.encoding,
+    lineTerminator: lineTerminator ?? this.lineTerminator,
+  );
 }
 
 /// Options for encoding configuration data to text.
@@ -231,13 +227,12 @@ class FlatEncodeOptions {
     bool? quoteIfWhitespace,
     bool? alwaysQuote,
     String? commentPrefix,
-  }) =>
-      FlatEncodeOptions(
-        escapeQuoted: escapeQuoted ?? this.escapeQuoted,
-        quoteIfWhitespace: quoteIfWhitespace ?? this.quoteIfWhitespace,
-        alwaysQuote: alwaysQuote ?? this.alwaysQuote,
-        commentPrefix: commentPrefix ?? this.commentPrefix,
-      );
+  }) => FlatEncodeOptions(
+    escapeQuoted: escapeQuoted ?? this.escapeQuoted,
+    quoteIfWhitespace: quoteIfWhitespace ?? this.quoteIfWhitespace,
+    alwaysQuote: alwaysQuote ?? this.alwaysQuote,
+    commentPrefix: commentPrefix ?? this.commentPrefix,
+  );
 }
 
 /// Options for loading environment variables into a FlatDocument.
@@ -397,14 +392,13 @@ class FlatEnvOptions {
     String? varPattern,
     Map<String, String>? defaults,
     Map<String, String>? merge,
-  }) =>
-      FlatEnvOptions(
-        prefix: prefix ?? this.prefix,
-        caseSensitive: caseSensitive ?? this.caseSensitive,
-        interpolate: interpolate ?? this.interpolate,
-        keepEmptyValues: keepEmptyValues ?? this.keepEmptyValues,
-        varPattern: varPattern ?? this.varPattern,
-        defaults: defaults ?? this.defaults,
-        merge: merge ?? this.merge,
-      );
+  }) => FlatEnvOptions(
+    prefix: prefix ?? this.prefix,
+    caseSensitive: caseSensitive ?? this.caseSensitive,
+    interpolate: interpolate ?? this.interpolate,
+    keepEmptyValues: keepEmptyValues ?? this.keepEmptyValues,
+    varPattern: varPattern ?? this.varPattern,
+    defaults: defaults ?? this.defaults,
+    merge: merge ?? this.merge,
+  );
 }

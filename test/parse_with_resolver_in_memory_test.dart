@@ -7,8 +7,9 @@ import 'package:test/test.dart';
 void main() {
   group('resolver: in-memory', () {
     test('tail cannot override include keys (in-memory)', () {
-      final mem =
-          MemoryIncludeResolver({'mem:i.conf': 'k = v\n'}, prefix: 'mem:');
+      final mem = MemoryIncludeResolver({
+        'mem:i.conf': 'k = v\n',
+      }, prefix: 'mem:');
       final text = 'config-file = mem:i.conf\nk = after\n';
 
       final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
@@ -20,21 +21,24 @@ void main() {
       expect(doc['k'], 'v');
     });
 
-    test('explicit reset across include boundary (unquoted) does not override',
-        () {
-      final mem = MemoryIncludeResolver({'mem:i.conf': 'theme = dark\n'},
-          prefix: 'mem:');
-      final text = 'config-file = mem:i.conf\ntheme =\n';
+    test(
+      'explicit reset across include boundary (unquoted) does not override',
+      () {
+        final mem = MemoryIncludeResolver({
+          'mem:i.conf': 'theme = dark\n',
+        }, prefix: 'mem:');
+        final text = 'config-file = mem:i.conf\ntheme =\n';
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
-        text,
-        resolver: mem,
-        originId: 'mem:root',
-      );
+        final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+          text,
+          resolver: mem,
+          originId: 'mem:root',
+        );
 
-      // Ghostty semantics: tail cannot override include-set keys (resets included)
-      expect(doc['theme'], 'dark');
-    });
+        // Ghostty semantics: tail cannot override include-set keys (resets included)
+        expect(doc['theme'], 'dark');
+      },
+    );
 
     test('composite priority (first hit wins) without prefix', () async {
       final temp = await Directory.systemTemp.createTemp('flatconfig_test_');
@@ -89,10 +93,7 @@ void main() {
         'mem:i.conf': 'theme = dark\n',
       }, prefix: 'mem:');
 
-      final text = [
-        'config-file = mem:i.conf',
-        'theme = ""',
-      ].join('\n');
+      final text = ['config-file = mem:i.conf', 'theme = ""'].join('\n');
 
       final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
         text,
@@ -110,10 +111,7 @@ void main() {
         'mem:b': 'x = 2\n',
       }, prefix: 'mem:');
 
-      final text = [
-        'config-file = mem:a',
-        'config-file = mem:b',
-      ].join('\n');
+      final text = ['config-file = mem:a', 'config-file = mem:b'].join('\n');
 
       final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
         text,
