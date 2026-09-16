@@ -91,11 +91,13 @@ debug = true
 
   print('💡 Key takeaways:');
   print(
-      '   - Error messages now include column information for precise location');
+    '   - Error messages now include column information for precise location',
+  );
   print('   - Non-strict mode (default) ignores malformed lines with warnings');
   print('   - Strict mode throws exceptions for better error handling');
   print(
-      '   - All parsing errors extend FormatException for consistent handling');
+    '   - All parsing errors extend FormatException for consistent handling',
+  );
   print('   - Use try-catch blocks to handle specific error types');
   print('');
   print('🎉 Example completed successfully!');

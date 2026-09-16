@@ -4,8 +4,9 @@ import 'package:flatconfig/flatconfig_io.dart';
 
 void main() async {
   // Create a temporary directory for our example
-  final tempDir =
-      await Directory.systemTemp.createTemp('flatconfig_includes_example_');
+  final tempDir = await Directory.systemTemp.createTemp(
+    'flatconfig_includes_example_',
+  );
 
   try {
     // Create main configuration file
@@ -104,10 +105,12 @@ auto-save = true
     print('3. Ghostty semantics:');
     print('   - Theme setting from main file (after config-file): ignored');
     print(
-        '   - Theme setting from include: ${doc["theme"]} (takes precedence)');
+      '   - Theme setting from include: ${doc["theme"]} (takes precedence)',
+    );
     print('   - User-name from main file (after config-file): ignored');
     print(
-        '   - User-name from include: ${doc["user-name"]} (takes precedence)');
+      '   - User-name from include: ${doc["user-name"]} (takes precedence)',
+    );
     print('');
 
     // 4. Multiple values for the same key
@@ -122,7 +125,8 @@ auto-save = true
     print('   - Main file includes theme.conf');
     print('   - theme.conf includes colors.conf');
     print(
-        '   - Colors are available in final config: ${doc["primary"]}, ${doc["secondary"]}');
+      '   - Colors are available in final config: ${doc["primary"]}, ${doc["secondary"]}',
+    );
     print('');
 
     // Demonstrate error handling
@@ -223,12 +227,15 @@ include = theme.conf
     print('');
     print('💡 Key takeaways:');
     print(
-        '   - Use config-file = path to include other config files (default)');
+      '   - Use config-file = path to include other config files (default)',
+    );
     print('   - Use config-file = ?path for optional includes');
     print(
-        '   - Customize include key with FlatIncludeOptions(includeKey: "include")');
+      '   - Customize include key with FlatIncludeOptions(includeKey: "include")',
+    );
     print(
-        '   - Entries after include directives don\'t override included values');
+      '   - Entries after include directives don\'t override included values',
+    );
     print('   - Supports nested includes and cycle detection');
     print('   - Multiple API methods available for different use cases');
     print('   - Use caching for better performance with shared includes');

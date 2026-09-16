@@ -49,11 +49,7 @@ size = 2MB
   print('  endpoint: ${doc.getUri('endpoint')}');
   print('  json:     ${doc.getJson('json')}');
   print(
-    '  mode:     ${doc.getEnum('mode', const {
-          'slow': 0,
-          'normal': 1,
-          'fast': 2
-        })}',
+    '  mode:     ${doc.getEnum('mode', const {'slow': 0, 'normal': 1, 'fast': 2})}',
   );
 
   // Anything else is a converter away. Colours and byte sizes used to ship
@@ -63,7 +59,8 @@ size = 2MB
   print('  color: 0x${doc.getAs('color', _parseArgb)?.toRadixString(16)}');
   print('  size:  ${doc.getAs('size', _parseBytes)} B');
   print(
-      '  bad:   ${doc.getAsOr('color', _parseBytes, -1)} (converter said no)');
+    '  bad:   ${doc.getAsOr('color', _parseBytes, -1)} (converter said no)',
+  );
 
   // require* reports which key and which value went wrong.
   print('\n💥 Failure reporting:');

@@ -121,11 +121,13 @@ Future<void> main(List<String> args) async {
 }
 
 void _dump(FlatDocument doc) {
-  stdout.writeln(doc.toPrettyString(
-    includeIndexes: true,
-    sortByKey: false,
-    alignColumns: true,
-  ));
+  stdout.writeln(
+    doc.toPrettyString(
+      includeIndexes: true,
+      sortByKey: false,
+      alignColumns: true,
+    ),
+  );
 
   // a few accessor examples
   final enabled = doc.getBool('fullscreen');

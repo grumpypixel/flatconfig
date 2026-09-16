@@ -8,20 +8,19 @@ Future<void> main() async {
   try {
     final base = File(p.join(temp.path, 'base.conf'))
       ..writeAsStringSync('name = Base\nconfig-file = colors.conf\n');
-    File(p.join(temp.path, 'colors.conf'))
-        .writeAsStringSync('primary = blue\n');
+    File(
+      p.join(temp.path, 'colors.conf'),
+    ).writeAsStringSync('primary = blue\n');
 
     final mem = MemoryIncludeResolver({
       'mem:hotfix.conf': 'primary = mint\n',
     }, prefix: 'mem:');
 
     // Order defines resolution priority (first hit wins)
-    final resolver = SyncCompositeIncludeResolver([
-      FileIncludeResolver(),
-      mem,
-    ]);
+    final resolver = SyncCompositeIncludeResolver([FileIncludeResolver(), mem]);
 
-    final text = '''
+    final text =
+        '''
 config-file = ${base.path}
 config-file = mem:hotfix.conf
 ''';

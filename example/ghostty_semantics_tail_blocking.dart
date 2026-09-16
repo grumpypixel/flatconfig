@@ -11,11 +11,7 @@ key = from-tail     # ignored, cannot override
 new = ok            # allowed
 ''';
 
-  final doc = parseWithIncludesSync(
-    text,
-    resolver: mem,
-    originId: 'mem:root',
-  );
+  final doc = parseWithIncludesSync(text, resolver: mem, originId: 'mem:root');
 
   print(doc['key']); // from-include
   print(doc['new']); // ok

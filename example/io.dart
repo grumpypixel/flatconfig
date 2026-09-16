@@ -68,10 +68,7 @@ servers = host=a,port=8080 | host=b,port=9090
   // 5) Write with Windows line endings and forced quoting+escaping
   await File(outWinPath).writeFlat(
     collapsed,
-    options: const FlatEncodeOptions(
-      alwaysQuote: true,
-      escapeQuoted: true,
-    ),
+    options: const FlatEncodeOptions(alwaysQuote: true, escapeQuoted: true),
     writeOptions: const FlatStreamWriteOptions(
       encoding: utf8,
       lineTerminator: '\r\n',
