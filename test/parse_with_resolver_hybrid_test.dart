@@ -65,10 +65,10 @@ void main() {
         final cfg = File(p.join(tempDir.path, 'x.conf'))
           ..writeAsStringSync('k = file\n');
 
-        // memory ohne prefix -> kann denselben Target-Namen liefern
+        // memory has no prefix, so it can serve the same target name
         final mem = MemoryIncludeResolver({'x.conf': 'k = mem\n'});
 
-        // Memory vor File => mem gewinnt
+        // memory before file => mem wins
         var resolver = CompositeIncludeResolver([mem, FileIncludeResolver()]);
         var doc = FlatConfigResolverIncludes.parseStringWithIncludes(
           'config-file = ${p.relative(cfg.path, from: tempDir.path)}',
@@ -77,7 +77,7 @@ void main() {
         );
         expect(doc['k'], 'mem');
 
-        // File vor Memory => file gewinnt
+        // file before memory => file wins
         resolver = CompositeIncludeResolver([FileIncludeResolver(), mem]);
         doc = FlatConfigResolverIncludes.parseStringWithIncludes(
           'config-file = ${p.relative(cfg.path, from: tempDir.path)}',

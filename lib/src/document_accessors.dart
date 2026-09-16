@@ -1101,33 +1101,13 @@ extension FlatDocumentAccessors on FlatDocument {
       return FlatDocument.empty();
     }
 
-    final out = <FlatEntry>[];
-    for (var item in splitRespectingQuotes(v, itemSep)) {
-      if (trimItems) item = item.trim();
-      if (item.isEmpty) {
-        continue;
-      }
-
-      final idx = indexOfUnquoted(item, Constants.pairSeparator);
-      if (idx < 0) {
-        continue;
-      } // ignoriert Non-Pairs (wie vorher)
-
-      var k = item.substring(0, idx);
-      if (trimKey) {
-        k = k.trimRight();
-      }
-      if (k.isEmpty) {
-        continue;
-      }
-
-      final value = parseValue(
-        item.substring(idx + 1),
-        decodeEscapesInQuoted: decodeEscapesInQuoted,
-      );
-
-      out.add(FlatEntry(k, value));
-    }
+    final out = _parseInlineEntries(
+      v,
+      itemSep: itemSep,
+      trimItems: trimItems,
+      trimKey: trimKey,
+      decodeEscapesInQuoted: decodeEscapesInQuoted,
+    );
 
     return out.isEmpty ? FlatDocument.empty() : FlatDocument(out);
   }
@@ -1167,35 +1147,13 @@ extension FlatDocumentAccessors on FlatDocument {
         continue;
       }
 
-      // Quote-aware Zerlegung in key=value Items (wie in getDocument)
-      final subEntries = <FlatEntry>[];
-      for (var item in splitRespectingQuotes(chunk, itemSep)) {
-        if (trimItems) {
-          item = item.trim();
-        }
-        if (item.isEmpty) {
-          continue;
-        }
-
-        final idx = indexOfUnquoted(item, Constants.pairSeparator);
-        if (idx < 0) {
-          continue;
-        }
-
-        var k = item.substring(0, idx);
-        if (trimKey) {
-          k = k.trimRight();
-        }
-        if (k.isEmpty) {
-          continue;
-        }
-
-        final value = parseValue(
-          item.substring(idx + 1),
-          decodeEscapesInQuoted: decodeEscapesInQuoted,
-        );
-        subEntries.add(FlatEntry(k, value));
-      }
+      final subEntries = _parseInlineEntries(
+        chunk,
+        itemSep: itemSep,
+        trimItems: trimItems,
+        trimKey: trimKey,
+        decodeEscapesInQuoted: decodeEscapesInQuoted,
+      );
 
       if (subEntries.isNotEmpty) {
         documents.add(FlatDocument(subEntries));
@@ -1457,4 +1415,54 @@ extension FlatDocumentAccessors on FlatDocument {
 
     return out;
   }
+}
+
+/// Parses an inline `key=value` list into entries, quote-aware.
+///
+/// Shared by [FlatDocumentAccessors.getDocument] and
+/// [FlatDocumentAccessors.getListOfDocuments], which describe the same grammar
+/// at two nesting levels. Items without a separator are not pairs and are
+/// skipped, as are items whose key is empty.
+List<FlatEntry> _parseInlineEntries(
+  String source, {
+  required String itemSep,
+  required bool trimItems,
+  required bool trimKey,
+  required bool decodeEscapesInQuoted,
+}) {
+  final out = <FlatEntry>[];
+
+  for (var item in splitRespectingQuotes(source, itemSep)) {
+    if (trimItems) {
+      item = item.trim();
+    }
+    if (item.isEmpty) {
+      continue;
+    }
+
+    final idx = indexOfUnquoted(item, Constants.pairSeparator);
+    if (idx < 0) {
+      continue;
+    }
+
+    var key = item.substring(0, idx);
+    if (trimKey) {
+      key = key.trimRight();
+    }
+    if (key.isEmpty) {
+      continue;
+    }
+
+    out.add(
+      FlatEntry(
+        key,
+        parseValue(
+          item.substring(idx + 1),
+          decodeEscapesInQuoted: decodeEscapesInQuoted,
+        ),
+      ),
+    );
+  }
+
+  return out;
 }

@@ -1,0 +1,54 @@
+---
+description: Language, DRY and clean-code standards for all code in this repo
+alwaysApply: true
+---
+
+# Code standards
+
+## English only
+
+All code artefacts are written in **English**, with no exceptions: comments,
+dartdoc, identifiers, commit messages, test names, error and log messages,
+and documentation files.
+
+This holds even when the conversation is in German. Chat replies may be German;
+anything written to a file may not.
+
+Before finishing a change, check the diff for German. The words that have slipped
+through before are ordinary connectives — `ohne`, `wie`, `vor`, `nach`, `kann`,
+`gewinnt`, `wird`, `nicht` — not technical terms, so a scan for domain vocabulary
+will miss them.
+
+Non-English **test data** is fine and sometimes required (unicode fixtures such
+as `'ünïcödé'`). Keep it obviously data, never prose.
+
+## DRY
+
+Two copies of the same logic is one too many. Extract the shared part.
+
+The concrete failure mode in this codebase is *parallel grammars*: the same
+parsing or formatting rule implemented once per nesting level or per type. When
+adding an accessor or a parse path, look for the routine that already does it.
+
+Duplication that exists only because a type differs belongs behind a generic or
+a shared helper, not behind copy-paste.
+
+## Clean code
+
+- One responsibility per function. If the name needs "and", split it.
+- Name things for what they mean, not how they work. `_parseInlineEntries`,
+  not `_loop2`.
+- Guard clauses over nesting. Return early.
+- No magic literals. Separators, prefixes and limits belong in `Constants`.
+- Dead code, commented-out code and unused parameters are deleted, not kept.
+- A comment explains a constraint the code cannot state itself. It never
+  restates the next line, and it never records who changed what or why a patch
+  is correct.
+- Prefer making an illegal state unrepresentable over validating it later.
+  Validate in the constructor, not at every call site.
+
+## Enforcement
+
+`dart analyze` and `dart format --set-exit-if-changed` must both be clean before
+a change is described. Neither catches language or duplication, so those stay a
+review concern.
