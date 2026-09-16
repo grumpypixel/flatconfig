@@ -1,30 +1,51 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig_flutter/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:flatconfig_flutter/main.dart';
+/// What the example is actually for: a configuration file shipped as an asset
+/// decides what the app looks like.
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('the app takes its title from the asset', (tester) async {
     await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // assets/config/app.conf sets this, and nothing in the code does.
+    expect(find.text('Flatconfig Flutter'), findsWidgets);
+    expect(
+      find.text('Hello from assets via flatconfig!'),
+      findsWidgets,
+      reason: 'the quoted value is unquoted before it reaches the widget',
+    );
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  group('parseHexColor', () {
+    test('reads six digits as opaque', () {
+      expect(parseHexColor('f3d735'), const Color(0xFFF3D735));
+      expect(parseHexColor('#f3d735'), const Color(0xFFF3D735));
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('reads eight digits as given', () {
+      expect(parseHexColor('80f3d735'), const Color(0x80F3D735));
+    });
+
+    test('rejects anything else', () {
+      for (final raw in const ['', 'f3d73', 'zzzzzz', 'f3d7355', 'blue']) {
+        expect(
+          () => parseHexColor(raw),
+          throwsFormatException,
+          reason: 'should reject "$raw"',
+        );
+      }
+    });
+
+    test('getAs turns a rejection into a fallback', () {
+      final doc = FlatDocument.parse('a = nonsense\n');
+
+      expect(doc.getAs('a', parseHexColor), isNull);
+      expect(doc.getAsOr('a', parseHexColor, Colors.blue), Colors.blue);
+      expect(doc.getAsOr('missing', parseHexColor, Colors.blue), Colors.blue);
+    });
   });
 }

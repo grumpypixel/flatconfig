@@ -7,6 +7,25 @@ void main() {
   runApp(const MyApp());
 }
 
+/// Reads a colour written as `RRGGBB`, `AARRGGBB`, or either with a leading
+/// `#`, and throws on anything else.
+///
+/// The core accessors stop at the types the format itself has: strings,
+/// numbers, booleans and lists. Everything past that is a converter handed to
+/// `getAs`, and this is what one looks like. `getAs` turns a thrown
+/// [FormatException] into `null`, so the caller sees one missing-or-unreadable
+/// case rather than two.
+Color parseHexColor(String raw) {
+  final hex = raw.startsWith('#') ? raw.substring(1) : raw;
+  final value = int.tryParse(hex, radix: 16);
+
+  if (value == null || (hex.length != 6 && hex.length != 8)) {
+    throw FormatException('Not a hex colour', raw);
+  }
+
+  return Color(hex.length == 6 ? 0xFF000000 | value : value);
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -33,8 +52,11 @@ class MyApp extends StatelessWidget {
         final config = snapshot.data!;
         final appTitle = config.getStringOr('title', 'Flatconfig Demo');
         final isDark = config.getBoolOr('dark-mode', false);
-        final seedHex = config.getHexColor('primary-color');
-        final seedColor = seedHex != null ? Color(seedHex) : Colors.blue;
+        final seedColor = config.getAsOr(
+          'primary-color',
+          parseHexColor,
+          Colors.blue,
+        );
         final debug = config.getBoolOr('debug', false);
 
         return ChangeNotifierProvider(
@@ -78,14 +100,16 @@ class ConfigHome extends StatelessWidget {
     final config = Provider.of<ConfigProvider>(context).config;
     final padding = config.getIntOr('padding', 16).toDouble();
     final welcome = config.getStringOr('welcome-message', 'Hello from assets!');
-    final bgHex = config.getHexColor('background-color');
-    final backgroundColor = bgHex != null
-        ? Color(bgHex)
-        : Theme.of(context).colorScheme.surface;
-    final seedHex = config.getHexColor('primary-color');
-    final seedColor = seedHex != null
-        ? Color(seedHex)
-        : Theme.of(context).colorScheme.primary;
+    final backgroundColor = config.getAsOr(
+      'background-color',
+      parseHexColor,
+      Theme.of(context).colorScheme.surface,
+    );
+    final seedColor = config.getAsOr(
+      'primary-color',
+      parseHexColor,
+      Theme.of(context).colorScheme.primary,
+    );
 
     return Scaffold(
       appBar: AppBar(
