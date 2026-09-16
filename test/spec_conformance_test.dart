@@ -133,6 +133,27 @@ void main() {
     test('unquoted values are never escape-processed', () {
       expect(FlatConfig.parse(r'a = C:\temp\x')['a'], r'C:\temp\x');
     });
+
+    test('the inline grammar preserves them too', () {
+      // splitRespectingQuotes used to consume every backslash as an escape
+      // marker without copying it, so this returned win -> 'C:tempx'.
+      final doc = FlatConfig.parse(r'paths = win=C:\temp\x,unix=/tmp');
+      final paths = doc.getDocument('paths');
+      expect(paths['win'], r'C:\temp\x');
+      expect(paths['unix'], '/tmp');
+    });
+
+    test('a regex survives the inline grammar', () {
+      final doc = FlatConfig.parse(r'rules = digits=\d+,word=\w+');
+      final rules = doc.getDocument('rules');
+      expect(rules['digits'], r'\d+');
+      expect(rules['word'], r'\w+');
+    });
+
+    test('a trailing backslash survives', () {
+      final doc = FlatConfig.parse(r'paths = dir=C:\temp\,other=x');
+      expect(doc.getDocument('paths')['dir'], r'C:\temp\');
+    });
   });
 
   group('SPEC 6 — absent, reset and empty string are three states', () {

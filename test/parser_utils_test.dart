@@ -128,14 +128,21 @@ void main() {
         expect(result, ['a="x,y"', 'b']);
       });
 
-      test('handles escaped quotes inside quoted values', () {
+      test('an escaped quote does not end the quoted run', () {
+        // The token is passed through verbatim; decoding is parseValue's job.
         final result = splitRespectingQuotes(r'a="x\"y",b', ',');
-        expect(result, ['a="x"y"', 'b']);
+        expect(result, [r'a="x\"y"', 'b']);
       });
 
-      test('handles backslash escapes', () {
+      test('backslashes are preserved, not consumed', () {
         final result = splitRespectingQuotes(r'a="x\\y",b', ',');
-        expect(result, ['a="x\\y"', 'b']);
+        expect(result, [r'a="x\\y"', 'b']);
+      });
+
+      test('an unquoted Windows path keeps every separator it has', () {
+        // This used to come back as 'win=C:tempx'.
+        final result = splitRespectingQuotes(r'win=C:\temp\x,unix=/tmp', ',');
+        expect(result, [r'win=C:\temp\x', 'unix=/tmp']);
       });
 
       test('handles empty segments', () {

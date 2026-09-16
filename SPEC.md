@@ -249,6 +249,7 @@ Measured against 0.5.0, not inferred from the source. Each row is a Phase 1 task
 | 6 | `""` survives a round trip | Encoded to `key = `, which re-parsed as `null`. |
 | 7 | escaping on by default | `escapeQuoted` defaulted to `false`. |
 
+| 5 | backslashes preserved | `splitRespectingQuotes` consumed every backslash as an escape marker without copying it, so `getDocument` turned `win=C:\temp\x` into `win → C:tempx`. It now only locates boundaries; `parseValue` owns decoding. `indexOfUnquoted` carried a second copy of the same rule and now shares one helper. |
 | 3 | keys validated at construction | Only emptiness was checked, and only while parsing. `FlatEntry('#x', 'v')` encoded to `#x = v` and re-parsed to **zero entries**; `FlatEntry(' a ', 'v')` lost its padding; `"a b" = v` kept its quotes in the key. |
 
 These four had to move together. Unescaped output was only readable back
@@ -268,7 +269,6 @@ invalid entries, as its documentation always claimed.
 |---|---|---|---|
 | 7 | newlines rejected | `FlatEntry('a', 'x\ny')` is accepted and encodes to two physical lines; re-parsing yields `a` → `"x` | corrupts |
 | 7 | no trailing-newline option | `ensureTrailingNewline` exists but is a no-op, since output already ends with `\n` | dead option |
-| 5 | backslashes preserved | `parseValue` preserves them, but `splitRespectingQuotes` drops every one, so `getDocument` turns `win=C:\temp\x` into `win → C:tempx`. `getList` and `getMap` do not use that helper and are unaffected. | corrupts |
 
 Behaviour that already conforms, confirmed by probe: line-ending handling (`\n`,
 `\r\n`, `\r`), BOM stripping, comment classification including custom prefixes,

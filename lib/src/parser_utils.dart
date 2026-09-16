@@ -247,44 +247,38 @@ String normalizeLineEndings(
 ///
 /// Example: `a="x,y",b` -> `["a=\"x,y\"", "b"]`
 ///
+/// This function only decides where the boundaries are. Every other character,
+/// backslashes included, is copied through untouched — decoding escapes is
+/// [parseValue]'s job, and doing it here too would consume a backslash the
+/// caller may not have meant as an escape (`C:\temp\x`).
+///
 /// Parameters:
 /// - [s]: the string to split
 /// - [sep]: the single-character separator (must be exactly one character)
-// splitRespectingQuotes
 List<String> splitRespectingQuotes(String s, String sep) {
   assert(sep.length == 1, 'sep must be a single character');
 
   final out = <String>[];
-  final q = Constants.quoteCharCode;
-  final bs = Constants.backslashCharCode;
   final sepC = sep.codeUnitAt(0);
 
   final buf = StringBuffer();
   var inQuotes = false;
-  var escaped = false;
 
   for (var i = 0; i < s.length; i++) {
     final c = s.codeUnitAt(i);
 
-    if (escaped) {
-      buf.writeCharCode(c);
-      escaped = false;
-      continue;
-    }
-    if (c == bs) {
-      escaped = true;
-      continue;
-    }
-    if (c == q) {
-      inQuotes = !inQuotes;
-      buf.writeCharCode(c);
-      continue;
-    }
     if (!inQuotes && c == sepC) {
       out.add(buf.toString());
       buf.clear();
       continue;
     }
+
+    // A backslash only ever suppresses a quote, which is the same rule the
+    // main parser applies.
+    if (c == Constants.quoteCharCode && isUnescapedQuoteAt(s, i)) {
+      inQuotes = !inQuotes;
+    }
+
     buf.writeCharCode(c);
   }
 
@@ -304,29 +298,16 @@ List<String> splitRespectingQuotes(String s, String sep) {
 /// Parameters:
 /// - [s]: the string to search in
 /// - [ch]: the single character to search for (must be exactly one character)
-// indexOfUnquoted
 int indexOfUnquoted(String s, String ch) {
   assert(ch.length == 1, 'ch must be a single character');
 
   final target = ch.codeUnitAt(0);
-  final q = Constants.quoteCharCode;
-  final bs = Constants.backslashCharCode;
-
   var inQuotes = false;
-  var escaped = false;
 
   for (var i = 0; i < s.length; i++) {
     final c = s.codeUnitAt(i);
 
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (c == bs) {
-      escaped = true;
-      continue;
-    }
-    if (c == q) {
+    if (c == Constants.quoteCharCode && isUnescapedQuoteAt(s, i)) {
       inQuotes = !inQuotes;
       continue;
     }
