@@ -17,7 +17,7 @@ Last updated after Phase 2.3. Verify with `dart test` (expect 779 passing),
 **Done:** Phase 0 and Phase 1, in full. `SPEC.md` Appendix A is empty — every
 listed deviation is fixed and pinned by a test.
 
-**Next:** Phase 2, the 1.0 API. 2.3, 2.4 and 2.5 are done; the rest is open.
+**Next:** Phase 2, the 1.0 API. 2.2 through 2.5 are done; 2.1 and 2.6–2.13 are open.
 
 **How the work is organised.** Every fix carries a regression test.
 `test/round_trip_test.dart` is the property gate for the format and must stay
@@ -352,8 +352,12 @@ autocomplete and creates a genuine trap: `doc.contains(x)` tests whether an
 **entry** is present, sitting right next to `doc.has(key)` which tests a **key**.
 `doc.map`, `doc.where`, `doc.first`, `doc.length` all silently mean "entries".
 
-- [ ] Drop the `extends`. Expose `entries`, `length`, `isEmpty`, `isNotEmpty`.
-- [ ] Users write `doc.entries.where(...)` — explicit about which view they mean.
+- [x] Drop the `extends`. Expose `entries`, `length`, `isEmpty`, `isNotEmpty`.
+- [x] Users write `doc.entries.where(...)` — explicit about which view they mean.
+
+A count of what the package itself relied on: `length`, `isEmpty` and
+`isNotEmpty`, all kept, plus one test reaching for `iterator`. The other ~40
+inherited members were surface, not use.
 
 ### 2.3 Delete `strict` from every factory
 

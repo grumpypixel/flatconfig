@@ -106,14 +106,15 @@ void main() {
       expect(doc.getString('missing'), isNull);
     });
 
-    test('iterator works correctly', () {
+    test('entries is the iterable view, and it is the only one', () {
+      // FlatDocument no longer is an Iterable, so 'which view' is now something
+      // the call site has to say out loud (Phase 2.2).
       final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
-      final entries = doc.iterator;
-      expect(entries.moveNext(), isTrue);
-      expect(entries.current.key, 'a');
-      expect(entries.moveNext(), isTrue);
-      expect(entries.current.key, 'b');
-      expect(entries.moveNext(), isFalse);
+
+      expect(doc.entries.map((e) => e.key), ['a', 'b']);
+      expect(doc.length, 2);
+      expect(doc.isEmpty, isFalse);
+      expect(doc.isNotEmpty, isTrue);
     });
 
     test('toMap returns unmodifiable map', () {

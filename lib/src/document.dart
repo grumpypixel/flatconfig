@@ -92,7 +92,7 @@ class FlatEntry {
 /// print(doc.allValues('background')); // [343028, ffaa00] (all values)
 /// ```
 @immutable
-class FlatDocument extends Iterable<FlatEntry> {
+class FlatDocument {
   /// Creates a new [FlatDocument] from a list of [FlatEntry] items.
   ///
   /// The entries are copied defensively, and that is all this does: every
@@ -342,16 +342,13 @@ class FlatDocument extends Iterable<FlatEntry> {
   @override
   int get hashCode => Object.hashAll(entries);
 
-  @override
-  Iterator<FlatEntry> get iterator => entries.iterator;
-
-  @override
+  /// How many entries the document holds, duplicates included.
   int get length => entries.length;
 
-  @override
+  /// Whether the document holds no entries at all.
   bool get isEmpty => entries.isEmpty;
 
-  @override
+  /// Whether the document holds at least one entry.
   bool get isNotEmpty => entries.isNotEmpty;
 
   bool _listEquals<T>(List<T> a, List<T> b) {

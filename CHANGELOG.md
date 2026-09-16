@@ -32,6 +32,11 @@ Fixed:
 - **`toMap()` and `valuesOf()` are unmodifiable after `cache()`.** Pre-caching
   handed out a writable view of a document documented as immutable, so
   `doc.cache(); doc.toMap()['a'] = 'x';` changed the document.
+- **`FlatDocument` is no longer an `Iterable<FlatEntry>`.** The inheritance put
+  roughly forty members on the type that silently meant "entries", including a
+  `doc.contains(x)` that tested for an entry while sitting next to a key lookup.
+  `entries`, `length`, `isEmpty` and `isNotEmpty` remain; everything else is
+  `doc.entries.…`, which says which view is meant.
 - **`FlatEntry` is valid by construction, and `strict` is gone everywhere.** The
   constructor now rejects what the format cannot write out, so the flag had
   nothing left to switch: `fromMap`, `fromEntries`, `FlatMapDataOptions` and the
