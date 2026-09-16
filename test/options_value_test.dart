@@ -250,5 +250,11 @@ void main() {
         expect(FlatEnvOptions(prefix: ''), FlatEnvOptions());
       },
     );
+
+    test('an empty keySplitOn is rejected rather than normalised', () {
+      // Unlike the prefix, there is no sensible reading of "split on nothing":
+      // it would produce one empty segment per character.
+      expect(() => FlatEnvOptions(keySplitOn: ''), throwsArgumentError);
+    });
   });
 }

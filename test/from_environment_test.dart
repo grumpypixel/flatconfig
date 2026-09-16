@@ -765,12 +765,30 @@ void main() {
         expect(doc['url'], 'https://example.com/api');
       });
 
+      test('a join string that cannot appear in a key is rejected early', () {
+        // At construction, before any variable is read: the option is wrong
+        // whatever the environment happens to contain.
+        expect(
+          () => FlatEnvOptions(keySplitOn: '_', keyJoinWith: '='),
+          throwsArgumentError,
+        );
+      });
+
       test('a rewrite producing an invalid key names the variable', () {
+        // Stripping the prefix off a variable that is nothing but the prefix
+        // leaves an empty key. The options are fine here; this particular
+        // variable is what cannot survive them, so the error says which.
         expect(
           () => FlatDocument.fromEnvironment({
-            'A_B': '1',
-          }, options: FlatEnvOptions(keySplitOn: '_', keyJoinWith: '=')),
-          throwsArgumentError,
+            'APP_': '1',
+          }, options: FlatEnvOptions(prefix: 'APP_', stripMatchedPrefix: true)),
+          throwsA(
+            isA<ArgumentError>().having(
+              (e) => e.toString(),
+              'message',
+              contains('APP_'),
+            ),
+          ),
         );
       });
 

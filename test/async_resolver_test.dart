@@ -173,6 +173,43 @@ void main() {
     });
   });
 
+  group('an include directive that names nothing', () {
+    // `config-file =` is a reset of the include key, not an include of a file
+    // called "". It contributes an empty group, so nothing is resolved and
+    // nothing is asked of the resolver.
+    const source = 'a = 1\nconfig-file =\nb = 2\n';
+
+    test('through the sync entry point', () {
+      final resolver = _AsyncResolver({});
+      final doc = parseWithIncludesSync(
+        source,
+        resolver: MemoryIncludeResolver(const {}),
+      );
+
+      expect(doc.toMap(), {'a': '1', 'b': '2'});
+      expect(resolver.requested, isEmpty);
+    });
+
+    test('and through the async one', () async {
+      final resolver = _AsyncResolver({});
+      final doc = await parseWithIncludes(source, resolver: resolver);
+
+      expect(doc.toMap(), {'a': '1', 'b': '2'});
+      expect(resolver.requested, isEmpty);
+    });
+
+    test('an optional marker with nothing after it is the same', () async {
+      final resolver = _AsyncResolver({});
+      final doc = await parseWithIncludes(
+        'config-file = ?\nk = v\n',
+        resolver: resolver,
+      );
+
+      expect(doc.toMap(), {'k': 'v'});
+      expect(resolver.requested, isEmpty);
+    });
+  });
+
   group('when a resolver goes wrong', () {
     test('a thrown error reaches the caller unwrapped', () {
       expect(

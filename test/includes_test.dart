@@ -27,6 +27,21 @@ void main() {
         // already removed by test; ignore
       }
     });
+    test('a directive naming no file reads no file', () async {
+      // Reaching for a file called "" would be a stat on the directory
+      // itself. The directive contributes nothing instead.
+      final mainFile = File('${tempDir.path}/main.conf');
+      await mainFile.writeAsString(
+        'a = 1\nconfig-file =\nconfig-file = ?\nconfig-file = ""\nb = 2\n',
+      );
+
+      expect((await mainFile.parseWithIncludes()).toMap(), {
+        'a': '1',
+        'b': '2',
+      });
+      expect(mainFile.parseWithIncludesSync().toMap(), {'a': '1', 'b': '2'});
+    });
+
     test('max include depth is enforced', () async {
       // Build a chain deeper than 3 and set maxIncludeDepth=2 to trigger
       final mainFile = File('${tempDir.path}/main.conf');
@@ -88,6 +103,40 @@ void main() {
       expect(
         FilesystemCaseFolding().isCaseInsensitive(file.path),
         equals(volumeFoldsCase),
+      );
+    });
+
+    test('a name that is already uppercase is probed in lowercase', () async {
+      // The probe flips the case of the name to see whether both spellings
+      // reach the same file. An all-uppercase name has to flip downwards, or
+      // there would be nothing to compare against.
+      final dir = await Directory.systemTemp.createTemp('flatconfig_case_');
+      addTearDown(() => dir.delete(recursive: true));
+
+      final file = File(p.join(dir.path, 'THEME.CONF'));
+      await file.writeAsString('k = v\n');
+
+      final volumeFoldsCase = File(p.join(dir.path, 'theme.conf')).existsSync();
+
+      expect(
+        FilesystemCaseFolding().isCaseInsensitive(file.path),
+        equals(volumeFoldsCase),
+      );
+    });
+
+    test('a name with no case at all tells us nothing', () async {
+      // Flipping the case of "1234.conf" yields "1234.CONF", which differs, so
+      // that one is still probeable. A name of pure digits is not.
+      final dir = await Directory.systemTemp.createTemp('flatconfig_case_');
+      addTearDown(() => dir.delete(recursive: true));
+
+      final file = File(p.join(dir.path, '1234'));
+      await file.writeAsString('k = v\n');
+
+      expect(
+        normalizeCanonicalPath(file.path, folding: FilesystemCaseFolding()),
+        file.path,
+        reason: 'nothing to compare, so the path is left alone',
       );
     });
 

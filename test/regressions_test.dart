@@ -105,4 +105,56 @@ void main() {
       expect(() => FlatEntry('a', 'one\ntwo'), throwsArgumentError);
     });
   });
+
+  group('a malformed include directive is handled, not crashed on', () {
+    final resolver = MemoryIncludeResolver(const {'theme.conf': 'k = v'});
+
+    test('a lone quote does not run the unquoting off the end', () {
+      // Both "starts with a quote" and "ends with a quote" are true of a
+      // single quote character, so the unquoting asked for substring(1, 0) and
+      // a hand-edited file reached the caller as a RangeError.
+      for (final directive in const ['config-file = "', 'config-file = ?"']) {
+        expect(
+          () => parseWithIncludesSync('$directive\n', resolver: resolver),
+          isNot(throwsA(isA<RangeError>())),
+          reason: directive,
+        );
+      }
+    });
+
+    test('a directive that names nothing asks no resolver anything', () {
+      // Emptiness used to be judged before the marker and the quotes were
+      // stripped, so `?` and `""` were resolved as a unit named "" — for a
+      // network resolver, a request for an empty URL.
+      final counting = _CountingResolver();
+
+      for (final directive in const [
+        'config-file =',
+        'config-file = ?',
+        'config-file = ""',
+        'config-file = ?""',
+      ]) {
+        final doc = parseWithIncludesSync(
+          '$directive\nk = v\n',
+          resolver: counting,
+        );
+
+        expect(doc.toMap(), {'k': 'v'}, reason: directive);
+      }
+
+      expect(counting.requested, isEmpty);
+    });
+  });
+}
+
+/// A resolver that answers nothing and records what it was asked for.
+final class _CountingResolver extends SyncIncludeResolver {
+  final requested = <String>[];
+
+  @override
+  IncludeUnit? resolveSync(IncludeRequest request) {
+    requested.add(request.target);
+
+    return null;
+  }
 }

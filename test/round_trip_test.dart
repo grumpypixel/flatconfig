@@ -142,6 +142,36 @@ void main() {
       expect(FlatDocument.parse(withBom), everyValue);
     });
 
+    test('turning escaping off quotes without escaping', () {
+      // Not a round trip: a value holding a quote cannot survive being written
+      // without escapes. The encoder still quotes what needs quoting, and what
+      // comes back says where the information went.
+      final doc = FlatDocument([
+        FlatEntry('spaced', ' both '),
+        FlatEntry('quoted', 'say "hi"'),
+      ]);
+      final encoded = doc.encode(
+        options: const FlatEncodeOptions(escapeQuoted: false),
+      );
+
+      expect(encoded, '''
+spaced = " both "
+quoted = "say "hi""
+''');
+      expect(
+        FlatDocument.parse(encoded)['spaced'],
+        ' both ',
+        reason: 'a value with no quote in it is unharmed',
+      );
+      expect(
+        FlatDocument.parse(encoded)['quoted'],
+        isNot('say "hi"'),
+        reason:
+            'a value with a quote in it is not, which is why the default '
+            'is to escape',
+      );
+    });
+
     test('the byte-stream reader agrees with the string reader', () async {
       // Reached through src/ because the stream readers are internal: a file
       // or a socket goes through them, and nothing else should have to.

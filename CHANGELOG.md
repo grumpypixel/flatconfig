@@ -107,6 +107,20 @@ Changed:
 
 Fixed:
 
+- **`config-file = "` no longer crashes.** A lone quote satisfies both "starts
+  with a quote" and "ends with a quote", so the unquoting asked for
+  `substring(1, 0)` and a hand-edited file reached the caller as a
+  `RangeError`. It is now treated as the unterminated quote it is.
+- **An include directive that names nothing asks no resolver anything.**
+  Emptiness was judged before the `?` marker and the quotes were stripped, so
+  `config-file = ?` and `config-file = ""` were resolved as a unit named `""` —
+  for a network resolver, a request for an empty URL. All four spellings now
+  contribute nothing.
+- **`FlatDataOptions` is a value type like the rest.** It was the one options
+  class with no `==`, `hashCode`, `toString` or `copyWith`, missed because it
+  lives in `from_map_data.dart` rather than `options.dart`. Two instances with
+  identical fields compared unequal unless both were `const`, where
+  canonicalization hid it.
 - **The include cache no longer serves a document built from other inputs.**
   The `cache:` parameter on every include entry point is gone; each call now
   keeps its own cache for the length of the traversal. The key was a canonical

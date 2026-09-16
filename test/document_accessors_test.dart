@@ -484,5 +484,35 @@ void main() {
       expect(doc.getString('key3'), doc['key3']);
       expect(doc.getString('missing'), doc['missing']);
     });
+
+    test('requireAs tells an absent key from an empty value', () {
+      final doc = FlatDocument([FlatEntry('empty', ''), FlatEntry('set', 'x')]);
+
+      expect(
+        () => doc.requireAs('missing', int.parse),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('Missing value'),
+          ),
+        ),
+      );
+      expect(
+        () => doc.requireAs('empty', int.parse),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('Empty value'),
+          ),
+        ),
+      );
+      expect(
+        doc.requireAs('empty', (raw) => raw.length, ignoreEmpty: false),
+        0,
+        reason: 'an empty value is a value when ignoreEmpty is off',
+      );
+    });
   });
 }

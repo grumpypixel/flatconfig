@@ -751,7 +751,33 @@ is missing is invariant testing.
       with one is already rejected as leading whitespace. And the unit id a
       resolver returns, not the one requested, is what cycle detection uses,
       so a redirect back to the root is caught.
-- [ ] Replace or document `full_coverage_test.dart`; measure branch coverage.
+- [x] `full_coverage_test.dart` is deleted. It existed so that libraries no
+      test imported would still appear in the report rather than being silently
+      absent. After the four-barrel split every `lib/src` file is reachable
+      from a real test, and the report lists the same twenty files with or
+      without it — measured both ways to be sure.
+
+      Branch coverage measured with `--branch-coverage`: **99.54% of lines**
+      (1302/1308) and **96.21% of branches** (558/580), up from 95.60% and
+      91.03% when the phase started. The roadmap's claim of 100% line coverage
+      was stale.
+
+      Closing the gap turned up three defects, all now fixed and pinned:
+      `config-file = "` crashed with a `RangeError`, an include naming nothing
+      after its `?` or its quotes was resolved as a unit called `""`, and
+      `FlatDataOptions` had none of the value-type members the other options
+      classes got in 2.9. It also turned up dead code from the accessor
+      collapse — `Constants.bytesRegex`, `Constants.hexColorRegex` and
+      `invalidEntryReason`, none of them called from anywhere — and a guard in
+      the environment interpolation that the constructor already makes
+      unreachable.
+
+      The six lines still uncovered cannot be reached by a debug VM run, and
+      are not worth contorting a test for: four are `copyWith` sentinel bodies
+      that exist only to be compared by identity, one is the negative-depth
+      check that a debug build's assert reaches first (the assertions-disabled
+      CI job covers it), and one is the `FileSystemException` arm of the
+      filesystem case probe.
 - [ ] CI matrix: minimum SDK + stable · `dart compile js` + `wasm` · browser
       tests · assertions-disabled run · `dart format --set-exit-if-changed` ·
       `dart pub publish --dry-run` · `flutter analyze` + `flutter test` in the
