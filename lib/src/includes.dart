@@ -5,7 +5,7 @@ import 'package:path/path.dart' as p;
 
 import 'document.dart';
 import 'exceptions.dart';
-import 'ghostty_semantics.dart';
+import 'include_assembly.dart';
 import 'include_path_utils.dart';
 import 'options.dart';
 import 'parser.dart';
@@ -173,7 +173,7 @@ extension FlatConfigIncludes on FlatDocument {
   /// This method handles path resolution, optional includes, quoted paths,
   /// and recursive parsing of included files.
   @visibleForTesting
-  static Future<List<FlatEntry>> processIncludes(
+  static Future<List<List<FlatEntry>>> processIncludes(
     List<String> includePaths,
     File baseFile,
     String canonicalPath,
@@ -184,26 +184,23 @@ extension FlatConfigIncludes on FlatDocument {
     Map<String, FlatDocument> cache, {
     int depth = 0,
   }) async {
-    final includeEntries = <FlatEntry>[];
+    final groups = <List<FlatEntry>>[];
     for (final include in includePaths) {
       final processed = processIncludePath(include);
       if (processed.isEmpty) {
-        continue; // ignore empty include values
+        groups.add(const []);
+        continue;
       }
 
-      // Resolve the include path
       final includedFile = _resolveChild(baseFile.parent, processed.path);
-
-      // Check if the included file exists
       if (!await includedFile.exists()) {
         if (!processed.isOptional) {
           throw MissingIncludeException(canonicalPath, processed.path);
         }
-        // Skip optional missing files
+        groups.add(const []);
         continue;
       }
 
-      // Recursively parse the included file
       final subDoc = await parseWithIncludesRecursive(
         includedFile,
         options: options,
@@ -213,16 +210,14 @@ extension FlatConfigIncludes on FlatDocument {
         cache: cache,
         depth: depth + 1,
       );
-
-      // Add sub-document entries
-      includeEntries.addAll(subDoc.entries);
+      groups.add(subDoc.entries);
     }
 
-    return includeEntries;
+    return groups;
   }
 
   /// Synchronous include processing.
-  static List<FlatEntry> processIncludesSync(
+  static List<List<FlatEntry>> processIncludesSync(
     List<String> includePaths,
     File baseFile,
     String canonicalPath,
@@ -233,10 +228,11 @@ extension FlatConfigIncludes on FlatDocument {
     Map<String, FlatDocument> cache, {
     int depth = 0,
   }) {
-    final includeEntries = <FlatEntry>[];
+    final groups = <List<FlatEntry>>[];
     for (final include in includePaths) {
       final processed = processIncludePath(include);
       if (processed.isEmpty) {
+        groups.add(const []);
         continue;
       }
 
@@ -245,6 +241,7 @@ extension FlatConfigIncludes on FlatDocument {
         if (!processed.isOptional) {
           throw MissingIncludeException(canonicalPath, processed.path);
         }
+        groups.add(const []);
         continue;
       }
 
@@ -257,9 +254,10 @@ extension FlatConfigIncludes on FlatDocument {
         cache: cache,
         depth: depth + 1,
       );
-      includeEntries.addAll(subDoc.entries);
+      groups.add(subDoc.entries);
     }
-    return includeEntries;
+
+    return groups;
   }
 
   /// Internal recursive method for parsing with includes.
@@ -313,12 +311,10 @@ extension FlatConfigIncludes on FlatDocument {
       readOptions: readOptions,
     );
 
-    // First pass: collect include directives and pre-include entries
-    final collected = collectIncludesAndPreEntries(doc, includeOptions);
+    final collected = collectIncludes(doc, includeOptions);
 
-    // Resolve includes
-    final includeEntries = await processIncludes(
-      collected.includeValues,
+    final groups = await processIncludes(
+      collected.includeTargets,
       file,
       canonicalPath,
       options,
@@ -329,20 +325,7 @@ extension FlatConfigIncludes on FlatDocument {
       depth: depth,
     );
 
-    // Process document with Ghostty semantics to get filtered tail entries
-    final keysFromIncludes = includeEntries.map((e) => e.key).toSet();
-    final filteredTail = filterTailEntries(
-      doc,
-      includeOptions,
-      keysFromIncludes,
-    );
-
-    // Build final document according to Ghostty semantics
-    final result = buildGhosttyDocument(
-      collected.preIncludeEntries,
-      includeEntries,
-      filteredTail,
-    );
+    final result = assembleIncludedDocument(doc, includeOptions, groups);
 
     // Remove the current file from visited set to allow it to be included again
     // in different contexts (e.g., if it's included from different files)
@@ -393,12 +376,10 @@ extension FlatConfigIncludes on FlatDocument {
       lineSplitter: readOptions.lineSplitter,
     );
 
-    // First pass: collect include directives and pre-include entries
-    final collected = collectIncludesAndPreEntries(doc, includeOptions);
+    final collected = collectIncludes(doc, includeOptions);
 
-    // Resolve includes
-    final includeEntries = processIncludesSync(
-      collected.includeValues,
+    final groups = processIncludesSync(
+      collected.includeTargets,
       file,
       canonicalPath,
       options,
@@ -409,20 +390,7 @@ extension FlatConfigIncludes on FlatDocument {
       depth: depth,
     );
 
-    // Process document with Ghostty semantics to get filtered tail entries
-    final keysFromIncludes = includeEntries.map((e) => e.key).toSet();
-    final filteredTail = filterTailEntries(
-      doc,
-      includeOptions,
-      keysFromIncludes,
-    );
-
-    // Build final document according to Ghostty semantics
-    final result = buildGhosttyDocument(
-      collected.preIncludeEntries,
-      includeEntries,
-      filteredTail,
-    );
+    final result = assembleIncludedDocument(doc, includeOptions, groups);
 
     visited.remove(canonicalPath);
     cache[canonicalPath] = result;

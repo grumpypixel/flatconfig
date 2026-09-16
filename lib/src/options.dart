@@ -112,6 +112,22 @@ class FlatParseOptions {
       Object.hash(commentPrefix, decodeEscapesInQuoted, strict, onIssue);
 }
 
+/// Where an include's entries land, and what may override them.
+enum IncludeMergePolicy {
+  /// Every include's entries come after the including file's own, and a line
+  /// below an include cannot override a key the include set.
+  ///
+  /// The default, and what Ghostty does. Surprising if you have not met it:
+  /// writing `theme = light` under `config-file = dark.conf` has no effect.
+  ghostty,
+
+  /// Each include expands where it is written, and later entries win.
+  ///
+  /// What most formats do, and what the line below an include usually looks
+  /// like it should do.
+  lastWins,
+}
+
 /// Options that control how include directives are followed.
 ///
 /// Separate from [FlatParseOptions] because parsing one string never follows an
@@ -122,6 +138,7 @@ class FlatIncludeOptions {
   const FlatIncludeOptions({
     this.includeKey = Constants.includeKey,
     this.maxIncludeDepth = 64,
+    this.mergePolicy = IncludeMergePolicy.ghostty,
   }) : assert(maxIncludeDepth >= 0, 'maxIncludeDepth must not be negative');
 
   /// Key used to identify include directives in configuration files.
@@ -147,26 +164,37 @@ class FlatIncludeOptions {
   /// one raises `MaxIncludeDepthExceededException`. Defaults to 64.
   final int maxIncludeDepth;
 
+  /// Where an include's entries land, and what may override them.
+  ///
+  /// Defaults to [IncludeMergePolicy.ghostty], which is what this package has
+  /// always done; it is a setting now rather than the only behaviour.
+  final IncludeMergePolicy mergePolicy;
+
   /// Returns a copy of these options with selectively replaced fields.
-  FlatIncludeOptions copyWith({String? includeKey, int? maxIncludeDepth}) =>
-      FlatIncludeOptions(
-        includeKey: includeKey ?? this.includeKey,
-        maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
-      );
+  FlatIncludeOptions copyWith({
+    String? includeKey,
+    int? maxIncludeDepth,
+    IncludeMergePolicy? mergePolicy,
+  }) => FlatIncludeOptions(
+    includeKey: includeKey ?? this.includeKey,
+    maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
+    mergePolicy: mergePolicy ?? this.mergePolicy,
+  );
 
   @override
   String toString() =>
       'FlatIncludeOptions(includeKey: $includeKey, '
-      'maxIncludeDepth: $maxIncludeDepth)';
+      'maxIncludeDepth: $maxIncludeDepth, mergePolicy: ${mergePolicy.name})';
 
   @override
   bool operator ==(Object other) =>
       other is FlatIncludeOptions &&
       other.includeKey == includeKey &&
-      other.maxIncludeDepth == maxIncludeDepth;
+      other.maxIncludeDepth == maxIncludeDepth &&
+      other.mergePolicy == mergePolicy;
 
   @override
-  int get hashCode => Object.hash(includeKey, maxIncludeDepth);
+  int get hashCode => Object.hash(includeKey, maxIncludeDepth, mergePolicy);
 }
 
 /// Options for reading configuration data from a byte stream.

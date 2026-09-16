@@ -402,7 +402,8 @@ Resolvers are tried in the order provided; the first resolver that returns a non
 
 flatconfig also supports **in-memory include resolution**, allowing you to merge configurations without touching the filesystem.
 
-Use `FlatConfigResolverIncludes.parseStringWithIncludes()` together with an `IncludeResolver`:
+Use `FlatConfigResolverIncludes.parseStringWithIncludesSync()` together with a
+`SyncIncludeResolver`:
 
 ```dart
 final resolver = MemoryIncludeResolver({
@@ -410,7 +411,7 @@ final resolver = MemoryIncludeResolver({
   'mem:user.conf': 'theme = mint',
 }, prefix: 'mem:');
 
-final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
   'config-file = mem:base.conf\nconfig-file = ?mem:user.conf',
   resolver: resolver,
   originId: 'mem:main.conf',
@@ -423,7 +424,48 @@ print(doc['theme']); // mint
 
 - `FileIncludeResolver()` — loads includes from the filesystem
 - `MemoryIncludeResolver()` — reads from an in-memory map (Web/WASM-safe)
-- `CompositeIncludeResolver([...])` — combines multiple sources (first-hit-wins)
+- `SyncCompositeIncludeResolver([...])` — combines synchronous sources (first-hit-wins)
+- `CompositeIncludeResolver([...])` — the same, when any source is asynchronous
+
+#### Resolvers That Have to Await
+
+A resolver reaching an HTTP endpoint, a database, or a Flutter asset behind
+`rootBundle.loadString()` cannot answer synchronously. Implement
+`IncludeResolver` and use the asynchronous entry point:
+
+```dart
+final class AssetResolver implements IncludeResolver {
+  @override
+  Future<IncludeUnit?> resolve(IncludeRequest request) async {
+    final text = await rootBundle.loadString('config/${request.target}');
+    return IncludeUnit(id: request.target, content: text);
+  }
+}
+
+final doc = await FlatConfigResolverIncludes.parseStringWithIncludes(
+  await rootBundle.loadString('config/app.conf'),
+  resolver: AssetResolver(),
+  originId: 'asset:app.conf',
+);
+```
+
+`IncludeRequest.fromId` is the canonical id of the unit the directive appeared
+in, which is what a path-based resolver uses to resolve relative targets.
+Returning `null` is not an error; it means "not found", and whether that throws
+depends on the `?` optional marker on the directive.
+
+A resolver that *can* answer synchronously should extend `SyncIncludeResolver`
+instead. It derives the async method for you, so one sync resolver works with
+both entry points without a wrapper.
+
+#### Merge Policy
+
+`FlatIncludeOptions.mergePolicy` decides where an include's entries land:
+
+| Policy | Behaviour |
+|---|---|
+| `ghostty` (default) | Every include's entries come after the file's own, and a line below an include cannot override a key it set. |
+| `lastWins` | Each include expands where it is written, and later entries win. |
 
 This makes it easy to:
 

@@ -26,7 +26,7 @@ version = 1.2.3
 ''';
 
   // 3) Parse with resolver
-  final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+  final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
     mainText,
     resolver: resolver,
     originId: 'mem:main.conf',

@@ -12,7 +12,7 @@ void main() {
       }, prefix: 'mem:');
       final text = 'config-file = mem:i.conf\nk = after\n';
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',
@@ -29,7 +29,7 @@ void main() {
         }, prefix: 'mem:');
         final text = 'config-file = mem:i.conf\ntheme =\n';
 
-        final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+        final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
           text,
           resolver: mem,
           originId: 'mem:root',
@@ -48,16 +48,19 @@ void main() {
         final abs = cfg.path;
         final mem = MemoryIncludeResolver({abs: 'k = mem\n'}); // no prefix
 
-        var resolver = CompositeIncludeResolver([mem, FileIncludeResolver()]);
-        var doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+        var resolver = SyncCompositeIncludeResolver([
+          mem,
+          FileIncludeResolver(),
+        ]);
+        var doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
           'config-file = $abs',
           resolver: resolver,
           originId: 'root',
         );
         expect(doc['k'], 'mem');
 
-        resolver = CompositeIncludeResolver([FileIncludeResolver(), mem]);
-        doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+        resolver = SyncCompositeIncludeResolver([FileIncludeResolver(), mem]);
+        doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
           'config-file = $abs',
           resolver: resolver,
           originId: 'root',
@@ -78,7 +81,7 @@ void main() {
         'new = ok',
       ].join('\n');
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',
@@ -95,7 +98,7 @@ void main() {
 
       final text = ['config-file = mem:i.conf', 'theme = ""'].join('\n');
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',
@@ -113,7 +116,7 @@ void main() {
 
       final text = ['config-file = mem:a', 'config-file = mem:b'].join('\n');
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',
@@ -129,7 +132,7 @@ void main() {
 
       final text = 'config-file = "mem:C:\\\\foo\\\\bar.conf"\n';
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',
@@ -151,7 +154,7 @@ void main() {
         'version = 1.2.3',
       ].join('\n');
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         mainText,
         resolver: resolver,
         originId: 'mem:main.conf',
@@ -170,7 +173,7 @@ void main() {
       }, prefix: 'mem:');
 
       // optional missing does not throw
-      final ok = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final ok = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         'config-file = mem:base.conf',
         resolver: resolver,
         originId: 'mem:main.conf',
@@ -179,7 +182,7 @@ void main() {
 
       // required missing should throw
       expect(
-        () => FlatConfigResolverIncludes.parseStringWithIncludes(
+        () => FlatConfigResolverIncludes.parseStringWithIncludesSync(
           'config-file = mem:missing.conf',
           resolver: resolver,
           originId: 'mem:main.conf',
@@ -195,7 +198,7 @@ void main() {
       }, prefix: 'mem:');
 
       expect(
-        () => FlatConfigResolverIncludes.parseStringWithIncludes(
+        () => FlatConfigResolverIncludes.parseStringWithIncludesSync(
           'config-file = mem:a',
           resolver: resolver,
           originId: 'mem:root',
@@ -209,7 +212,7 @@ void main() {
         'mem:spaced name.conf': 'x = 1\n',
       }, prefix: 'mem:');
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         'config-file = "mem:spaced name.conf"\n',
         resolver: resolver,
         originId: 'mem:root',
@@ -230,7 +233,7 @@ void main() {
         'config-file = mem:later.conf', // may reassign theme=light (later include wins)
       ].join('\n');
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',

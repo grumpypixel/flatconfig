@@ -16,7 +16,9 @@ void main() {
           final base = File(p.join(tempDir.path, 'base.conf'))
             ..writeAsStringSync('key = from-file\n');
 
-          final resolver = CompositeIncludeResolver([FileIncludeResolver()]);
+          final resolver = SyncCompositeIncludeResolver([
+            FileIncludeResolver(),
+          ]);
 
           final text = [
             'config-file = ${base.path}',
@@ -24,7 +26,7 @@ void main() {
             'new = ok',
           ].join('\n');
 
-          final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+          final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
             text,
             resolver: resolver,
             originId: p.join(tempDir.path, 'virtual_main.conf'),
@@ -50,9 +52,11 @@ void main() {
             ..writeAsStringSync('config-file = colors.conf\n');
           File(p.join(sub.path, 'colors.conf')).writeAsStringSync('c = 1\n');
 
-          final resolver = CompositeIncludeResolver([FileIncludeResolver()]);
+          final resolver = SyncCompositeIncludeResolver([
+            FileIncludeResolver(),
+          ]);
 
-          final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+          final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
             'config-file = ${base.path}',
             resolver: resolver,
             originId: p.join(tempDir.path, 'main.conf'),
@@ -75,8 +79,11 @@ void main() {
         final mem = MemoryIncludeResolver({'x.conf': 'k = mem\n'});
 
         // memory before file => mem wins
-        var resolver = CompositeIncludeResolver([mem, FileIncludeResolver()]);
-        var doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+        var resolver = SyncCompositeIncludeResolver([
+          mem,
+          FileIncludeResolver(),
+        ]);
+        var doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
           'config-file = ${p.relative(cfg.path, from: tempDir.path)}',
           resolver: resolver,
           originId: p.join(tempDir.path, 'root'),
@@ -84,8 +91,8 @@ void main() {
         expect(doc['k'], 'mem');
 
         // file before memory => file wins
-        resolver = CompositeIncludeResolver([FileIncludeResolver(), mem]);
-        doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+        resolver = SyncCompositeIncludeResolver([FileIncludeResolver(), mem]);
+        doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
           'config-file = ${p.relative(cfg.path, from: tempDir.path)}',
           resolver: resolver,
           originId: p.join(tempDir.path, 'root'),
@@ -101,11 +108,11 @@ void main() {
       try {
         final cfg = File(p.join(tempDir.path, 'spaced name.conf'))
           ..writeAsStringSync('x = y\n');
-        final resolver = CompositeIncludeResolver([FileIncludeResolver()]);
+        final resolver = SyncCompositeIncludeResolver([FileIncludeResolver()]);
 
         final text = 'config-file = "${cfg.path}"\n';
 
-        final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+        final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
           text,
           resolver: resolver,
           originId: p.join(tempDir.path, 'root'),
@@ -129,14 +136,17 @@ void main() {
           'mem:hotfix.conf': 'primary = mint\n',
         }, prefix: 'mem:');
 
-        final resolver = CompositeIncludeResolver([FileIncludeResolver(), mem]);
+        final resolver = SyncCompositeIncludeResolver([
+          FileIncludeResolver(),
+          mem,
+        ]);
 
         final text = [
           'config-file = ${base.path}',
           'config-file = mem:hotfix.conf',
         ].join('\n');
 
-        final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+        final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
           text,
           resolver: resolver,
           originId: p.join(tempDir.path, 'virtual_main.conf'),
@@ -163,7 +173,7 @@ void main() {
             'mem:later.conf': 'x = from-mem\n',
           }, prefix: 'mem:');
 
-          final resolver = CompositeIncludeResolver([
+          final resolver = SyncCompositeIncludeResolver([
             FileIncludeResolver(),
             mem,
           ]);
@@ -174,7 +184,7 @@ void main() {
             'config-file = mem:later.conf', // x=from-mem (later include wins)
           ].join('\n');
 
-          final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+          final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
             text,
             resolver: resolver,
             originId: p.join(temp.path, 'root'),

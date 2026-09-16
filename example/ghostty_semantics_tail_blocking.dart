@@ -11,7 +11,7 @@ key = from-tail     # ignored, cannot override
 new = ok            # allowed
 ''';
 
-  final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+  final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
     text,
     resolver: mem,
     originId: 'mem:root',

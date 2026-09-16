@@ -11,6 +11,10 @@ Added:
 - **`FlatIssue`, `FlatIssueKind` and `FlatParseOptions.onIssue`** — one channel
   for every problem the parser finds, carrying the kind, the 1-based line and
   column, and the raw line.
+- **`FlatIncludeOptions.mergePolicy`** — Ghostty precedence is a setting now
+  rather than the only behaviour. `IncludeMergePolicy.lastWins` expands each
+  include where it is written and lets a later entry win, which is what most
+  formats do and what a line written below an include looks like it should do.
 - **Key transformation in `FlatEnvOptions`** — `stripMatchedPrefix`,
   `keySplitOn`/`keyJoinWith` and `lowercaseKeys` turn `APP_WINDOW_WIDTH` into
   `window.width` without post-processing. They run after interpolation, so a
@@ -37,6 +41,20 @@ Added:
 
 Changed:
 
+- **`IncludeResolver.resolve` is now asynchronous and takes an
+  `IncludeRequest`.** The sync-only interface excluded an HTTP endpoint, a
+  database row and a Flutter asset behind `rootBundle.loadString()` by
+  construction: a Flutter app could parse an asset config but never follow an
+  include from one. A resolver that can answer without awaiting extends
+  `SyncIncludeResolver`, which derives the async method, so one sync resolver
+  works with both entry points without a wrapper.
+- **`parseStringWithIncludes` is now the async entry point;**
+  `parseStringWithIncludesSync` is the previous behaviour under its own name and
+  takes a `SyncIncludeResolver`.
+- **`CompositeIncludeResolver` is asynchronous**, since it cannot answer without
+  awaiting when one of the sources it may consult does.
+  `SyncCompositeIncludeResolver` composes synchronous ones.
+- **`IncludeUnit` is immutable with value equality**, and can be `const`.
 - **`FlatEnvOptions.interpolate` now defaults to `false`.** A variable's value
   is data the program did not write, and a `$` in it is more often a password
   than a reference. Turning it on is a decision, not the state you get by

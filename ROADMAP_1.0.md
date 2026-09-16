@@ -606,11 +606,24 @@ abstract interface class SyncIncludeResolver {
 }
 ```
 
-- [ ] Make Ghostty precedence an explicit `IncludeMergePolicy` rather than the
-      only implicit behavior.
+- [x] The two interfaces exist, but `SyncIncludeResolver implements
+      IncludeResolver` and derives the async method rather than standing beside
+      it. Independent interfaces would mean the async entry points could not
+      take a sync resolver, and every caller with one would write the same
+      wrapper.
+- [x] Make Ghostty precedence an explicit `IncludeMergePolicy` rather than the
+      only implicit behavior. Lives on `FlatIncludeOptions`; default unchanged.
+
+      This is why `processIncludes` returns one group of entries per directive
+      instead of one flat list: `lastWins` has to put each group back where its
+      directive was, which a flattened list cannot express. An optional include
+      that resolved to nothing contributes an empty group, so the groups stay
+      aligned with the directives.
 - [ ] Expose include parsing from `flatconfig_includes.dart`, not from a static
-      extension namespace.
-- [ ] Make `IncludeUnit` immutable with value equality.
+      extension namespace. Deferred to 2.13, which creates that library.
+- [x] Make `IncludeUnit` immutable with value equality.
+- [x] `ghostty_semantics.dart` is now `include_assembly.dart`: it holds two
+      policies, so the old name described only one of them.
 
 ### 2.12 Fix the include cache
 

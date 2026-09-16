@@ -34,10 +34,13 @@ export 'src/from_map_data.dart'
 export 'src/include_resolver_core.dart'
     show
         CompositeIncludeResolver,
+        IncludeRequest,
         IncludeResolver,
         IncludeUnit,
         MemoryIncludeResolver,
-        Resolvers;
+        Resolvers,
+        SyncCompositeIncludeResolver,
+        SyncIncludeResolver;
 // If we're on the web (dart:html), use the stub; otherwise use the IO version.
 export 'src/include_resolver_io.dart'
     if (dart.library.html) 'src/include_resolver_stub.dart'
@@ -56,6 +59,7 @@ export 'src/options.dart'
         FlatParseOptions,
         FlatStreamReadOptions,
         FlatStreamWriteOptions,
+        IncludeMergePolicy,
         MissingVariablePolicy,
         MultilineValuePolicy;
 // Resolver-based include support (web-safe core + conditional IO resolver)

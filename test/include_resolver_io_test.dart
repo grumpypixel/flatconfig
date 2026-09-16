@@ -28,7 +28,7 @@ void main() {
         File(p.join(temp.path, 'rel.conf')).writeAsStringSync('k = v\n');
 
         final resolver = FileIncludeResolver();
-        final unit = resolver.resolve(relPath, fromId: '');
+        final unit = resolver.resolveSync(IncludeRequest(relPath, fromId: ''));
 
         expect(unit, isNotNull);
         expect(unit!.content, contains('k = v'));
@@ -44,7 +44,7 @@ void main() {
         File(p.join(temp.path, 'config.conf')).writeAsStringSync('key = value');
 
         final resolver = FileIncludeResolver();
-        final unit = resolver.resolve(relPath);
+        final unit = resolver.resolveSync(IncludeRequest(relPath));
 
         expect(unit, isNotNull);
         expect(unit!.content, equals('key = value'));
@@ -63,7 +63,9 @@ void main() {
         File(p.join(temp.path, 'target.conf')).writeAsStringSync('target!');
 
         final resolver = FileIncludeResolver();
-        final unit = resolver.resolve('target.conf', fromId: baseFile);
+        final unit = resolver.resolveSync(
+          IncludeRequest('target.conf', fromId: baseFile),
+        );
 
         expect(unit, isNotNull);
         expect(unit!.content, equals('target!'));
@@ -79,7 +81,7 @@ void main() {
         File(absPath).writeAsStringSync('absolute content');
 
         final resolver = FileIncludeResolver();
-        final unit = resolver.resolve(absPath);
+        final unit = resolver.resolveSync(IncludeRequest(absPath));
 
         expect(unit, isNotNull);
         expect(unit!.content, equals('absolute content'));
@@ -90,7 +92,9 @@ void main() {
 
     test('returns null when file does not exist', () async {
       final resolver = FileIncludeResolver();
-      final unit = resolver.resolve('nonexistent_file_12345.conf');
+      final unit = resolver.resolveSync(
+        IncludeRequest('nonexistent_file_12345.conf'),
+      );
 
       expect(unit, isNull);
     });
@@ -117,7 +121,7 @@ void main() {
         await Link(link3).create(link2);
 
         final resolver = FileIncludeResolver();
-        final unit = resolver.resolve(link3);
+        final unit = resolver.resolveSync(IncludeRequest(link3));
 
         expect(unit, isNotNull);
         expect(unit!.content, equals('original content'));
@@ -126,7 +130,7 @@ void main() {
         final relLink = p.join(temp.path, 'rellink.conf');
         await Link(relLink).create('target.conf'); // relative
 
-        final unit2 = resolver.resolve(relLink);
+        final unit2 = resolver.resolveSync(IncludeRequest(relLink));
         expect(unit2, isNotNull);
         expect(unit2!.content, equals('original content'));
 
@@ -140,7 +144,7 @@ void main() {
 
         try {
           // This might trigger ELOOP or other errors
-          resolver.resolve(currentLink);
+          resolver.resolveSync(IncludeRequest(currentLink));
           // If it succeeds, that's fine
         } catch (e) {
           // Expected if we hit system limits
@@ -157,7 +161,7 @@ void main() {
         File(testFile).writeAsStringSync('data');
 
         final resolver = FileIncludeResolver();
-        final unit = resolver.resolve(testFile);
+        final unit = resolver.resolveSync(IncludeRequest(testFile));
 
         expect(unit, isNotNull);
         // On macOS/Windows, the ID should be lowercase
@@ -176,7 +180,7 @@ void main() {
 
         // Test with /dev/null - it exists but reading returns empty
         try {
-          final unit = resolver.resolve('/dev/null');
+          final unit = resolver.resolveSync(IncludeRequest('/dev/null'));
           // /dev/null exists and can be read (returns empty content)
           if (unit != null) {
             expect(unit.content, isEmpty);
@@ -190,7 +194,7 @@ void main() {
         if (Platform.isLinux && Directory('/proc').existsSync()) {
           try {
             // /proc/version is a readable virtual file
-            final unit = resolver.resolve('/proc/version');
+            final unit = resolver.resolveSync(IncludeRequest('/proc/version'));
             // If it succeeds, content should be non-empty
             if (unit != null) {
               expect(unit.content, isNotEmpty);
@@ -248,7 +252,7 @@ void main() {
         await Link(linkToRestricted).create(restrictedFile);
 
         // Verify link works before restriction
-        var unit = resolver.resolve(linkToRestricted);
+        var unit = resolver.resolveSync(IncludeRequest(linkToRestricted));
         expect(unit, isNotNull);
         expect(unit!.content, equals('restricted content'));
 
@@ -262,7 +266,7 @@ void main() {
             // Try to resolve - behavior varies by OS:
             // - existsSync might fail (returns null) - most common
             // - or resolveSymbolicLinksSync might fail (triggers catch)
-            unit = resolver.resolve(linkToRestricted);
+            unit = resolver.resolveSync(IncludeRequest(linkToRestricted));
 
             // If it succeeds despite restrictions, that's fine
             if (unit != null) {
@@ -290,7 +294,7 @@ void main() {
         }
 
         // This should trigger ELOOP in resolveSymbolicLinksSync on many systems
-        unit = resolver.resolve(currentLink);
+        unit = resolver.resolveSync(IncludeRequest(currentLink));
         if (unit != null) {
           expect(unit.content, equals('deep content'));
           expect(unit.id, isNotEmpty);
@@ -326,7 +330,7 @@ void main() {
           'real.conf',
         );
 
-        unit = resolver.resolve(circularPath);
+        unit = resolver.resolveSync(IncludeRequest(circularPath));
         if (unit != null) {
           expect(unit.id, isNotEmpty);
         }
@@ -349,7 +353,7 @@ void main() {
                 File(testFile).writeAsStringSync(testContent);
 
                 // Now test with the regular file
-                unit = resolver.resolve(testFile);
+                unit = resolver.resolveSync(IncludeRequest(testFile));
                 expect(unit, isNotNull);
                 expect(unit!.content, equals(testContent));
               } catch (e) {
@@ -388,7 +392,7 @@ void main() {
 
           // Use test resolver that throws on resolveSymbolicLinksSync
           final resolver = _FailingSymlinkResolver();
-          final unit = resolver.resolve(testFile);
+          final unit = resolver.resolveSync(IncludeRequest(testFile));
 
           // Should succeed using the fallback path (file.absolute.path)
           expect(unit, isNotNull);

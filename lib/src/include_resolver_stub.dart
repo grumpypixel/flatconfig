@@ -3,10 +3,10 @@ import 'include_resolver_core.dart';
 
 /// Stub implementation used on web/wasm.
 /// Always returns `null` since file system access is not available.
-class FileIncludeResolver implements IncludeResolver {
+class FileIncludeResolver extends SyncIncludeResolver {
   /// Creates a new file resolver.
   FileIncludeResolver();
 
   @override
-  IncludeUnit? resolve(String target, {String? fromId}) => null;
+  IncludeUnit? resolveSync(IncludeRequest request) => null;
 }

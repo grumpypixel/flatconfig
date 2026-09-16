@@ -1,167 +1,245 @@
 import 'document.dart';
 import 'exceptions.dart';
-import 'ghostty_semantics.dart';
+import 'include_assembly.dart';
 import 'include_path_utils.dart';
 import 'include_resolver_core.dart';
 import 'options.dart';
 import 'validation.dart';
 
-/// Resolver-based parsing entry that mirrors Ghostty semantics and your
-/// file-based implementation, but operates on arbitrary resolvers.
+/// Resolver-based parsing, for sources that are not the local filesystem.
+///
+/// Semantics match the file-based path: includes are followed depth-first,
+/// cycles are detected by canonical unit id, a `?` marks an include optional,
+/// and [FlatIncludeOptions.mergePolicy] decides the resulting order.
 extension FlatConfigResolverIncludes on FlatDocument {
-  /// Parses a raw string with Ghostty-style includes resolved via [resolver].
+  /// Parses [text], following includes through [resolver].
   ///
-  /// Semantics are identical to file-based parsing in this package:
-  /// - Include directives are processed at the end of the current unit.
-  /// - Later entries in the current unit do not override include keys.
-  /// - If multiple included units define the same key, the later include wins.
-  /// - Optional includes use `?` and are ignored if missing.
-  /// - Circular includes are detected via the canonical unit id.
-  static FlatDocument parseStringWithIncludes(
+  /// Asynchronous, so the resolver may read from the network, a database or a
+  /// Flutter asset bundle. Use [parseStringWithIncludesSync] when every
+  /// resolver involved can answer without awaiting.
+  static Future<FlatDocument> parseStringWithIncludes(
     String text, {
     required IncludeResolver resolver,
-    String? originId, // canonical id of this "virtual file"
+    String? originId,
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) {
-    final visited = <String>{};
-    final effectiveCache = cache ?? <String, FlatDocument>{};
-
-    final root = IncludeUnit(id: originId ?? 'mem:<root>', content: text);
-
-    final result = _parseWithResolverRecursiveSync(
-      currentUnit: root,
-      fromUnitId: null,
-      resolver: resolver,
+    final state = _ResolveState(
       options: options,
       includeOptions: includeOptions,
       readOptions: readOptions,
-      visited: visited,
-      cache: effectiveCache,
-      depth: 0,
+      cache: cache ?? <String, FlatDocument>{},
     );
 
-    return result;
+    return _resolveUnit(
+      IncludeUnit(id: originId ?? _rootId, content: text),
+      fromUnitId: null,
+      resolver: resolver,
+      state: state,
+      depth: 0,
+    );
+  }
+
+  /// Parses [text], following includes through a synchronous [resolver].
+  static FlatDocument parseStringWithIncludesSync(
+    String text, {
+    required SyncIncludeResolver resolver,
+    String? originId,
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+    Map<String, FlatDocument>? cache,
+  }) {
+    final state = _ResolveState(
+      options: options,
+      includeOptions: includeOptions,
+      readOptions: readOptions,
+      cache: cache ?? <String, FlatDocument>{},
+    );
+
+    return _resolveUnitSync(
+      IncludeUnit(id: originId ?? _rootId, content: text),
+      fromUnitId: null,
+      resolver: resolver,
+      state: state,
+      depth: 0,
+    );
   }
 }
 
-// Internal sync recursive parse using IncludeResolver (no File I/O here).
-FlatDocument _parseWithResolverRecursiveSync({
-  required IncludeUnit currentUnit,
-  String? fromUnitId,
+const String _rootId = 'mem:<root>';
+
+/// Everything a recursion carries that does not change between units.
+final class _ResolveState {
+  _ResolveState({
+    required this.options,
+    required this.includeOptions,
+    required this.readOptions,
+    required this.cache,
+  });
+
+  final FlatParseOptions options;
+  final FlatIncludeOptions includeOptions;
+  final FlatStreamReadOptions readOptions;
+  final Map<String, FlatDocument> cache;
+  final Set<String> visited = <String>{};
+}
+
+Future<FlatDocument> _resolveUnit(
+  IncludeUnit unit, {
+  required String? fromUnitId,
   required IncludeResolver resolver,
-  required FlatParseOptions options,
-  required FlatIncludeOptions includeOptions,
-  required FlatStreamReadOptions readOptions,
-  required Set<String> visited,
-  required Map<String, FlatDocument> cache,
+  required _ResolveState state,
   required int depth,
-}) {
-  checkIncludeDepth(includeOptions.maxIncludeDepth);
-  if (depth > includeOptions.maxIncludeDepth) {
-    throw MaxIncludeDepthExceededException(
-      currentUnit.id,
-      depth,
-      includeOptions.maxIncludeDepth,
-    );
-  }
-
-  final String unitId = currentUnit.id;
-
-  if (!visited.add(unitId)) {
-    throw CircularIncludeException(fromUnitId ?? unitId, unitId);
-  }
-
-  final cached = cache[unitId];
+}) async {
+  final cached = _enter(
+    unit,
+    fromUnitId: fromUnitId,
+    state: state,
+    depth: depth,
+  );
   if (cached != null) {
-    visited.remove(unitId);
-
     return cached;
   }
 
-  final doc = FlatDocument.parse(
-    currentUnit.content,
-    options: options,
-    lineSplitter: readOptions.lineSplitter,
-  );
+  final doc = _parseUnit(unit, state);
+  final collected = collectIncludes(doc, state.includeOptions);
+  final groups = <List<FlatEntry>>[];
 
-  // First pass: collect include directives and pre-include entries
-  final collected = collectIncludesAndPreEntries(doc, includeOptions);
+  for (final target in collected.includeTargets) {
+    final processed = processIncludePath(target);
+    if (processed.isEmpty) {
+      groups.add(const []);
+      continue;
+    }
 
-  // Resolve includes
-  final includeEntries = _processIncludesWithResolverSync(
-    includeValues: collected.includeValues,
-    fromUnitId: unitId,
-    resolver: resolver,
-    options: options,
-    includeOptions: includeOptions,
-    readOptions: readOptions,
-    visited: visited,
-    cache: cache,
+    final included = await resolver.resolve(
+      IncludeRequest(processed.path, fromId: unit.id),
+    );
+    if (included == null) {
+      groups.add(_missingOrThrow(processed, unit.id));
+      continue;
+    }
+
+    final subDoc = await _resolveUnit(
+      included,
+      fromUnitId: unit.id,
+      resolver: resolver,
+      state: state,
+      depth: depth + 1,
+    );
+    groups.add(subDoc.entries);
+  }
+
+  return _finish(doc, unit.id, groups, state);
+}
+
+FlatDocument _resolveUnitSync(
+  IncludeUnit unit, {
+  required String? fromUnitId,
+  required SyncIncludeResolver resolver,
+  required _ResolveState state,
+  required int depth,
+}) {
+  final cached = _enter(
+    unit,
+    fromUnitId: fromUnitId,
+    state: state,
     depth: depth,
   );
+  if (cached != null) {
+    return cached;
+  }
 
-  // Process document with Ghostty semantics to get filtered tail entries
-  final keysFromIncludes = includeEntries.map((e) => e.key).toSet();
-  final filteredTail = filterTailEntries(doc, includeOptions, keysFromIncludes);
+  final doc = _parseUnit(unit, state);
+  final collected = collectIncludes(doc, state.includeOptions);
+  final groups = <List<FlatEntry>>[];
 
-  // Build final document according to Ghostty semantics
-  final result = buildGhosttyDocument(
-    collected.preIncludeEntries,
-    includeEntries,
-    filteredTail,
-  );
+  for (final target in collected.includeTargets) {
+    final processed = processIncludePath(target);
+    if (processed.isEmpty) {
+      groups.add(const []);
+      continue;
+    }
 
-  visited.remove(unitId);
-  cache[unitId] = result;
+    final included = resolver.resolveSync(
+      IncludeRequest(processed.path, fromId: unit.id),
+    );
+    if (included == null) {
+      groups.add(_missingOrThrow(processed, unit.id));
+      continue;
+    }
+
+    final subDoc = _resolveUnitSync(
+      included,
+      fromUnitId: unit.id,
+      resolver: resolver,
+      state: state,
+      depth: depth + 1,
+    );
+    groups.add(subDoc.entries);
+  }
+
+  return _finish(doc, unit.id, groups, state);
+}
+
+/// Checks depth and cycles, and returns a cached result if there is one.
+///
+/// Returning non-null means the caller is done with this unit.
+FlatDocument? _enter(
+  IncludeUnit unit, {
+  required String? fromUnitId,
+  required _ResolveState state,
+  required int depth,
+}) {
+  final maxDepth = state.includeOptions.maxIncludeDepth;
+  checkIncludeDepth(maxDepth);
+  if (depth > maxDepth) {
+    throw MaxIncludeDepthExceededException(unit.id, depth, maxDepth);
+  }
+
+  if (!state.visited.add(unit.id)) {
+    throw CircularIncludeException(fromUnitId ?? unit.id, unit.id);
+  }
+
+  final cached = state.cache[unit.id];
+  if (cached != null) {
+    state.visited.remove(unit.id);
+  }
+
+  return cached;
+}
+
+FlatDocument _parseUnit(IncludeUnit unit, _ResolveState state) =>
+    FlatDocument.parse(
+      unit.content,
+      options: state.options,
+      lineSplitter: state.readOptions.lineSplitter,
+    );
+
+/// Builds the result, then releases the unit so it can be included elsewhere.
+FlatDocument _finish(
+  FlatDocument doc,
+  String unitId,
+  List<List<FlatEntry>> groups,
+  _ResolveState state,
+) {
+  final result = assembleIncludedDocument(doc, state.includeOptions, groups);
+
+  state.visited.remove(unitId);
+  state.cache[unitId] = result;
 
   return result;
 }
 
-List<FlatEntry> _processIncludesWithResolverSync({
-  required List<String> includeValues,
-  required String fromUnitId,
-  required IncludeResolver resolver,
-  required FlatParseOptions options,
-  required FlatIncludeOptions includeOptions,
-  required FlatStreamReadOptions readOptions,
-  required Set<String> visited,
-  required Map<String, FlatDocument> cache,
-  required int depth,
-}) {
-  final includeEntries = <FlatEntry>[];
-
-  for (final raw in includeValues) {
-    final processed = processIncludePath(raw);
-    if (processed.isEmpty) {
-      continue;
-    }
-
-    final unit = resolver.resolve(processed.path, fromId: fromUnitId);
-    if (unit == null) {
-      if (processed.isOptional) {
-        continue;
-      }
-
-      throw MissingIncludeException(fromUnitId, processed.path);
-    }
-
-    final subDoc = _parseWithResolverRecursiveSync(
-      currentUnit: unit,
-      fromUnitId: fromUnitId,
-      resolver: resolver,
-      options: options,
-      includeOptions: includeOptions,
-      readOptions: readOptions,
-      visited: visited,
-      cache: cache,
-      depth: depth + 1,
-    );
-
-    includeEntries.addAll(subDoc.entries);
+/// An unresolved include contributes nothing when optional, and throws
+/// otherwise.
+List<FlatEntry> _missingOrThrow(ProcessedIncludePath processed, String fromId) {
+  if (processed.isOptional) {
+    return const [];
   }
 
-  return includeEntries;
+  throw MissingIncludeException(fromId, processed.path);
 }

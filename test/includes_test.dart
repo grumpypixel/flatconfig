@@ -348,11 +348,12 @@ include = theme.conf
         <String, FlatDocument>{},
       );
 
-      expect(entries.length, equals(2));
-      expect(entries[0].key, equals('theme'));
-      expect(entries[0].value, equals('dark'));
-      expect(entries[1].key, equals('font-size'));
-      expect(entries[1].value, equals('16'));
+      // One group per directive; this file has a single include.
+      expect(entries, hasLength(1));
+      expect(entries.single, [
+        FlatEntry('theme', 'dark'),
+        FlatEntry('font-size', '16'),
+      ]);
     });
 
     test('processIncludesSync handles optional includes', () async {
@@ -369,7 +370,9 @@ include = theme.conf
         <String, FlatDocument>{},
       );
 
-      expect(entries.length, equals(0));
+      // A missing optional include still gets a group, an empty one, so a
+      // group can be matched back to the directive it came from.
+      expect(entries, [const <FlatEntry>[]]);
     });
 
     test('processIncludesSync handles quoted paths', () async {
@@ -389,9 +392,7 @@ include = theme.conf
         <String, FlatDocument>{},
       );
 
-      expect(entries.length, equals(1));
-      expect(entries[0].key, equals('theme'));
-      expect(entries[0].value, equals('light'));
+      expect(entries.expand((group) => group), [FlatEntry('theme', 'light')]);
     });
 
     test('processIncludesSync handles empty include values', () async {
@@ -1346,11 +1347,12 @@ font-size = 16
       );
 
       // Verify the entries were processed correctly
-      expect(entries.length, equals(2));
-      expect(entries[0].key, equals('theme'));
-      expect(entries[0].value, equals('dark'));
-      expect(entries[1].key, equals('font-size'));
-      expect(entries[1].value, equals('16'));
+      // One group per directive; this file has a single include.
+      expect(entries, hasLength(1));
+      expect(entries.single, [
+        FlatEntry('theme', 'dark'),
+        FlatEntry('font-size', '16'),
+      ]);
     });
 
     test('processIncludes handles optional includes', () async {
@@ -1370,7 +1372,9 @@ font-size = 16
       );
 
       // Should return empty list since file doesn't exist
-      expect(entries.length, equals(0));
+      // A missing optional include still gets a group, an empty one, so a
+      // group can be matched back to the directive it came from.
+      expect(entries, [const <FlatEntry>[]]);
     });
 
     test('processIncludes handles quoted paths', () async {
@@ -1396,9 +1400,7 @@ theme = light
       );
 
       // Verify the entries were processed correctly
-      expect(entries.length, equals(1));
-      expect(entries[0].key, equals('theme'));
-      expect(entries[0].value, equals('light'));
+      expect(entries.expand((group) => group), [FlatEntry('theme', 'light')]);
     });
 
     test(

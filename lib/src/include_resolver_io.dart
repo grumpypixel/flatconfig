@@ -8,19 +8,20 @@ import 'include_resolver_core.dart';
 import 'path_utils.dart';
 
 /// File-backed resolver that mirrors current path resolution.
-class FileIncludeResolver implements IncludeResolver {
+class FileIncludeResolver extends SyncIncludeResolver {
   /// Creates a new file resolver.
   FileIncludeResolver();
 
   @override
-  IncludeUnit? resolve(String target, {String? fromId}) {
+  IncludeUnit? resolveSync(IncludeRequest request) {
+    final fromId = request.fromId;
     final Directory baseDir = (fromId != null && fromId.isNotEmpty)
         ? File(fromId).parent
         : Directory.current;
 
-    final absPath = p.isAbsolute(target)
-        ? target
-        : p.normalize(p.join(baseDir.path, target));
+    final absPath = p.isAbsolute(request.target)
+        ? request.target
+        : p.normalize(p.join(baseDir.path, request.target));
 
     final file = File(absPath);
     if (!file.existsSync()) {

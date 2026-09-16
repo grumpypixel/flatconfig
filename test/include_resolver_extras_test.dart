@@ -27,9 +27,8 @@ void main() {
         );
         try {
           final resolver = FileIncludeResolver();
-          final missing = resolver.resolve(
-            p.join(temp.path, 'nope.conf'),
-            fromId: temp.path,
+          final missing = resolver.resolveSync(
+            IncludeRequest(p.join(temp.path, 'nope.conf'), fromId: temp.path),
           );
           expect(missing, isNull);
         } finally {
@@ -48,7 +47,9 @@ void main() {
         File(p.join(temp.path, 'colors.conf')).writeAsStringSync('k = v\n');
 
         final resolver = FileIncludeResolver();
-        final unit = resolver.resolve('colors.conf', fromId: base.path);
+        final unit = resolver.resolveSync(
+          IncludeRequest('colors.conf', fromId: base.path),
+        );
         expect(unit, isNotNull);
         expect(unit!.content, contains('k = v'));
       } finally {
@@ -66,7 +67,9 @@ void main() {
           final file = File(p.join(temp.path, 'MiXeD.NaMe.CONF'))
             ..writeAsStringSync('k = v\n');
           final resolver = FileIncludeResolver();
-          final unit = resolver.resolve(file.path, fromId: null);
+          final unit = resolver.resolveSync(
+            IncludeRequest(file.path, fromId: null),
+          );
           expect(unit, isNotNull);
           // On Windows/macOS the id is lowercased; elsewhere keep as-is. This assertion
           // is safe across platforms because lowercasing twice is idempotent.
@@ -85,7 +88,7 @@ void main() {
       final mem = core.MemoryIncludeResolver({
         'mem:a': 'k = v\n',
       }, prefix: 'mem:');
-      final unit = mem.resolve('a');
+      final unit = mem.resolveSync(IncludeRequest('a'));
 
       expect(unit, isNotNull);
       expect(unit!.id, 'mem:a');
@@ -95,9 +98,9 @@ void main() {
     test('CompositeIncludeResolver first hit wins with memory only', () {
       final r1 = core.MemoryIncludeResolver({'x': 'k = r1\n'});
       final r2 = core.MemoryIncludeResolver({'x': 'k = r2\n'});
-      final composite = core.CompositeIncludeResolver([r1, r2]);
+      final composite = core.SyncCompositeIncludeResolver([r1, r2]);
 
-      final unit = composite.resolve('x');
+      final unit = composite.resolveSync(IncludeRequest('x'));
       expect(unit, isNotNull);
       expect(unit!.content, contains('k = r1'));
     });
@@ -113,7 +116,9 @@ void main() {
             ..writeAsStringSync('k = file\n');
           final resolver = FileIncludeResolver();
 
-          final unit = resolver.resolve(f.path, fromId: null);
+          final unit = resolver.resolveSync(
+            IncludeRequest(f.path, fromId: null),
+          );
           expect(unit, isNotNull);
           expect(unit!.id, isNotEmpty);
           expect(unit.content, contains('k = file'));
@@ -125,13 +130,13 @@ void main() {
 
     test('stub FileIncludeResolver returns null (web fallback class)', () {
       final s = stub.FileIncludeResolver();
-      final unit = s.resolve('anything');
+      final unit = s.resolveSync(IncludeRequest('anything'));
       expect(unit, isNull);
     });
 
     test('parseStringWithIncludes: no include leaves entries unchanged', () {
       final text = ['a = 1', 'b = 2'].join('\n');
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         text,
         resolver: core.MemoryIncludeResolver(const {}),
         originId: 'mem:root',
@@ -147,13 +152,13 @@ void main() {
       final cache = <String, FlatDocument>{};
 
       final text = 'config-file = mem:a\n';
-      final doc1 = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc1 = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',
         cache: cache,
       );
-      final doc2 = FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc2 = FlatConfigResolverIncludes.parseStringWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',
@@ -173,7 +178,7 @@ void main() {
       }, prefix: 'mem:');
 
       expect(
-        () => FlatConfigResolverIncludes.parseStringWithIncludes(
+        () => FlatConfigResolverIncludes.parseStringWithIncludesSync(
           'config-file = mem:root\n',
           resolver: mem,
           originId: 'mem:start',

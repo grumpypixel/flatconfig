@@ -16,7 +16,7 @@ Future<void> main() async {
     }, prefix: 'mem:');
 
     // Order defines resolution priority (first hit wins)
-    final resolver = CompositeIncludeResolver([
+    final resolver = SyncCompositeIncludeResolver([
       FileIncludeResolver(),
       mem,
     ]);
@@ -26,7 +26,7 @@ config-file = ${base.path}
 config-file = mem:hotfix.conf
 ''';
 
-    final doc = FlatConfigResolverIncludes.parseStringWithIncludes(
+    final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
       text,
       resolver: resolver,
       originId: p.join(temp.path, 'virtual_main.conf'),
