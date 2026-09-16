@@ -15,6 +15,7 @@ extension FlatConfigIncludes on FlatDocument {
   static Future<FlatDocument> parseWithIncludes(
     Object /* File */ file, {
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) async => _unsupported('FlatConfigIncludes.parseWithIncludes');
@@ -25,6 +26,7 @@ extension FlatConfigIncludes on FlatDocument {
   static FlatDocument parseWithIncludesSync(
     Object /* File */ file, {
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) => _unsupported('FlatConfigIncludes.parseWithIncludesSync');
@@ -35,6 +37,7 @@ extension FlatConfigIncludes on FlatDocument {
   static Future<FlatDocument> parseWithIncludesFromPath(
     String path, {
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) async => _unsupported('FlatConfigIncludes.parseWithIncludesFromPath');
@@ -45,6 +48,7 @@ extension FlatConfigIncludes on FlatDocument {
   static FlatDocument parseWithIncludesFromPathSync(
     String path, {
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) => _unsupported('FlatConfigIncludes.parseWithIncludesFromPathSync');
@@ -72,6 +76,7 @@ extension FileIncludesStub on Object {
   /// Always throws [UnsupportedError] on web/wasm.
   Future<FlatDocument> parseWithIncludes({
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) async => _unsupported('File.parseWithIncludes');

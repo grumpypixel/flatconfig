@@ -213,7 +213,7 @@ class FlatDocument {
   /// or one CSV value, depending on [options].
   static FlatDocument fromData(
     Map<String, Object?> data, {
-    FlatMapDataOptions options = const FlatMapDataOptions(),
+    FlatDataOptions options = const FlatDataOptions(),
   }) => flatDocumentFromMapData(data, options: options);
 
   /// The list of configuration entries in this document.

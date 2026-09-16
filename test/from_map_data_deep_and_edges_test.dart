@@ -93,7 +93,7 @@ void main() {
       () {
         final doc = FlatDocument.fromData({
           'parent': {'': 'v'},
-        }, options: const FlatMapDataOptions(separator: '.'));
+        }, options: const FlatDataOptions(separator: '.'));
 
         // This results in 'parent.' (not trimmed). Valid key in FlatDocument.
         expect(doc['parent.'], 'v');
@@ -105,7 +105,7 @@ void main() {
         {
           'root:part': {'child::part': 1},
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           separator: '::',
           // escape only occurrences of the double-colon sequence
           keyEscaper: (k) => k.replaceAll('::', r'\:\:'),
@@ -127,7 +127,7 @@ void main() {
           {
             'r.o.o.t': {'child': 1},
           },
-          options: FlatMapDataOptions(
+          options: FlatDataOptions(
             keyEscaper: (k) => k.replaceAll('.', r'\.'),
             valueEncoder: (v, key) {
               if (key == r'r\.o\.o\.t' && v is Map) {
@@ -158,7 +158,7 @@ void main() {
         {
           'list': ['a', 'b'],
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: '|',
           csvItemEncoder: myCsvItemEncoder,
@@ -176,7 +176,7 @@ void main() {
         {
           'n': [null, null],
         },
-        options: const FlatMapDataOptions(
+        options: const FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',',
           csvNullToken: 'NULL',
@@ -190,7 +190,7 @@ void main() {
     test('empty list is empty string (csv)', () {
       final doc = FlatDocument.fromData({
         'e': <Object?>[],
-      }, options: const FlatMapDataOptions(listMode: FlatListMode.csv));
+      }, options: const FlatDataOptions(listMode: FlatListMode.csv));
 
       expect(doc['e'], '');
     });
@@ -206,7 +206,7 @@ void main() {
     test('dropNulls=true omits the key entirely', () {
       final doc = FlatDocument.fromData({
         'k': null,
-      }, options: const FlatMapDataOptions(dropNulls: true));
+      }, options: const FlatDataOptions(dropNulls: true));
       expect(doc.allValues('k'), isEmpty);
       expect(doc['k'], isNull);
       expect(doc.keys.contains('k'), isFalse);
@@ -241,7 +241,7 @@ void main() {
     test('custom object with toJson() in list encodes via JSON', () {
       final doc = FlatDocument.fromData({
         'l': [_OkVal(1), _OkVal(2)],
-      }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
+      }, options: const FlatDataOptions(listMode: FlatListMode.multi));
       expect(doc.allValues('l'), ['{"n":1}', '{"n":2}']);
     });
   });
@@ -304,7 +304,7 @@ void main() {
         {
           'csv': ['a,b', 'x'],
         },
-        options: const FlatMapDataOptions(
+        options: const FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',',
         ),
@@ -319,7 +319,7 @@ void main() {
         {
           'root::part': {'child::part': 1},
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           separator: '::',
           keyEscaper: (k) => k.replaceAll('::', r'\:\:'),
         ),

@@ -216,7 +216,7 @@ include = theme.conf
 
     // Parse with custom include key
     final customDoc = await customMainFile.parseWithIncludes(
-      options: const FlatParseOptions(includeKey: 'include'),
+      includeOptions: const FlatIncludeOptions(includeKey: 'include'),
     );
 
     print('5. Custom include key (include instead of config-file):');
@@ -232,7 +232,7 @@ include = theme.conf
         '   - Use config-file = path to include other config files (default)');
     print('   - Use config-file = ?path for optional includes');
     print(
-        '   - Customize include key with FlatParseOptions(includeKey: "include")');
+        '   - Customize include key with FlatIncludeOptions(includeKey: "include")');
     print(
         '   - Entries after include directives don\'t override included values');
     print('   - Supports nested includes and cycle detection');

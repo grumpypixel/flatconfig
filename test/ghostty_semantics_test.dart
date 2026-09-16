@@ -8,7 +8,7 @@ void main() {
     test('no includes → all entries are pre-include; tail is empty', () {
       final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
 
-      const options = FlatParseOptions();
+      const options = FlatIncludeOptions();
       final result = processDocumentWithGhosttySemantics(
         doc,
         options,
@@ -39,7 +39,7 @@ void main() {
         FlatEntry('y', 'allowed'),
       ]);
 
-      const options = FlatParseOptions();
+      const options = FlatIncludeOptions();
       // Keys that would be produced by the resolved includes
       const keysFromIncludes = {'x'};
 

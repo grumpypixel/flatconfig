@@ -115,7 +115,7 @@ included_key = included_value
       // Test with custom include key
       final doc = await io.parseFileWithIncludes(
         mainFile.path,
-        options: const FlatParseOptions(includeKey: 'include'),
+        includeOptions: const FlatIncludeOptions(includeKey: 'include'),
       );
       expect(doc['key1'], 'value1');
       expect(doc['included_key'], 'included_value');
@@ -361,7 +361,7 @@ included_key = included_value
       // Test with custom include key
       final doc = await parseFileWithIncludes(
         'test/tmp_parse_flat_file_with_includes_opts.conf',
-        options: const FlatParseOptions(includeKey: 'include'),
+        includeOptions: const FlatIncludeOptions(includeKey: 'include'),
       );
       expect(doc['key1'], 'value1');
       expect(doc['included_key'], 'included_value');

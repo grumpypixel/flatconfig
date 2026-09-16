@@ -2,9 +2,9 @@ import 'dart:convert' as convert;
 import 'document.dart';
 
 /// Controls how nested Map/List data are flattened into FlatEntries.
-final class FlatMapDataOptions {
-  /// Constructor for FlatMapDataOptions.
-  const FlatMapDataOptions({
+final class FlatDataOptions {
+  /// Constructor for FlatDataOptions.
+  const FlatDataOptions({
     this.separator = '.',
     this.listMode = FlatListMode.multi,
     this.csvSeparator = ', ',
@@ -80,7 +80,7 @@ typedef KeyEscaper = String Function(String rawKey);
 /// Public top-level entrypoint used by FlatConfig.fromMapData.
 FlatDocument flatDocumentFromMapData(
   Map<String, Object?> data, {
-  FlatMapDataOptions options = const FlatMapDataOptions(),
+  FlatDataOptions options = const FlatDataOptions(),
 }) {
   final entries = <FlatEntry>[];
 
@@ -101,7 +101,7 @@ FlatDocument flatDocumentFromMapData(
 void flattenValue({
   required String keyPath,
   required Object? value,
-  required FlatMapDataOptions options,
+  required FlatDataOptions options,
   required List<FlatEntry> out,
 }) {
   // Highest priority: user-supplied encoder may force a specific representation for ANY value.
@@ -190,7 +190,7 @@ void flattenValue({
 String encodeValue({
   required Object? value,
   required String keyPath,
-  required FlatMapDataOptions options,
+  required FlatDataOptions options,
 }) {
   // This path is only reached when _tryValueOverride returned null and value is non-null.
   if (value is bool) {
@@ -222,7 +222,7 @@ String encodeValue({
 String joinAsCsv({
   required Iterable<String> items,
   required String keyPath,
-  required FlatMapDataOptions options,
+  required FlatDataOptions options,
 }) {
   final buffer = StringBuffer();
   var first = true;
@@ -268,7 +268,7 @@ bool _isScalar(Object? v) {
 String _toChildPath({
   required String parent,
   required String child,
-  required FlatMapDataOptions options,
+  required FlatDataOptions options,
 }) {
   final safeChild = options.keyEscaper != null
       ? options.keyEscaper!(child)
@@ -284,7 +284,7 @@ String _toChildPath({
 void _emitListAsMulti({
   required String keyPath,
   required List<Object?> list,
-  required FlatMapDataOptions options,
+  required FlatDataOptions options,
   required List<FlatEntry> out,
 }) {
   for (final item in list) {
@@ -336,7 +336,7 @@ void _emitListAsMulti({
 void _emitListAsCsv({
   required String keyPath,
   required List<Object?> list,
-  required FlatMapDataOptions options,
+  required FlatDataOptions options,
   required List<FlatEntry> out,
 }) {
   final items = <String>[];
@@ -393,7 +393,7 @@ void _emitListAsCsv({
 String? _tryValueOverride({
   required Object? value,
   required String keyPath,
-  required FlatMapDataOptions options,
+  required FlatDataOptions options,
 }) {
   if (options.valueEncoder == null) {
     return null;

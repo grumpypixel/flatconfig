@@ -177,7 +177,7 @@ void main() {
           'config-file = mem:root\n',
           resolver: mem,
           originId: 'mem:start',
-          options: const FlatParseOptions(maxIncludeDepth: 1),
+          includeOptions: const FlatIncludeOptions(maxIncludeDepth: 1),
         ),
         throwsA(isA<MaxIncludeDepthExceededException>()),
       );

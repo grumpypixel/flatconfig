@@ -41,11 +41,13 @@ FlatDocument parseFlatFileSync(
 Future<FlatDocument> parseFileWithIncludes(
   String path, {
   FlatParseOptions options = const FlatParseOptions(),
+  FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
   Map<String, FlatDocument>? cache,
 }) async => FlatConfigIncludes.parseWithIncludesFromPath(
   path,
   options: options,
+  includeOptions: includeOptions,
   readOptions: readOptions,
   cache: cache,
 );

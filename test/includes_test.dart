@@ -40,7 +40,7 @@ void main() {
 
       expect(
         () => mainFile.parseWithIncludes(
-          options: const FlatParseOptions(maxIncludeDepth: 2),
+          includeOptions: const FlatIncludeOptions(maxIncludeDepth: 2),
         ),
         throwsA(isA<MaxIncludeDepthExceededException>()),
       );
@@ -271,7 +271,7 @@ config-file = missing.conf
       expect(
         () => inc.FlatConfigIncludes.parseWithIncludesSync(
           mainFile,
-          options: const FlatParseOptions(maxIncludeDepth: 2),
+          includeOptions: const FlatIncludeOptions(maxIncludeDepth: 2),
         ),
         throwsA(isA<MaxIncludeDepthExceededException>()),
       );
@@ -325,7 +325,7 @@ include = theme.conf
 
       final doc = inc.FlatConfigIncludes.parseWithIncludesSync(
         mainFile,
-        options: const FlatParseOptions(includeKey: 'include'),
+        includeOptions: const FlatIncludeOptions(includeKey: 'include'),
       );
       expect(doc['background'], equals('343028'));
       expect(doc['foreground'], equals('f3d735'));
@@ -342,6 +342,7 @@ include = theme.conf
         baseFile,
         baseFile.absolute.path,
         const FlatParseOptions(),
+        const FlatIncludeOptions(),
         const FlatStreamReadOptions(),
         <String>{},
         <String, FlatDocument>{},
@@ -362,6 +363,7 @@ include = theme.conf
         baseFile,
         baseFile.absolute.path,
         const FlatParseOptions(),
+        const FlatIncludeOptions(),
         const FlatStreamReadOptions(),
         <String>{},
         <String, FlatDocument>{},
@@ -381,6 +383,7 @@ include = theme.conf
         baseFile,
         baseFile.absolute.path,
         const FlatParseOptions(),
+        const FlatIncludeOptions(),
         const FlatStreamReadOptions(),
         <String>{},
         <String, FlatDocument>{},
@@ -400,6 +403,7 @@ include = theme.conf
           baseFile,
           baseFile.absolute.path,
           const FlatParseOptions(),
+          const FlatIncludeOptions(),
           const FlatStreamReadOptions(),
           <String>{},
           <String, FlatDocument>{},
@@ -419,6 +423,7 @@ include = theme.conf
         final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           testFile,
           options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
           readOptions: const FlatStreamReadOptions(),
           visited: <String>{},
           cache: <String, FlatDocument>{},
@@ -441,6 +446,7 @@ config-file = cycle.conf
         () => inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           testFile,
           options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
           readOptions: const FlatStreamReadOptions(),
           visited: <String>{},
           cache: <String, FlatDocument>{},
@@ -456,6 +462,7 @@ config-file = cycle.conf
         () => inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           testFile,
           options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
           readOptions: const FlatStreamReadOptions(),
           visited: <String>{},
           cache: <String, FlatDocument>{},
@@ -483,6 +490,7 @@ font-size = 14
         final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           mainFile,
           options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
           readOptions: const FlatStreamReadOptions(),
           visited: <String>{},
           cache: <String, FlatDocument>{},
@@ -507,7 +515,8 @@ include = theme.conf
 
       final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
         mainFile,
-        options: const FlatParseOptions(includeKey: 'include'),
+        options: const FlatParseOptions(),
+        includeOptions: const FlatIncludeOptions(includeKey: 'include'),
         readOptions: const FlatStreamReadOptions(),
         visited: <String>{},
         cache: <String, FlatDocument>{},
@@ -528,6 +537,7 @@ config-file = ?optional.conf
       final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
         mainFile,
         options: const FlatParseOptions(),
+        includeOptions: const FlatIncludeOptions(),
         readOptions: const FlatStreamReadOptions(),
         visited: <String>{},
         cache: <String, FlatDocument>{},
@@ -555,6 +565,7 @@ foreground = f3d735
         final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           mainFile,
           options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
           readOptions: const FlatStreamReadOptions(),
           visited: <String>{},
           cache: <String, FlatDocument>{},
@@ -1039,7 +1050,7 @@ foreground = f3d735
 
       // Parse with custom include key
       final doc = await mainFile.parseWithIncludes(
-        options: const FlatParseOptions(includeKey: 'include'),
+        includeOptions: const FlatIncludeOptions(includeKey: 'include'),
       );
 
       // Verify all entries are present
@@ -1064,7 +1075,7 @@ version = 2.0
 
       // Parse with custom include key
       final doc = await mainFile.parseWithIncludes(
-        options: const FlatParseOptions(includeKey: 'source'),
+        includeOptions: const FlatIncludeOptions(includeKey: 'source'),
       );
 
       // Verify all entries are present
@@ -1098,7 +1109,7 @@ ignored = true
 
         // Parse with custom include key
         final doc = await mainFile.parseWithIncludes(
-          options: const FlatParseOptions(includeKey: 'include'),
+          includeOptions: const FlatIncludeOptions(includeKey: 'include'),
         );
 
         // Verify only the custom include key was processed
@@ -1127,7 +1138,7 @@ foreground = f3d735
 
       // Parse with custom include key
       final doc = await mainFile.parseWithIncludes(
-        options: const FlatParseOptions(includeKey: 'include'),
+        includeOptions: const FlatIncludeOptions(includeKey: 'include'),
       );
 
       // Verify only the existing include was processed
@@ -1328,6 +1339,7 @@ font-size = 16
         baseFile,
         baseFile.absolute.path,
         const FlatParseOptions(),
+        const FlatIncludeOptions(),
         const FlatStreamReadOptions(),
         <String>{},
         <String, FlatDocument>{},
@@ -1351,6 +1363,7 @@ font-size = 16
         baseFile,
         baseFile.absolute.path,
         const FlatParseOptions(),
+        const FlatIncludeOptions(),
         const FlatStreamReadOptions(),
         <String>{},
         <String, FlatDocument>{},
@@ -1376,6 +1389,7 @@ theme = light
         baseFile,
         baseFile.absolute.path,
         const FlatParseOptions(),
+        const FlatIncludeOptions(),
         const FlatStreamReadOptions(),
         <String>{},
         <String, FlatDocument>{},
@@ -1401,6 +1415,7 @@ foreground = f3d735
         final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
           testFile,
           options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
           readOptions: const FlatStreamReadOptions(),
           visited: <String>{},
           cache: <String, FlatDocument>{},
@@ -1426,6 +1441,7 @@ config-file = cycle.conf
         await inc.FlatConfigIncludes.parseWithIncludesRecursive(
           testFile,
           options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
           readOptions: const FlatStreamReadOptions(),
           visited: <String>{},
           cache: <String, FlatDocument>{},
@@ -1445,6 +1461,7 @@ config-file = cycle.conf
         await inc.FlatConfigIncludes.parseWithIncludesRecursive(
           testFile,
           options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
           readOptions: const FlatStreamReadOptions(),
           visited: <String>{},
           cache: <String, FlatDocument>{},
@@ -1475,6 +1492,7 @@ font-size = 14
       final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
         mainFile,
         options: const FlatParseOptions(),
+        includeOptions: const FlatIncludeOptions(),
         readOptions: const FlatStreamReadOptions(),
         visited: <String>{},
         cache: <String, FlatDocument>{},
@@ -1507,7 +1525,8 @@ foreground = f3d735
       // Test with custom include key
       final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
         mainFile,
-        options: const FlatParseOptions(includeKey: 'include'),
+        options: const FlatParseOptions(),
+        includeOptions: const FlatIncludeOptions(includeKey: 'include'),
         readOptions: const FlatStreamReadOptions(),
         visited: <String>{},
         cache: <String, FlatDocument>{},
@@ -1533,6 +1552,7 @@ config-file = ?optional.conf
       final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
         mainFile,
         options: const FlatParseOptions(),
+        includeOptions: const FlatIncludeOptions(),
         readOptions: const FlatStreamReadOptions(),
         visited: <String>{},
         cache: <String, FlatDocument>{},

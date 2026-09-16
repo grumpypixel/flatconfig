@@ -544,10 +544,20 @@ exception for the same input.
 - [x] Validate invalid combinations at construction. An assert catches a literal
       at compile time but a release build drops it, so `maxIncludeDepth` is also
       checked where it is read.
-- [ ] Split by responsibility: `FlatParseOptions`, `FlatEncodeOptions`,
+- [x] Split by responsibility: `FlatParseOptions`, `FlatEncodeOptions`,
       `FlatDecodeOptions`, `FlatEncodeStreamOptions`, `FlatIncludeOptions`,
       `FlatEnvOptions`, `FlatDataOptions`. Move `includeKey` and
       `maxIncludeDepth` out of `FlatParseOptions`.
+
+      Done except for two of the renames. `FlatIncludeOptions` is new and the
+      two fields moved to it; `FlatMapDataOptions` is now `FlatDataOptions`.
+
+      `FlatStreamReadOptions` and `FlatStreamWriteOptions` keep their names
+      rather than becoming `FlatDecodeOptions` and `FlatEncodeStreamOptions`.
+      Those two are not a pair: one says `Stream` and the other does not, while
+      both configure the same byte layer, and `FlatEncodeOptions` (document to
+      text) already owns the word `Encode`. Rename them if a better pair turns
+      up; it is mechanical either way.
 
 ### 2.10 Safer environment defaults
 

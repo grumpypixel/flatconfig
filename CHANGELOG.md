@@ -25,6 +25,16 @@ Added:
 - **`FlatDocument.fromEnvironment()`** — build a document from environment
   variables.
 
+Changed:
+
+- **`includeKey` and `maxIncludeDepth` moved to `FlatIncludeOptions`.** They sat
+  on `FlatParseOptions`, which made it look as though `FlatDocument.parse` might
+  follow an include. It never did — only the entry points that take a path or a
+  resolver do, and those now take `includeOptions:` alongside `options:`.
+- **`FlatMapDataOptions` is now `FlatDataOptions`,** matching
+  `FlatDocument.fromData`, which was renamed from `fromMapData` earlier in this
+  cycle.
+
 Fixed:
 
 - **The options classes behave like values.** All five now implement `==`,
@@ -151,7 +161,7 @@ Fixed:
   `doc.entries.…`, which says which view is meant.
 - **`FlatEntry` is valid by construction, and `strict` is gone everywhere.** The
   constructor now rejects what the format cannot write out, so the flag had
-  nothing left to switch: `fromMap`, `fromEntries`, `FlatMapDataOptions` and the
+  nothing left to switch: `fromMap`, `fromEntries`, `FlatDataOptions` and the
   deleted `single` no longer take it, `FlatEntry.validated` is the ordinary
   constructor, and `FlatDocument.validateEntries` is deleted as unreachable.
   These inputs now raise `ArgumentError` at the point they are written, rather

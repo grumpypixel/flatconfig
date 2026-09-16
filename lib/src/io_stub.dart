@@ -38,6 +38,7 @@ FlatDocument parseFlatFileSync(
 Future<FlatDocument> parseFileWithIncludes(
   String path, {
   FlatParseOptions options = const FlatParseOptions(),
+  FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
   Map<String, FlatDocument>? cache,
 }) async => _unsupported('parseFileWithIncludes');

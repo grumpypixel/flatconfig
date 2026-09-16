@@ -30,7 +30,7 @@ extension FlatConfigIncludes on FlatDocument {
   ///
   /// This method parses a configuration file and automatically processes any
   /// include directives found within it. The include key is configurable via
-  /// [options.includeKey] (defaults to `config-file` for Ghostty compatibility).
+  /// [FlatIncludeOptions.includeKey] (defaults to `config-file` for Ghostty compatibility).
   /// The includes are processed recursively with cycle detection and support
   /// for optional includes.
   ///
@@ -52,7 +52,7 @@ extension FlatConfigIncludes on FlatDocument {
   /// // Custom include key
   /// final doc = await FlatConfigIncludes.parseWithIncludes(
   ///   File('main.conf'),
-  ///   options: const FlatParseOptions(includeKey: 'include'),
+  ///   options: const FlatIncludeOptions(includeKey: 'include'),
   /// );
   /// ```
   ///
@@ -61,11 +61,13 @@ extension FlatConfigIncludes on FlatDocument {
   static Future<FlatDocument> parseWithIncludes(
     File file, {
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) async => parseWithIncludesRecursive(
     file,
     options: options,
+    includeOptions: includeOptions,
     readOptions: readOptions,
     visited: <String>{},
     cache: cache ?? <String, FlatDocument>{},
@@ -78,11 +80,13 @@ extension FlatConfigIncludes on FlatDocument {
   static FlatDocument parseWithIncludesSync(
     File file, {
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) => parseWithIncludesRecursiveSync(
     file,
     options: options,
+    includeOptions: includeOptions,
     readOptions: readOptions,
     visited: <String>{},
     cache: cache ?? <String, FlatDocument>{},
@@ -100,11 +104,13 @@ extension FlatConfigIncludes on FlatDocument {
   static Future<FlatDocument> parseWithIncludesFromPath(
     String path, {
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) async => parseWithIncludes(
     File(path),
     options: options,
+    includeOptions: includeOptions,
     readOptions: readOptions,
     cache: cache,
   );
@@ -113,11 +119,13 @@ extension FlatConfigIncludes on FlatDocument {
   static FlatDocument parseWithIncludesFromPathSync(
     String path, {
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) => parseWithIncludesSync(
     File(path),
     options: options,
+    includeOptions: includeOptions,
     readOptions: readOptions,
     cache: cache,
   );
@@ -170,6 +178,7 @@ extension FlatConfigIncludes on FlatDocument {
     File baseFile,
     String canonicalPath,
     FlatParseOptions options,
+    FlatIncludeOptions includeOptions,
     FlatStreamReadOptions readOptions,
     Set<String> visited,
     Map<String, FlatDocument> cache, {
@@ -198,6 +207,7 @@ extension FlatConfigIncludes on FlatDocument {
       final subDoc = await parseWithIncludesRecursive(
         includedFile,
         options: options,
+        includeOptions: includeOptions,
         readOptions: readOptions,
         visited: visited,
         cache: cache,
@@ -217,6 +227,7 @@ extension FlatConfigIncludes on FlatDocument {
     File baseFile,
     String canonicalPath,
     FlatParseOptions options,
+    FlatIncludeOptions includeOptions,
     FlatStreamReadOptions readOptions,
     Set<String> visited,
     Map<String, FlatDocument> cache, {
@@ -240,6 +251,7 @@ extension FlatConfigIncludes on FlatDocument {
       final subDoc = parseWithIncludesRecursiveSync(
         includedFile,
         options: options,
+        includeOptions: includeOptions,
         readOptions: readOptions,
         visited: visited,
         cache: cache,
@@ -258,18 +270,19 @@ extension FlatConfigIncludes on FlatDocument {
   static Future<FlatDocument> parseWithIncludesRecursive(
     File file, {
     required FlatParseOptions options,
+    required FlatIncludeOptions includeOptions,
     required FlatStreamReadOptions readOptions,
     required Set<String> visited,
     required Map<String, FlatDocument> cache,
     int depth = 0,
   }) async {
     // Enforce maximum include depth
-    checkIncludeDepth(options.maxIncludeDepth);
-    if (depth > options.maxIncludeDepth) {
+    checkIncludeDepth(includeOptions.maxIncludeDepth);
+    if (depth > includeOptions.maxIncludeDepth) {
       throw MaxIncludeDepthExceededException(
         file.path,
         depth,
-        options.maxIncludeDepth,
+        includeOptions.maxIncludeDepth,
       );
     }
     // Canonicalize the path for cycle detection
@@ -301,7 +314,7 @@ extension FlatConfigIncludes on FlatDocument {
     );
 
     // First pass: collect include directives and pre-include entries
-    final collected = collectIncludesAndPreEntries(doc, options);
+    final collected = collectIncludesAndPreEntries(doc, includeOptions);
 
     // Resolve includes
     final includeEntries = await processIncludes(
@@ -309,6 +322,7 @@ extension FlatConfigIncludes on FlatDocument {
       file,
       canonicalPath,
       options,
+      includeOptions,
       readOptions,
       visited,
       cache,
@@ -317,7 +331,11 @@ extension FlatConfigIncludes on FlatDocument {
 
     // Process document with Ghostty semantics to get filtered tail entries
     final keysFromIncludes = includeEntries.map((e) => e.key).toSet();
-    final filteredTail = filterTailEntries(doc, options, keysFromIncludes);
+    final filteredTail = filterTailEntries(
+      doc,
+      includeOptions,
+      keysFromIncludes,
+    );
 
     // Build final document according to Ghostty semantics
     final result = buildGhosttyDocument(
@@ -340,17 +358,18 @@ extension FlatConfigIncludes on FlatDocument {
   static FlatDocument parseWithIncludesRecursiveSync(
     File file, {
     required FlatParseOptions options,
+    required FlatIncludeOptions includeOptions,
     required FlatStreamReadOptions readOptions,
     required Set<String> visited,
     required Map<String, FlatDocument> cache,
     int depth = 0,
   }) {
-    checkIncludeDepth(options.maxIncludeDepth);
-    if (depth > options.maxIncludeDepth) {
+    checkIncludeDepth(includeOptions.maxIncludeDepth);
+    if (depth > includeOptions.maxIncludeDepth) {
       throw MaxIncludeDepthExceededException(
         file.path,
         depth,
-        options.maxIncludeDepth,
+        includeOptions.maxIncludeDepth,
       );
     }
 
@@ -375,7 +394,7 @@ extension FlatConfigIncludes on FlatDocument {
     );
 
     // First pass: collect include directives and pre-include entries
-    final collected = collectIncludesAndPreEntries(doc, options);
+    final collected = collectIncludesAndPreEntries(doc, includeOptions);
 
     // Resolve includes
     final includeEntries = processIncludesSync(
@@ -383,6 +402,7 @@ extension FlatConfigIncludes on FlatDocument {
       file,
       canonicalPath,
       options,
+      includeOptions,
       readOptions,
       visited,
       cache,
@@ -391,7 +411,11 @@ extension FlatConfigIncludes on FlatDocument {
 
     // Process document with Ghostty semantics to get filtered tail entries
     final keysFromIncludes = includeEntries.map((e) => e.key).toSet();
-    final filteredTail = filterTailEntries(doc, options, keysFromIncludes);
+    final filteredTail = filterTailEntries(
+      doc,
+      includeOptions,
+      keysFromIncludes,
+    );
 
     // Build final document according to Ghostty semantics
     final result = buildGhosttyDocument(
@@ -423,7 +447,7 @@ extension FileIncludes on File {
   ///
   /// This method parses the current file and automatically processes any
   /// include directives found within it. The include key is configurable via
-  /// [options.includeKey] (defaults to `config-file` for Ghostty compatibility).
+  /// [FlatIncludeOptions.includeKey] (defaults to `config-file` for Ghostty compatibility).
   /// The includes are processed recursively with cycle detection and support
   /// for optional includes.
   ///
@@ -444,7 +468,7 @@ extension FileIncludes on File {
   ///
   /// // Custom include key
   /// final doc = await file.parseWithIncludes(
-  ///   options: const FlatParseOptions(includeKey: 'include'),
+  ///   options: const FlatIncludeOptions(includeKey: 'include'),
   /// );
   /// ```
   ///
@@ -452,11 +476,13 @@ extension FileIncludes on File {
   /// Throws [MissingIncludeException] if a required include file is missing.
   Future<FlatDocument> parseWithIncludes({
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) async => FlatConfigIncludes.parseWithIncludes(
     this,
     options: options,
+    includeOptions: includeOptions,
     readOptions: readOptions,
     cache: cache,
   );

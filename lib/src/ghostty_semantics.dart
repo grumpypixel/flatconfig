@@ -49,7 +49,7 @@ class GhosttyCollectedDocument {
 /// Collects include values and entries before the first include.
 GhosttyCollectedDocument collectIncludesAndPreEntries(
   FlatDocument doc,
-  FlatParseOptions options,
+  FlatIncludeOptions options,
 ) {
   final includeValues = <String>[];
   final preIncludeEntries = <FlatEntry>[];
@@ -81,7 +81,7 @@ GhosttyCollectedDocument collectIncludesAndPreEntries(
 /// Filters the tail (post-include) entries so they don't override include keys.
 List<FlatEntry> filterTailEntries(
   FlatDocument doc,
-  FlatParseOptions options,
+  FlatIncludeOptions options,
   Set<String> keysFromIncludes,
 ) {
   final filteredTail = <FlatEntry>[];
@@ -118,7 +118,7 @@ List<FlatEntry> filterTailEntries(
 /// Returns a [GhosttyProcessedDocument] with the processed information.
 GhosttyProcessedDocument processDocumentWithGhosttySemantics(
   FlatDocument doc,
-  FlatParseOptions options,
+  FlatIncludeOptions options,
   Set<String> keysFromIncludes,
 ) {
   final collected = collectIncludesAndPreEntries(doc, options);

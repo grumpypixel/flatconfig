@@ -22,6 +22,7 @@ extension FlatConfigResolverIncludes on FlatDocument {
     required IncludeResolver resolver,
     String? originId, // canonical id of this "virtual file"
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
     Map<String, FlatDocument>? cache,
   }) {
@@ -35,6 +36,7 @@ extension FlatConfigResolverIncludes on FlatDocument {
       fromUnitId: null,
       resolver: resolver,
       options: options,
+      includeOptions: includeOptions,
       readOptions: readOptions,
       visited: visited,
       cache: effectiveCache,
@@ -51,17 +53,18 @@ FlatDocument _parseWithResolverRecursiveSync({
   String? fromUnitId,
   required IncludeResolver resolver,
   required FlatParseOptions options,
+  required FlatIncludeOptions includeOptions,
   required FlatStreamReadOptions readOptions,
   required Set<String> visited,
   required Map<String, FlatDocument> cache,
   required int depth,
 }) {
-  checkIncludeDepth(options.maxIncludeDepth);
-  if (depth > options.maxIncludeDepth) {
+  checkIncludeDepth(includeOptions.maxIncludeDepth);
+  if (depth > includeOptions.maxIncludeDepth) {
     throw MaxIncludeDepthExceededException(
       currentUnit.id,
       depth,
-      options.maxIncludeDepth,
+      includeOptions.maxIncludeDepth,
     );
   }
 
@@ -85,7 +88,7 @@ FlatDocument _parseWithResolverRecursiveSync({
   );
 
   // First pass: collect include directives and pre-include entries
-  final collected = collectIncludesAndPreEntries(doc, options);
+  final collected = collectIncludesAndPreEntries(doc, includeOptions);
 
   // Resolve includes
   final includeEntries = _processIncludesWithResolverSync(
@@ -93,6 +96,7 @@ FlatDocument _parseWithResolverRecursiveSync({
     fromUnitId: unitId,
     resolver: resolver,
     options: options,
+    includeOptions: includeOptions,
     readOptions: readOptions,
     visited: visited,
     cache: cache,
@@ -101,7 +105,7 @@ FlatDocument _parseWithResolverRecursiveSync({
 
   // Process document with Ghostty semantics to get filtered tail entries
   final keysFromIncludes = includeEntries.map((e) => e.key).toSet();
-  final filteredTail = filterTailEntries(doc, options, keysFromIncludes);
+  final filteredTail = filterTailEntries(doc, includeOptions, keysFromIncludes);
 
   // Build final document according to Ghostty semantics
   final result = buildGhosttyDocument(
@@ -121,6 +125,7 @@ List<FlatEntry> _processIncludesWithResolverSync({
   required String fromUnitId,
   required IncludeResolver resolver,
   required FlatParseOptions options,
+  required FlatIncludeOptions includeOptions,
   required FlatStreamReadOptions readOptions,
   required Set<String> visited,
   required Map<String, FlatDocument> cache,
@@ -148,6 +153,7 @@ List<FlatEntry> _processIncludesWithResolverSync({
       fromUnitId: fromUnitId,
       resolver: resolver,
       options: options,
+      includeOptions: includeOptions,
       readOptions: readOptions,
       visited: visited,
       cache: cache,

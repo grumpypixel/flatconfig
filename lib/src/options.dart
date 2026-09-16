@@ -35,10 +35,8 @@ class FlatParseOptions {
     this.commentPrefix = Constants.commentPrefix,
     this.decodeEscapesInQuoted = true,
     this.strict = false,
-    this.includeKey = Constants.includeKey,
-    this.maxIncludeDepth = 64,
     this.onIssue,
-  }) : assert(maxIncludeDepth >= 0, 'maxIncludeDepth must not be negative');
+  });
 
   /// Prefix used to mark comment lines.
   ///
@@ -64,30 +62,6 @@ class FlatParseOptions {
   /// exceptions. When false, invalid lines are silently ignored. Defaults to false.
   final bool strict;
 
-  /// Key used to identify include directives in configuration files.
-  ///
-  /// When parsing with includes, lines with this key are treated as include
-  /// directives. The value should be a path to another configuration file.
-  /// Defaults to [Constants.includeKey] (`config-file`) for Ghostty compatibility.
-  ///
-  /// Example:
-  /// ```dart
-  /// // With default includeKey = Constants.includeKey
-  /// config-file = theme.conf
-  ///
-  /// // With includeKey = 'include'
-  /// include = theme.conf
-  /// ```
-  final String includeKey;
-
-  /// Maximum recursion depth for processing includes.
-  ///
-  /// This defensive limit prevents pathological include graphs from causing
-  /// unbounded recursion in cases where canonicalization fails or the graph
-  /// is extremely deep. Zero disallows includes entirely: a document that has
-  /// one raises [MaxIncludeDepthExceededException]. Defaults to 64.
-  final int maxIncludeDepth;
-
   /// Called for each problem found while parsing, when [strict] is false.
   ///
   /// One handler covers every [FlatIssueKind], so a new kind of problem becomes
@@ -110,15 +84,11 @@ class FlatParseOptions {
     String? commentPrefix,
     bool? decodeEscapesInQuoted,
     bool? strict,
-    String? includeKey,
-    int? maxIncludeDepth,
     OnIssue? onIssue = _unsetOnIssue,
   }) => FlatParseOptions(
     commentPrefix: commentPrefix ?? this.commentPrefix,
     decodeEscapesInQuoted: decodeEscapesInQuoted ?? this.decodeEscapesInQuoted,
     strict: strict ?? this.strict,
-    includeKey: includeKey ?? this.includeKey,
-    maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
     onIssue: identical(onIssue, _unsetOnIssue) ? this.onIssue : onIssue,
   );
 
@@ -126,7 +96,6 @@ class FlatParseOptions {
   String toString() =>
       'FlatParseOptions(commentPrefix: $commentPrefix, '
       'decodeEscapesInQuoted: $decodeEscapesInQuoted, strict: $strict, '
-      'includeKey: $includeKey, maxIncludeDepth: $maxIncludeDepth, '
       'onIssue: ${onIssue == null ? 'none' : 'set'})';
 
   @override
@@ -135,19 +104,68 @@ class FlatParseOptions {
       other.commentPrefix == commentPrefix &&
       other.decodeEscapesInQuoted == decodeEscapesInQuoted &&
       other.strict == strict &&
-      other.includeKey == includeKey &&
-      other.maxIncludeDepth == maxIncludeDepth &&
       other.onIssue == onIssue;
 
   @override
-  int get hashCode => Object.hash(
-    commentPrefix,
-    decodeEscapesInQuoted,
-    strict,
-    includeKey,
-    maxIncludeDepth,
-    onIssue,
-  );
+  int get hashCode =>
+      Object.hash(commentPrefix, decodeEscapesInQuoted, strict, onIssue);
+}
+
+/// Options that control how include directives are followed.
+///
+/// Separate from [FlatParseOptions] because parsing one string never follows an
+/// include: only the entry points that take a resolver or a filesystem path do.
+/// Passing these two fields to [FlatDocument.parse] suggested otherwise.
+class FlatIncludeOptions {
+  /// Creates include options with the specified configuration.
+  const FlatIncludeOptions({
+    this.includeKey = Constants.includeKey,
+    this.maxIncludeDepth = 64,
+  }) : assert(maxIncludeDepth >= 0, 'maxIncludeDepth must not be negative');
+
+  /// Key used to identify include directives in configuration files.
+  ///
+  /// Lines with this key are treated as include directives; the value is the
+  /// path of another configuration file. Defaults to [Constants.includeKey]
+  /// (`config-file`) for Ghostty compatibility.
+  ///
+  /// ```dart
+  /// // With the default includeKey
+  /// config-file = theme.conf
+  ///
+  /// // With includeKey: 'include'
+  /// include = theme.conf
+  /// ```
+  final String includeKey;
+
+  /// Maximum recursion depth for processing includes.
+  ///
+  /// This defensive limit prevents pathological include graphs from causing
+  /// unbounded recursion in cases where canonicalization fails or the graph
+  /// is extremely deep. Zero disallows includes entirely: a document that has
+  /// one raises `MaxIncludeDepthExceededException`. Defaults to 64.
+  final int maxIncludeDepth;
+
+  /// Returns a copy of these options with selectively replaced fields.
+  FlatIncludeOptions copyWith({String? includeKey, int? maxIncludeDepth}) =>
+      FlatIncludeOptions(
+        includeKey: includeKey ?? this.includeKey,
+        maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
+      );
+
+  @override
+  String toString() =>
+      'FlatIncludeOptions(includeKey: $includeKey, '
+      'maxIncludeDepth: $maxIncludeDepth)';
+
+  @override
+  bool operator ==(Object other) =>
+      other is FlatIncludeOptions &&
+      other.includeKey == includeKey &&
+      other.maxIncludeDepth == maxIncludeDepth;
+
+  @override
+  int get hashCode => Object.hash(includeKey, maxIncludeDepth);
 }
 
 /// Options for reading configuration data from a byte stream.

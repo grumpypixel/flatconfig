@@ -21,8 +21,8 @@ export 'src/exceptions.dart'
 export 'src/from_map_data.dart'
     show
         CsvItemEncoder,
+        FlatDataOptions,
         FlatListMode,
-        FlatMapDataOptions,
         FlatUnsupportedListItem,
         FlatValueEncoder,
         KeyEscaper,
@@ -52,6 +52,7 @@ export 'src/options.dart'
     show
         FlatEncodeOptions,
         FlatEnvOptions,
+        FlatIncludeOptions,
         FlatParseOptions,
         FlatStreamReadOptions,
         FlatStreamWriteOptions;

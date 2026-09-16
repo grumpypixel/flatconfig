@@ -10,7 +10,7 @@ void main() {
         {
           'tags': ['hello', 'a,b', 'with "quote"'],
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',', // no space to make expected exact
           csvItemEncoder: rfc4180CsvItemEncoder(','), // robust CSV
@@ -29,7 +29,7 @@ void main() {
           {
             'tags': ['hello', 'multi\nline'],
           },
-          options: FlatMapDataOptions(
+          options: FlatDataOptions(
             listMode: FlatListMode.csv,
             csvSeparator: ',',
             csvItemEncoder: rfc4180CsvItemEncoder(','),
@@ -50,7 +50,7 @@ void main() {
         {
           'vals': ['plain', 'a; b', 'no-quote'],
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: '; ',
           csvItemEncoder: rfc4180CsvItemEncoder('; '),
@@ -65,7 +65,7 @@ void main() {
         {
           'nums': [1, null, 3],
         },
-        options: const FlatMapDataOptions(
+        options: const FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',',
           csvNullToken: 'NULL',
@@ -81,7 +81,7 @@ void main() {
         {
           'nums': [1, null, 3, null],
         },
-        options: const FlatMapDataOptions(
+        options: const FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',',
           dropNulls: true,
@@ -98,7 +98,7 @@ void main() {
         {
           'a.b': {'c': 1},
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           keyEscaper: (k) => k.replaceAll('.', r'\.'),
           separator: '.',
         ),
@@ -113,7 +113,7 @@ void main() {
         {
           'parent': {'x.y': 'v'},
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           keyEscaper: (k) => k.replaceAll('.', r'\.'),
           separator: '.',
         ),
@@ -130,7 +130,7 @@ void main() {
             'list.with.dots': ['a', 'b'],
           },
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           keyEscaper: (k) => k.replaceAll('.', r'\.'),
           separator: '.',
           listMode: FlatListMode.multi,
@@ -146,7 +146,7 @@ void main() {
     test('preserves order and encodes scalars', () {
       final doc = FlatDocument.fromData({
         'list': [1, 'a', true],
-      }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
+      }, options: const FlatDataOptions(listMode: FlatListMode.multi));
 
       expect(doc.allValues('list'), ['1', 'a', 'true']);
       expect(doc['list'], 'true');
@@ -155,14 +155,14 @@ void main() {
     test('null handling with dropNulls=false/true', () {
       final d1 = FlatDocument.fromData({
         'nums': [1, null, 2],
-      }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
+      }, options: const FlatDataOptions(listMode: FlatListMode.multi));
       expect(d1.allValues('nums'), ['1', null, '2']);
 
       final d2 = FlatDocument.fromData(
         {
           'nums': [1, null, 2],
         },
-        options: const FlatMapDataOptions(
+        options: const FlatDataOptions(
           listMode: FlatListMode.multi,
           dropNulls: true,
         ),
@@ -176,7 +176,7 @@ void main() {
           {'a': 1},
           [2, 3],
         ],
-      }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
+      }, options: const FlatDataOptions(listMode: FlatListMode.multi));
       expect(jsonDoc.allValues('items'), ['{"a":1}', '[2,3]']);
 
       final skipDoc = FlatDocument.fromData(
@@ -187,7 +187,7 @@ void main() {
             2,
           ],
         },
-        options: const FlatMapDataOptions(
+        options: const FlatDataOptions(
           listMode: FlatListMode.multi,
           onUnsupportedListItem: FlatUnsupportedListItem.skip,
         ),
@@ -202,7 +202,7 @@ void main() {
               {'a': 1},
             ],
           },
-          options: const FlatMapDataOptions(
+          options: const FlatDataOptions(
             listMode: FlatListMode.multi,
             onUnsupportedListItem: FlatUnsupportedListItem.error,
           ),
@@ -222,7 +222,7 @@ void main() {
     test('empty list becomes empty string', () {
       final doc = FlatDocument.fromData(
         {'list': <Object?>[]},
-        options: const FlatMapDataOptions(
+        options: const FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',',
         ),
@@ -239,7 +239,7 @@ void main() {
             [2, 3],
           ],
         },
-        options: const FlatMapDataOptions(
+        options: const FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',',
         ),
@@ -254,7 +254,7 @@ void main() {
             2,
           ],
         },
-        options: const FlatMapDataOptions(
+        options: const FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',',
           onUnsupportedListItem: FlatUnsupportedListItem.skip,
@@ -270,7 +270,7 @@ void main() {
               {'a': 1},
             ],
           },
-          options: const FlatMapDataOptions(
+          options: const FlatDataOptions(
             listMode: FlatListMode.csv,
             csvSeparator: ',',
             onUnsupportedListItem: FlatUnsupportedListItem.error,
@@ -297,7 +297,7 @@ void main() {
             {'m': 2},
           ],
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           listMode: FlatListMode.multi,
           onUnsupportedListItem: FlatUnsupportedListItem.error,
           valueEncoder: (v, k) => 'X:$k',
@@ -315,7 +315,7 @@ void main() {
         {
           'b': [null, 1],
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',',
           dropNulls: true,
@@ -400,7 +400,7 @@ void main() {
         {
           'root.part': {'child.part': 1},
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           separator: '/',
           keyEscaper: (k) => k.replaceAll('.', r'\.'),
         ),
@@ -431,7 +431,7 @@ void main() {
         {
           'l': [1, 2],
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           listMode: FlatListMode.multi,
           // Return null for root list; override items only
           valueEncoder: (v, k) => (v is List) ? null : 'I',
@@ -446,7 +446,7 @@ void main() {
         {
           'l': [1, 2],
         },
-        options: FlatMapDataOptions(
+        options: FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',',
           valueEncoder: (v, k) => (v is List) ? null : 'I',

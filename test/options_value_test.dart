@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flatconfig/flatconfig.dart';
 import 'package:test/test.dart';
@@ -75,6 +76,10 @@ void main() {
       );
       expect(const FlatStreamReadOptions(), const FlatStreamReadOptions());
       expect(
+        const FlatIncludeOptions(includeKey: 'source'),
+        const FlatIncludeOptions(includeKey: 'source'),
+      );
+      expect(
         const FlatStreamWriteOptions(lineTerminator: '\r\n'),
         const FlatStreamWriteOptions(lineTerminator: '\r\n'),
       );
@@ -110,6 +115,41 @@ void main() {
     test('copyWith with no arguments returns an equal object', () {
       const base = FlatParseOptions(strict: true, commentPrefix: ';');
       expect(base.copyWith(), base);
+
+      const include = FlatIncludeOptions(includeKey: 'source');
+      expect(include.copyWith(), include);
+      expect(include.copyWith(maxIncludeDepth: 1).includeKey, 'source');
+    });
+  });
+
+  group('include settings are separate from parse settings', () {
+    test('FlatParseOptions no longer carries them', () {
+      // Passing includeKey to FlatDocument.parse suggested that parsing a
+      // string might follow an include. It never did.
+      const text = 'config-file = other.conf\nk = v\n';
+      final doc = FlatDocument.parse(text);
+
+      expect(doc['config-file'], 'other.conf');
+      expect(doc.length, 2);
+    });
+
+    test('the two travel together through an include entry point', () {
+      final dir = Directory.systemTemp.createTempSync('flatconfig_split');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      File('${dir.path}/theme.conf').writeAsStringSync('color = red\n');
+      File('${dir.path}/main.conf').writeAsStringSync(
+        '; a comment in another dialect\n'
+        'source = theme.conf\n',
+      );
+
+      final doc = FlatConfigIncludes.parseWithIncludesFromPathSync(
+        '${dir.path}/main.conf',
+        options: const FlatParseOptions(commentPrefix: ';'),
+        includeOptions: const FlatIncludeOptions(includeKey: 'source'),
+      );
+
+      expect(doc['color'], 'red');
     });
   });
 
@@ -145,12 +185,12 @@ void main() {
 
   group('invalid configurations are rejected where they are written', () {
     test('a negative include depth cannot survive to be used', () {
-      // The assert makes `const FlatParseOptions(maxIncludeDepth: -1)` a
+      // The assert makes `const FlatIncludeOptions(maxIncludeDepth: -1)` a
       // compile error, but a release build drops asserts, so a computed value
       // has to be caught where it is read instead.
       final options = () {
         try {
-          return FlatParseOptions(maxIncludeDepth: -1);
+          return FlatIncludeOptions(maxIncludeDepth: -1);
         } on AssertionError {
           return null; // debug build: the assert already stopped it
         }
@@ -163,14 +203,14 @@ void main() {
       expect(
         () => FlatConfigIncludes.parseWithIncludesFromPathSync(
           'unused.conf',
-          options: options,
+          includeOptions: options,
         ),
         throwsArgumentError,
       );
     });
 
     test('depth zero is allowed and means no includes', () {
-      expect(const FlatParseOptions(maxIncludeDepth: 0).maxIncludeDepth, 0);
+      expect(const FlatIncludeOptions(maxIncludeDepth: 0).maxIncludeDepth, 0);
     });
 
     test('an empty comment prefix is allowed and means no comments', () {

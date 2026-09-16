@@ -374,7 +374,7 @@ In that case, whether `custom` survives depends on whether a later include sets 
 - **Includes are processed after the current file**, so later lines in the current file do *not override* keys from included files.  
 - **Explicit null resets are non-blocking** — when an included file sets a key to an empty value (`key =`), it clears the current value but does *not* prevent later entries from reassigning it. This allows includes to reset or clear configuration values without permanently blocking overrides.  
 - **Multiple includes** are allowed. When several included files define the same key, *the later include wins*.  
-- Includes are **recursive**, with a defensive maximum depth (`maxIncludeDepth`, default *64*). The root file starts at depth 0.  
+- Includes are **recursive**, with a defensive maximum depth (`FlatIncludeOptions.maxIncludeDepth`, default *64*). The root file starts at depth 0.  
 - A leading `?` marks an include as *optional* (`config-file = ?user.conf`) — missing optional files are silently skipped.  
 - Relative include paths are resolved relative to the including file’s directory.  
 - Absolute paths are used as-is.  
@@ -386,7 +386,10 @@ In that case, whether `custom` survives depends on whether a later include sets 
 When using a `CompositeIncludeResolver`, resolution follows a **first-hit-wins** strategy.  
 Resolvers are tried in the order provided; the first resolver that returns a non-null `IncludeUnit` is used.
 
-> Customize the include key via `FlatParseOptions(includeKey: 'include')`.
+> Customize the include key via `includeOptions: FlatIncludeOptions(includeKey: 'include')`.
+> Include behaviour lives on its own options class because parsing a string
+> never follows an include: only the entry points that take a path or a resolver
+> do.
 
 **Notes:**
 
@@ -740,7 +743,7 @@ for (final e in doc.entries) {
 
 ### Configuration Options
 
-`fromData` is highly customizable through `FlatMapDataOptions`:
+`fromData` is highly customizable through `FlatDataOptions`:
 
 | Option                  | Description                                                                  | Default              |
 | ----------------------- | ---------------------------------------------------------------------------- | -------------------- |
@@ -762,7 +765,7 @@ final doc = FlatDocument.fromData(
     'window': {'w': 5120, 'h': 2160},
     'colors': ['red', 'mint,green', 'blue'],
   },
-  options: FlatMapDataOptions(
+  options: FlatDataOptions(
     listMode: FlatListMode.csv,
     csvSeparator: ',',
     csvItemEncoder: rfc4180CsvItemEncoder(','), // RFC-4180 safe quoting
