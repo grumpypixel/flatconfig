@@ -16,7 +16,10 @@ topics:
   - flat
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  # 3.8 is the lowest SDK the dependencies resolve on: path 1.9.1 needs 3.4,
+  # meta 1.17.0 needs 3.5, lints 6.0.0 needs 3.8. CI builds on it to keep the
+  # number honest.
+  sdk: '>=3.8.0 <4.0.0'
 
 dependencies:
   meta: ">=1.16.0 <2.0.0"

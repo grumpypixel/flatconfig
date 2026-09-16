@@ -32,6 +32,9 @@ Fixed:
 - **`toMap()` and `valuesOf()` are unmodifiable after `cache()`.** Pre-caching
   handed out a writable view of a document documented as immutable, so
   `doc.cache(); doc.toMap()['a'] = 'x';` changed the document.
+- **The minimum SDK is 3.8.0**, raised from a declared 3.0.0 that could never
+  resolve: `path` needs 3.4, `meta` needs 3.5, `lints` needs 3.8. CI now builds
+  on the floor as well as on stable.
 - **Values containing a line break are rejected.** `FlatEntry('a', 'x\ny')`
   was accepted, encoded to two physical lines, and read back as `a` → `"x`.
   Quoting cannot rescue it, because the format is line-based.

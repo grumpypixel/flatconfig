@@ -10,6 +10,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.8 is the floor declared in pubspec.yaml. Building on it is what
+        # keeps that number from drifting into a claim nobody checks.
+        sdk: [ '3.8', stable ]
+
+    name: Test (Dart ${{ matrix.sdk }})
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,7 +26,7 @@ jobs:
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: ${{ matrix.sdk }}
 
       - name: Install dependencies
         run: dart pub get

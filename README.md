@@ -5,7 +5,7 @@
 [![Pub Version](https://img.shields.io/pub/v/flatconfig.svg)](https://pub.dev/packages/flatconfig)
 [![Tests](https://github.com/grumpypixel/flatconfig/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/grumpypixel/flatconfig/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Dart Version](https://img.shields.io/badge/dart-%3E%3D3.0.0-blue.svg)](https://dart.dev)
+[![Dart Version](https://img.shields.io/badge/dart-%3E%3D3.8.0-blue.svg)](https://dart.dev)
 [![Pub Points](https://img.shields.io/pub/points/flatconfig?label=pub%20points)](https://pub.dev/packages/flatconfig/score)
 
 > Flat, human-friendly `key=value` configuration format for Dart & Flutter — inspired by 👻 [Ghostty](https://ghostty.org), simpler than INI or TOML.

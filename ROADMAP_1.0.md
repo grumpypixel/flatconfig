@@ -215,7 +215,10 @@ producing false include cycles and wrong cache hits.
 `meta 1.17.0` needs `^3.5.0`, `lints 6.0.0` needs `^3.8.0`. The floor cannot
 resolve.
 
-- [ ] Raise to 3.8. Add a minimum-SDK CI job so the number stays honest.
+- [x] Raise to 3.8. Add a minimum-SDK CI job so the number stays honest.
+
+Raising the language version also switched on lints that 3.0 had been skipping;
+the 19 `unnecessary_underscores` they found are fixed.
 
 ---
 
