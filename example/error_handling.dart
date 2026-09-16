@@ -7,7 +7,7 @@ void main() {
   // Example 1: Missing equals separator
   print('1. Missing equals separator:');
   try {
-    FlatConfig.parse('''
+    FlatDocument.parse('''
 app-name = MyApp
 version 1.0.0
 debug = true
@@ -21,7 +21,7 @@ debug = true
   // Example 2: Empty key
   print('2. Empty key:');
   try {
-    FlatConfig.parse('''
+    FlatDocument.parse('''
 app-name = MyApp
 = 1.0.0
 debug = true
@@ -35,7 +35,7 @@ debug = true
   // Example 3: Unterminated quote
   print('3. Unterminated quote:');
   try {
-    FlatConfig.parse('''
+    FlatDocument.parse('''
 app-name = MyApp
 version = "1.0.0
 debug = true
@@ -49,7 +49,7 @@ debug = true
   // Example 4: Trailing characters after quote
   print('4. Trailing characters after quote:');
   try {
-    FlatConfig.parse('''
+    FlatDocument.parse('''
 app-name = MyApp
 version = "1.0.0" extra
 debug = true
@@ -62,7 +62,7 @@ debug = true
 
   // Example 5: Non-strict mode (default) - shows warnings instead of errors
   print('5. Non-strict mode (default behavior):');
-  final doc = FlatConfig.parse('''
+  final doc = FlatDocument.parse('''
 app-name = MyApp
 version 1.0.0    # missing equals - ignored
 = 2.0.0          # empty key - ignored
@@ -79,7 +79,7 @@ theme = "dark" extra  # trailing chars - treated as unquoted
   // Example 6: Strict mode - throws exceptions
   print('6. Strict mode (throws exceptions):');
   try {
-    FlatConfig.parse('''
+    FlatDocument.parse('''
 app-name = MyApp
 version 1.0.0
 debug = true

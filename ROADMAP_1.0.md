@@ -332,18 +332,22 @@ Dart's convention is a static factory on the type being produced: `Uri.parse`,
 learn **one type name** instead of three, and the static-extension-namespace
 pattern disappears.
 
-- [ ] `FlatConfig.parse` → `FlatDocument.parse`
-- [ ] `FlatConfig.parseLines` → `FlatDocument.parseLines`
-- [ ] `FlatConfig.parseFromByteStream` → `FlatDocument.parseBytes`
-- [ ] `FlatConfig.parseEntries` → `FlatDocument.streamEntries`
-- [ ] `FlatConfig.fromMap` and `FlatDocument.fromMap` → one `FlatDocument.fromMap`
-- [ ] `FlatConfig.fromDynamicMap` → deleted (callers map to `String?` themselves)
-- [ ] `FlatConfig.fromMapData` / `flatDocumentFromMapData` → `FlatDocument.fromData`
-- [ ] `FlatConfig.fromEnvironment` → `FlatDocument.fromEnvironment`
-- [ ] `FlatConfig.parseFromStringStream`, `parseEntriesFromStringStream` →
+- [x] `FlatConfig.parse` → `FlatDocument.parse`
+- [x] `FlatConfig.parseLines` → `FlatDocument.parseLines`
+- [x] `FlatConfig.parseFromByteStream` → `FlatDocument.parseBytes`
+- [x] `FlatConfig.parseEntries` → `FlatDocument.streamEntries`
+- [x] `FlatConfig.fromMap` and `FlatDocument.fromMap` → one `FlatDocument.fromMap`
+- [x] `FlatConfig.fromDynamicMap` → deleted (callers map to `String?` themselves)
+- [x] `FlatConfig.fromMapData` / `flatDocumentFromMapData` → `FlatDocument.fromData`
+- [x] `FlatConfig.fromEnvironment` → `FlatDocument.fromEnvironment`
+- [x] `FlatConfig.parseFromStringStream`, `parseEntriesFromStringStream` →
       internal; the byte-stream entry points cover the public need
-- [ ] `parseLine` / `preprocessLine` are `@visibleForTesting` but public —
+- [x] `parseLine` / `preprocessLine` are `@visibleForTesting` but public —
       move to a `src/` test import
+
+The static-extension namespaces (`FlatConfigIncludes`, `FlatConfigResolverIncludes`)
+now hang off `FlatDocument` so the code compiles; 2.11 and 2.13 remove the pattern
+itself by moving include parsing into its own library.
 
 ### 2.2 Stop extending `Iterable<FlatEntry>`
 

@@ -109,7 +109,7 @@ extension FlatConfigIO on File {
         .transform(readOptions.encoding.decoder)
         .transform(readOptions.lineSplitter);
 
-    return FlatConfig.parseFromStringStream(lines, options: options);
+    return parseStringStream(lines, options: options);
   }
 
   /// Parses this file synchronously into a [FlatDocument].
@@ -129,7 +129,7 @@ extension FlatConfigIO on File {
   }) {
     final content = readAsStringSync(encoding: readOptions.encoding);
 
-    return FlatConfig.parse(
+    return FlatDocument.parse(
       content,
       options: options,
       lineSplitter: readOptions.lineSplitter,
@@ -160,7 +160,7 @@ extension FlatConfigIO on File {
   /// Example:
   /// ```dart
   /// final file = File('config.flat');
-  /// final doc = FlatConfig.fromMap({'background': '343028'});
+  /// final doc = FlatDocument.fromMap({'background': '343028'});
   /// await file.writeFlat(doc);
   /// ```
   Future<void> writeFlat(
@@ -184,7 +184,7 @@ extension FlatConfigIO on File {
   /// Example:
   /// ```dart
   /// final file = File('config.flat');
-  /// final doc = FlatConfig.fromMap({'background': '343028'});
+  /// final doc = FlatDocument.fromMap({'background': '343028'});
   /// file.writeFlatSync(doc);
   /// ```
   void writeFlatSync(
@@ -215,7 +215,7 @@ extension FlatDocumentIO on FlatDocument {
   ///
   /// Example:
   /// ```dart
-  /// final doc = FlatConfig.fromMap({'background': '343028'});
+  /// final doc = FlatDocument.fromMap({'background': '343028'});
   /// await doc.saveToFile('config.flat');
   /// ```
   Future<void> saveToFile(
@@ -238,7 +238,7 @@ extension FlatDocumentIO on FlatDocument {
   ///
   /// Example:
   /// ```dart
-  /// final doc = FlatConfig.fromMap({'background': '343028'});
+  /// final doc = FlatDocument.fromMap({'background': '343028'});
   /// doc.saveToFileSync('config.flat');
   /// ```
   void saveToFileSync(

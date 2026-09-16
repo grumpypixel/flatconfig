@@ -744,22 +744,23 @@ void main() {
     // cache() used to store a plain map while toMap() wrapped its own copy, so
     // pre-caching quietly handed out a writable view of an @immutable type.
     test('toMap() is unwritable without pre-caching', () {
-      final doc = FlatConfig.parse('a = 1');
+      final doc = FlatDocument.parse('a = 1');
       expect(() => doc.toMap()['a'] = 'HACKED', throwsUnsupportedError);
       expect(doc['a'], '1');
     });
 
     test('toMap() is unwritable after pre-caching', () {
-      final doc = FlatConfig.parse('a = 1')..cache();
+      final doc = FlatDocument.parse('a = 1')..cache();
       expect(() => doc.toMap()['a'] = 'HACKED', throwsUnsupportedError);
       expect(doc['a'], '1');
     });
 
     test('allValues() is unwritable either way', () {
-      final plain = FlatConfig.parse('a = 1\na = 2');
+      final plain = FlatDocument.parse('a = 1\na = 2');
       expect(() => plain.allValues('a').add('3'), throwsUnsupportedError);
 
-      final cached = FlatConfig.parse('a = 1\na = 2')..cache(toAllValues: true);
+      final cached = FlatDocument.parse('a = 1\na = 2')
+        ..cache(toAllValues: true);
       expect(() => cached.allValues('a').add('3'), throwsUnsupportedError);
       expect(cached.allValues('a'), ['1', '2']);
     });

@@ -5,572 +5,481 @@ import 'package:meta/meta.dart';
 import 'constants.dart';
 import 'document.dart';
 import 'exceptions.dart';
-import 'from_map_data.dart';
 import 'options.dart';
 import 'parser_utils.dart';
 import 'validation.dart';
 
-/// Main parser class for flat `key = value` configuration files.
+/// Parsing entry points for flat `key = value` configuration files.
 ///
-/// [FlatConfig] provides static methods for parsing configuration data from
-/// various sources including strings, streams, and files. It supports flexible
-/// parsing options and can handle quoted values, comments, and duplicate keys.
+/// These are the implementations behind the `FlatDocument.parse*` statics.
+/// They live here rather than on the class so that `document.dart` stays the
+/// one file describing the type, and this one the one describing the grammar.
+/// Parses a configuration string into a [FlatDocument].
+///
+/// This method processes a multi-line configuration string and returns a
+/// [FlatDocument] containing all valid key-value pairs. The parsing behavior
+/// can be customized using [options].
+///
+/// Parsing rules:
+/// - Lines starting with the comment prefix (default `#`) are ignored
+/// - Empty lines are ignored
+/// - Keys are trimmed of whitespace
+/// - Values are processed as follows:
+///   - Quoted values preserve inner whitespace and `=` characters
+///   - Unquoted values are trimmed of whitespace
+/// - Duplicate keys are preserved in insertion order
+/// - Empty unquoted values are treated as `null` (configuration reset)
 ///
 /// Example:
 /// ```dart
-/// final doc = FlatConfig.parse('background = 343028');
+/// const config = '''
+/// # This is a comment
+/// background = 343028
+/// title = "My Application"
+/// debug = true
+/// ''';
+///
+/// final doc = FlatConfig.parse(config);
 /// print(doc['background']); // 343028
+/// print(doc['title']); // My Application
 /// ```
-class FlatConfig {
-  /// Creates a new [FlatConfig] instance.
-  ///
-  /// This constructor is provided for completeness, though [FlatConfig] is
-  /// primarily used through its static methods for parsing configuration data.
-  /// Instances of this class don't hold any state and are typically not needed
-  /// for normal usage.
-  const FlatConfig();
+FlatDocument parseSource(
+  String source, {
+  FlatParseOptions options = const FlatParseOptions(),
+  LineSplitter lineSplitter = const LineSplitter(),
+}) {
+  checkCommentPrefix(options.commentPrefix);
 
-  /// Parses a configuration string into a [FlatDocument].
-  ///
-  /// This method processes a multi-line configuration string and returns a
-  /// [FlatDocument] containing all valid key-value pairs. The parsing behavior
-  /// can be customized using [options].
-  ///
-  /// Parsing rules:
-  /// - Lines starting with the comment prefix (default `#`) are ignored
-  /// - Empty lines are ignored
-  /// - Keys are trimmed of whitespace
-  /// - Values are processed as follows:
-  ///   - Quoted values preserve inner whitespace and `=` characters
-  ///   - Unquoted values are trimmed of whitespace
-  /// - Duplicate keys are preserved in insertion order
-  /// - Empty unquoted values are treated as `null` (configuration reset)
-  ///
-  /// Example:
-  /// ```dart
-  /// const config = '''
-  /// # This is a comment
-  /// background = 343028
-  /// title = "My Application"
-  /// debug = true
-  /// ''';
-  ///
-  /// final doc = FlatConfig.parse(config);
-  /// print(doc['background']); // 343028
-  /// print(doc['title']); // My Application
-  /// ```
-  static FlatDocument parse(
-    String source, {
-    FlatParseOptions options = const FlatParseOptions(),
-    LineSplitter lineSplitter = const LineSplitter(),
-  }) {
-    checkCommentPrefix(options.commentPrefix);
-
-    if (source.trim().isEmpty) {
-      return FlatDocument.empty();
-    }
-
-    return parseLines(lineSplitter.convert(source), options: options);
+  if (source.trim().isEmpty) {
+    return FlatDocument.empty();
   }
 
-  /// Parses a configuration from a list of lines.
-  ///
-  /// This method is useful when you already have the configuration data split
-  /// into individual lines. Each line is processed according to the same rules
-  /// as [parse], but without the need to split the input string first.
-  ///
-  /// Example:
-  /// ```dart
-  /// final lines = [
-  ///   'background = 343028',
-  ///   'title = "My App"',
-  ///   '# This is a comment',
-  /// ];
-  ///
-  /// final doc = FlatConfig.parseLines(lines);
-  /// ```
-  static FlatDocument parseLines(
-    List<String> lines, {
-    FlatParseOptions options = const FlatParseOptions(),
-  }) {
-    checkCommentPrefix(options.commentPrefix);
+  return parseSourceLines(lineSplitter.convert(source), options: options);
+}
 
-    final out = <FlatEntry>[];
-    var lineNumber = 0;
+/// Parses a configuration from a list of lines.
+///
+/// This method is useful when you already have the configuration data split
+/// into individual lines. Each line is processed according to the same rules
+/// as [parse], but without the need to split the input string first.
+///
+/// Example:
+/// ```dart
+/// final lines = [
+///   'background = 343028',
+///   'title = "My App"',
+///   '# This is a comment',
+/// ];
+///
+/// final doc = FlatConfig.parseLines(lines);
+/// ```
+FlatDocument parseSourceLines(
+  List<String> lines, {
+  FlatParseOptions options = const FlatParseOptions(),
+}) {
+  checkCommentPrefix(options.commentPrefix);
 
-    for (final raw in lines) {
-      lineNumber++;
+  final out = <FlatEntry>[];
+  var lineNumber = 0;
 
-      final entry = parseLine(raw, lineNumber: lineNumber, options: options);
-      if (entry != null) {
-        out.add(entry);
-      }
-    }
+  for (final raw in lines) {
+    lineNumber++;
 
-    return FlatDocument(out);
-  }
-
-  /// Parses a configuration from a byte stream.
-  ///
-  /// This method is useful for reading configuration data from files or network
-  /// streams. The byte stream is first decoded using the specified encoding,
-  /// then split into lines, and finally parsed as configuration data.
-  ///
-  /// Example:
-  /// ```dart
-  /// final file = File('config.flat');
-  /// final doc = await FlatConfig.parseFromByteStream(file.openRead());
-  /// ```
-  static Future<FlatDocument> parseFromByteStream(
-    Stream<List<int>> stream, {
-    FlatParseOptions options = const FlatParseOptions(),
-    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) async => parseFromStringStream(
-    stream
-        .transform(readOptions.encoding.decoder)
-        .transform(readOptions.lineSplitter),
-    options: options,
-  );
-
-  /// Parses a configuration from a string stream.
-  ///
-  /// This method processes a stream of strings, where each string represents
-  /// one line of configuration data. It's useful when you have a stream of
-  /// lines that you want to parse as configuration.
-  static Future<FlatDocument> parseFromStringStream(
-    Stream<String> stream, {
-    FlatParseOptions options = const FlatParseOptions(),
-  }) async {
-    checkCommentPrefix(options.commentPrefix);
-
-    final out = <FlatEntry>[];
-
-    var lineNumber = 0;
-
-    await for (var raw in stream) {
-      lineNumber++;
-
-      final entry = parseLine(raw, lineNumber: lineNumber, options: options);
-
-      if (entry != null) {
-        out.add(entry);
-      }
-    }
-
-    return FlatDocument(out);
-  }
-
-  /// Lazily parses a byte stream, yielding [FlatEntry]s as they are read.
-  ///
-  /// This method is useful for processing large configuration files without
-  /// loading the entire document into memory at once. Each valid configuration
-  /// entry is yielded as soon as it's parsed.
-  ///
-  /// Example:
-  /// ```dart
-  /// await for (final entry in FlatConfig.parseEntries(file.openRead())) {
-  ///   print('${entry.key} = ${entry.value}');
-  /// }
-  /// ```
-  static Stream<FlatEntry> parseEntries(
-    Stream<List<int>> stream, {
-    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    FlatParseOptions options = const FlatParseOptions(),
-  }) async* {
-    final lines = stream
-        .transform(readOptions.encoding.decoder)
-        .transform(readOptions.lineSplitter);
-
-    yield* parseEntriesFromStringStream(lines, options: options);
-  }
-
-  /// Lazily parses a string stream, yielding [FlatEntry]s as they are read.
-  ///
-  /// This method processes a stream of strings (lines) and yields each valid
-  /// configuration entry as it's encountered. Useful for streaming processing
-  /// of configuration data.
-  static Stream<FlatEntry> parseEntriesFromStringStream(
-    Stream<String> stream, {
-    FlatParseOptions options = const FlatParseOptions(),
-  }) async* {
-    checkCommentPrefix(options.commentPrefix);
-
-    var lineNumber = 0;
-    await for (var raw in stream) {
-      lineNumber++;
-
-      final entry = parseLine(raw, lineNumber: lineNumber, options: options);
-      if (entry != null) {
-        yield entry;
-      }
+    final entry = parseLine(raw, lineNumber: lineNumber, options: options);
+    if (entry != null) {
+      out.add(entry);
     }
   }
 
-  /// Builds a [FlatDocument] from a map of string keys and values.
-  ///
-  /// This method creates a configuration document from a map, which is useful
-  /// for programmatically creating configuration data.
-  ///
-  /// Properties:
-  /// - Insertion order is preserved based on the map's iteration order
-  /// - A `null` value becomes a reset entry (`key =`)
-  /// - Only one entry per key is created (no duplicates)
-  ///
-  /// Example:
-  /// ```dart
-  /// final map = {
-  ///   'background': '343028',
-  ///   'title': 'My App',
-  ///   'debug': null, // becomes 'debug ='
-  /// };
-  ///
-  /// final doc = FlatConfig.fromMap(map);
-  /// ```
-  static FlatDocument fromMap(Map<String, String?> map) {
-    final out = [for (final e in map.entries) FlatEntry(e.key, e.value)];
+  return FlatDocument(out);
+}
 
-    return FlatDocument(out);
+/// Parses a configuration from a byte stream.
+///
+/// This method is useful for reading configuration data from files or network
+/// streams. The byte stream is first decoded using the specified encoding,
+/// then split into lines, and finally parsed as configuration data.
+///
+/// Example:
+/// ```dart
+/// final file = File('config.flat');
+/// final doc = await FlatConfig.parseFromByteStream(file.openRead());
+/// ```
+Future<FlatDocument> parseByteStream(
+  Stream<List<int>> stream, {
+  FlatParseOptions options = const FlatParseOptions(),
+  FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+}) async => parseStringStream(
+  stream
+      .transform(readOptions.encoding.decoder)
+      .transform(readOptions.lineSplitter),
+  options: options,
+);
+
+/// Parses a configuration from a string stream.
+///
+/// This method processes a stream of strings, where each string represents
+/// one line of configuration data. It's useful when you have a stream of
+/// lines that you want to parse as configuration.
+Future<FlatDocument> parseStringStream(
+  Stream<String> stream, {
+  FlatParseOptions options = const FlatParseOptions(),
+}) async {
+  checkCommentPrefix(options.commentPrefix);
+
+  final out = <FlatEntry>[];
+
+  var lineNumber = 0;
+
+  await for (var raw in stream) {
+    lineNumber++;
+
+    final entry = parseLine(raw, lineNumber: lineNumber, options: options);
+
+    if (entry != null) {
+      out.add(entry);
+    }
   }
 
-  /// Builds a [FlatDocument] from a map of dynamic values.
-  ///
-  /// This method converts a map with dynamic values into a configuration document
-  /// by stringifying the values. The [valueEncoder] function can be used to
-  /// customize how values are converted to strings.
-  ///
-  /// Properties:
-  /// - Values are stringified using [valueEncoder] (defaults to [toString])
-  /// - Returning `null` from [valueEncoder] produces a reset entry
-  /// - Insertion order is preserved based on the map's iteration order
-  ///
-  /// Example:
-  /// ```dart
-  /// final map = {
-  ///   'port': 8080,
-  ///   'debug': true,
-  ///   'name': 'My App',
-  /// };
-  ///
-  /// final doc = FlatConfig.fromDynamicMap(map);
-  /// ```
-  static FlatDocument fromDynamicMap(
-    Map<String, dynamic> map, {
-    String? Function(String key, dynamic value)? valueEncoder,
-  }) {
-    final encodeValue =
-        valueEncoder ?? ((String key, dynamic value) => value?.toString());
+  return FlatDocument(out);
+}
 
-    final out = <FlatEntry>[
-      for (final e in map.entries)
-        FlatEntry(e.key, encodeValue(e.key, e.value)),
-    ];
+/// Lazily parses a byte stream, yielding [FlatEntry]s as they are read.
+///
+/// This method is useful for processing large configuration files without
+/// loading the entire document into memory at once. Each valid configuration
+/// entry is yielded as soon as it's parsed.
+///
+/// Example:
+/// ```dart
+/// await for (final entry in FlatConfig.parseEntries(file.openRead())) {
+///   print('${entry.key} = ${entry.value}');
+/// }
+/// ```
+Stream<FlatEntry> streamEntriesFromBytes(
+  Stream<List<int>> stream, {
+  FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+  FlatParseOptions options = const FlatParseOptions(),
+}) async* {
+  final lines = stream
+      .transform(readOptions.encoding.decoder)
+      .transform(readOptions.lineSplitter);
 
-    return FlatDocument(out);
+  yield* streamEntriesFromStrings(lines, options: options);
+}
+
+/// Lazily parses a string stream, yielding [FlatEntry]s as they are read.
+///
+/// This method processes a stream of strings (lines) and yields each valid
+/// configuration entry as it's encountered. Useful for streaming processing
+/// of configuration data.
+Stream<FlatEntry> streamEntriesFromStrings(
+  Stream<String> stream, {
+  FlatParseOptions options = const FlatParseOptions(),
+}) async* {
+  checkCommentPrefix(options.commentPrefix);
+
+  var lineNumber = 0;
+  await for (var raw in stream) {
+    lineNumber++;
+
+    final entry = parseLine(raw, lineNumber: lineNumber, options: options);
+    if (entry != null) {
+      yield entry;
+    }
+  }
+}
+
+/// Builds a [FlatDocument] from environment-like maps.
+///
+/// This method is pure and does not access [Platform.environment] or any
+/// global state. You must explicitly pass the environment map, making it
+/// suitable for Flutter Web, WASM, and testing scenarios.
+///
+/// Precedence order: [FlatEnvOptions.defaults] → [env] → [FlatEnvOptions.merge]
+///
+/// Processing steps:
+/// 1. Apply default values from [options.defaults]
+/// 2. Apply environment variables from [env] (with optional prefix filtering)
+/// 3. Apply override values from [options.merge]
+/// 4. Drop empty values if [options.keepEmptyValues] is false
+/// 5. Interpolate `${VAR}` placeholders if [options.interpolate] is true
+/// 6. Return a [FlatDocument]
+///
+/// Example - Basic usage:
+/// ```dart
+/// final env = {'HOST': 'localhost', 'PORT': '8080'};
+/// final doc = FlatConfig.fromEnvironment(env);
+/// print(doc['HOST']); // localhost
+/// ```
+///
+/// Example - With prefix filtering:
+/// ```dart
+/// final env = {
+///   'APP_HOST': 'api.example.com',
+///   'APP_PORT': '8080',
+///   'OTHER_VAR': 'ignored',
+/// };
+/// final doc = FlatConfig.fromEnvironment(
+///   env,
+///   options: FlatEnvOptions(prefix: 'APP_'),
+/// );
+/// final clean = doc.stripPrefix('APP_');
+/// print(clean.toMap()); // {HOST: api.example.com, PORT: 8080}
+/// ```
+///
+/// Example - With interpolation:
+/// ```dart
+/// final env = {
+///   'HOST': 'api.example.com',
+///   'PORT': '8080',
+///   'URL': 'https://${HOST}:${PORT}',
+/// };
+/// final doc = FlatConfig.fromEnvironment(
+///   env,
+///   options: FlatEnvOptions(interpolate: true),
+/// );
+/// print(doc['URL']); // https://api.example.com:8080
+/// ```
+///
+/// Example - With precedence:
+/// ```dart
+/// final env = {'PORT': '3000'};
+/// final doc = FlatConfig.fromEnvironment(
+///   env,
+///   options: FlatEnvOptions(
+///     defaults: {'HOST': 'localhost', 'PORT': '8080'},
+///     merge: {'DEBUG': 'true'},
+///   ),
+/// );
+/// print(doc.toMap()); // {HOST: localhost, PORT: 3000, DEBUG: true}
+/// ```
+FlatDocument documentFromEnvironment(
+  Map<String, String> env, {
+  FlatEnvOptions options = const FlatEnvOptions(),
+}) {
+  final out = <String, String?>{};
+
+  // 1) Start with defaults (lowest precedence).
+  if (options.defaults.isNotEmpty) {
+    for (final e in options.defaults.entries) {
+      out[e.key] = e.value;
+    }
   }
 
-  /// Builds a [FlatDocument] by flattening nested Map/List data into key paths.
-  ///
-  /// Semantics:
-  /// - Nested maps become `a.b.c = value` (configurable separator).
-  /// - Lists can emit multiple entries (`multi`) or a single CSV string (`csv`).
-  /// - `null` values become explicit resets (`key =`) unless `dropNulls == true`.
-  /// - `valueEncoder` has highest priority for ANY value.
-  static FlatDocument fromMapData(
-    Map<String, Object?> data, {
-    FlatMapDataOptions options = const FlatMapDataOptions(),
-  }) => flatDocumentFromMapData(data, options: options);
-
-  /// Builds a [FlatDocument] from environment-like maps.
-  ///
-  /// This method is pure and does not access [Platform.environment] or any
-  /// global state. You must explicitly pass the environment map, making it
-  /// suitable for Flutter Web, WASM, and testing scenarios.
-  ///
-  /// Precedence order: [FlatEnvOptions.defaults] → [env] → [FlatEnvOptions.merge]
-  ///
-  /// Processing steps:
-  /// 1. Apply default values from [options.defaults]
-  /// 2. Apply environment variables from [env] (with optional prefix filtering)
-  /// 3. Apply override values from [options.merge]
-  /// 4. Drop empty values if [options.keepEmptyValues] is false
-  /// 5. Interpolate `${VAR}` placeholders if [options.interpolate] is true
-  /// 6. Return a [FlatDocument]
-  ///
-  /// Example - Basic usage:
-  /// ```dart
-  /// final env = {'HOST': 'localhost', 'PORT': '8080'};
-  /// final doc = FlatConfig.fromEnvironment(env);
-  /// print(doc['HOST']); // localhost
-  /// ```
-  ///
-  /// Example - With prefix filtering:
-  /// ```dart
-  /// final env = {
-  ///   'APP_HOST': 'api.example.com',
-  ///   'APP_PORT': '8080',
-  ///   'OTHER_VAR': 'ignored',
-  /// };
-  /// final doc = FlatConfig.fromEnvironment(
-  ///   env,
-  ///   options: FlatEnvOptions(prefix: 'APP_'),
-  /// );
-  /// final clean = doc.stripPrefix('APP_');
-  /// print(clean.toMap()); // {HOST: api.example.com, PORT: 8080}
-  /// ```
-  ///
-  /// Example - With interpolation:
-  /// ```dart
-  /// final env = {
-  ///   'HOST': 'api.example.com',
-  ///   'PORT': '8080',
-  ///   'URL': 'https://${HOST}:${PORT}',
-  /// };
-  /// final doc = FlatConfig.fromEnvironment(
-  ///   env,
-  ///   options: FlatEnvOptions(interpolate: true),
-  /// );
-  /// print(doc['URL']); // https://api.example.com:8080
-  /// ```
-  ///
-  /// Example - With precedence:
-  /// ```dart
-  /// final env = {'PORT': '3000'};
-  /// final doc = FlatConfig.fromEnvironment(
-  ///   env,
-  ///   options: FlatEnvOptions(
-  ///     defaults: {'HOST': 'localhost', 'PORT': '8080'},
-  ///     merge: {'DEBUG': 'true'},
-  ///   ),
-  /// );
-  /// print(doc.toMap()); // {HOST: localhost, PORT: 3000, DEBUG: true}
-  /// ```
-  static FlatDocument fromEnvironment(
-    Map<String, String> env, {
-    FlatEnvOptions options = const FlatEnvOptions(),
-  }) {
-    final out = <String, String?>{};
-
-    // 1) Start with defaults (lowest precedence).
-    if (options.defaults.isNotEmpty) {
-      for (final e in options.defaults.entries) {
+  // 2) Apply provided env.
+  if (env.isNotEmpty) {
+    final usePrefix = options.prefix;
+    if (usePrefix == null || usePrefix.isEmpty) {
+      for (final e in env.entries) {
         out[e.key] = e.value;
       }
-    }
-
-    // 2) Apply provided env.
-    if (env.isNotEmpty) {
-      final usePrefix = options.prefix;
-      if (usePrefix == null || usePrefix.isEmpty) {
+    } else {
+      if (options.caseSensitive) {
         for (final e in env.entries) {
-          out[e.key] = e.value;
+          if (e.key.startsWith(usePrefix)) {
+            out[e.key] = e.value;
+          }
         }
       } else {
-        if (options.caseSensitive) {
-          for (final e in env.entries) {
-            if (e.key.startsWith(usePrefix)) {
-              out[e.key] = e.value;
-            }
-          }
-        } else {
-          final lp = usePrefix.toLowerCase();
-          for (final e in env.entries) {
-            if (e.key.toLowerCase().startsWith(lp)) {
-              out[e.key] = e.value;
-            }
+        final lp = usePrefix.toLowerCase();
+        for (final e in env.entries) {
+          if (e.key.toLowerCase().startsWith(lp)) {
+            out[e.key] = e.value;
           }
         }
       }
     }
-
-    // 3) Final merge overrides (highest precedence).
-    if (options.merge.isNotEmpty) {
-      for (final e in options.merge.entries) {
-        out[e.key] = e.value;
-      }
-    }
-
-    // 4) Drop empty values if requested.
-    if (!options.keepEmptyValues) {
-      final keysToDrop = <String>[];
-      for (final kv in out.entries) {
-        if ((kv.value ?? '').isEmpty) {
-          keysToDrop.add(kv.key);
-        }
-      }
-      for (final k in keysToDrop) {
-        out.remove(k);
-      }
-    }
-
-    // 5) Interpolate ${VAR} if enabled. Single pass is usually enough for env.
-    if (options.interpolate) {
-      final re = RegExp(options.varPattern);
-      final snapshot = Map<String, String?>.from(out);
-      for (final k in out.keys.toList()) {
-        final raw = out[k];
-        if (raw == null || raw.isEmpty) {
-          continue;
-        }
-
-        // Replace all matches by rebuilding the string
-        final matches = re.allMatches(raw).toList();
-        if (matches.isEmpty) {
-          continue;
-        }
-
-        final buffer = StringBuffer();
-        var lastEnd = 0;
-
-        for (final m in matches) {
-          // Add the text before this match
-          buffer.write(raw.substring(lastEnd, m.start));
-
-          // Add the replacement value
-          if (m.groupCount >= 1) {
-            final name = m.group(1)!;
-            final rep = snapshot[name] ?? '';
-            buffer.write(rep);
-          }
-
-          lastEnd = m.end;
-        }
-
-        // Add any remaining text after the last match
-        buffer.write(raw.substring(lastEnd));
-
-        out[k] = buffer.toString();
-      }
-    }
-
-    // Convert to FlatDocument (nulls not expected; env is strings).
-    return FlatConfig.fromDynamicMap(out);
   }
 
-  /// Parses a single configuration line into a [FlatEntry].
-  ///
-  /// This method processes one line of configuration text and returns a [FlatEntry]
-  /// if the line contains a valid key-value pair, or null if the line should be
-  /// ignored (empty, comment, or invalid).
-  ///
-  /// Lax mode:
-  /// - Missing equals are ignored
-  /// - Empty keys are ignored
-  ///
-  /// The [lineNumber] parameter is used for error reporting when exceptions are thrown.
-  @visibleForTesting
-  static FlatEntry? parseLine(
-    String raw, {
-    int? lineNumber,
-    FlatParseOptions options = const FlatParseOptions(),
-  }) {
-    final line = preprocessLine(raw, options.commentPrefix);
-    if (line == null) {
-      return null;
+  // 3) Final merge overrides (highest precedence).
+  if (options.merge.isNotEmpty) {
+    for (final e in options.merge.entries) {
+      out[e.key] = e.value;
     }
-
-    final ln = lineNumber ?? 0;
-    final strict = options.strict;
-    final decodeEscapesInQuoted = options.decodeEscapesInQuoted;
-    final onMissingEquals = options.onMissingEquals;
-    final onEmptyKey = options.onEmptyKey;
-
-    final sep = Constants.pairSeparator;
-    final idx = line.indexOf(sep);
-    if (idx < 0) {
-      if (strict) {
-        throw MissingEqualsException(ln, raw, column: line.length);
-      }
-      onMissingEquals?.call(ln, raw);
-
-      return null;
-    }
-
-    // Key left of separator, right trimRight
-    final trimmedKey = line.substring(0, idx).trimRight();
-    if (trimmedKey.isEmpty) {
-      if (strict) {
-        throw EmptyKeyException(ln, raw, column: idx + 1);
-      }
-      onEmptyKey?.call(ln, raw);
-
-      return null;
-    }
-
-    // A key the encoder could not write back out is not a key (SPEC.md 3).
-    final keyProblem = invalidKeyReason(trimmedKey);
-    if (keyProblem != null) {
-      if (strict) {
-        throw InvalidKeyException(trimmedKey, keyProblem, ln, raw);
-      }
-
-      return null;
-    }
-
-    // Value right of separator directly to parseValue
-    final value = parseValue(
-      line.substring(idx + sep.length),
-      decodeEscapesInQuoted: decodeEscapesInQuoted,
-      strict: strict,
-      lineNumber: ln,
-      rawLine: raw,
-    );
-
-    return FlatEntry(trimmedKey, value);
   }
 
-  /// Trims and applies comment rules to a raw line.
-  ///
-  /// This method preprocesses a raw configuration line by:
-  /// - Removing BOM (Byte Order Mark) if present
-  /// - Trimming whitespace
-  /// - Checking if the line is a comment (starts with [commentPrefix])
-  /// - Checking if the line is empty
-  ///
-  /// Returns the cleaned line to be parsed, or `null` if the line should be ignored.
-  @visibleForTesting
-  static String? preprocessLine(String raw, String commentPrefix) {
-    if (raw.isEmpty) {
-      return null;
-    }
-
-    var start = 0;
-    var end = raw.length;
-
-    // Strip BOM
-    if (raw.codeUnitAt(0) == Constants.bomCharCode) {
-      start = 1;
-    }
-
-    // Trim left
-    while (start < end) {
-      final c = raw.codeUnitAt(start);
-      if (!isWhitespace(c)) {
-        break;
+  // 4) Drop empty values if requested.
+  if (!options.keepEmptyValues) {
+    final keysToDrop = <String>[];
+    for (final kv in out.entries) {
+      if ((kv.value ?? '').isEmpty) {
+        keysToDrop.add(kv.key);
       }
-      start++;
     }
-
-    // Check comment prefix (after Trim-Left)
-    if (commentPrefix.isNotEmpty &&
-        start + commentPrefix.length <= end &&
-        raw.startsWith(commentPrefix, start)) {
-      return null;
+    for (final k in keysToDrop) {
+      out.remove(k);
     }
-
-    // Trim right
-    while (end > start) {
-      final c = raw.codeUnitAt(end - 1);
-      if (!isWhitespace(c)) {
-        break;
-      }
-      end--;
-    }
-
-    if (end <= start) {
-      return null;
-    }
-
-    // If nothing left, null; otherwise Substring without Trim-Allocation
-    return raw.substring(start, end);
   }
+
+  // 5) Interpolate ${VAR} if enabled. Single pass is usually enough for env.
+  if (options.interpolate) {
+    final re = RegExp(options.varPattern);
+    final snapshot = Map<String, String?>.from(out);
+    for (final k in out.keys.toList()) {
+      final raw = out[k];
+      if (raw == null || raw.isEmpty) {
+        continue;
+      }
+
+      // Replace all matches by rebuilding the string
+      final matches = re.allMatches(raw).toList();
+      if (matches.isEmpty) {
+        continue;
+      }
+
+      final buffer = StringBuffer();
+      var lastEnd = 0;
+
+      for (final m in matches) {
+        // Add the text before this match
+        buffer.write(raw.substring(lastEnd, m.start));
+
+        // Add the replacement value
+        if (m.groupCount >= 1) {
+          final name = m.group(1)!;
+          final rep = snapshot[name] ?? '';
+          buffer.write(rep);
+        }
+
+        lastEnd = m.end;
+      }
+
+      // Add any remaining text after the last match
+      buffer.write(raw.substring(lastEnd));
+
+      out[k] = buffer.toString();
+    }
+  }
+
+  // Values are already strings here, so no encoding step is needed.
+  return FlatDocument([for (final e in out.entries) FlatEntry(e.key, e.value)]);
+}
+
+/// Parses a single configuration line into a [FlatEntry].
+///
+/// This method processes one line of configuration text and returns a [FlatEntry]
+/// if the line contains a valid key-value pair, or null if the line should be
+/// ignored (empty, comment, or invalid).
+///
+/// Lax mode:
+/// - Missing equals are ignored
+/// - Empty keys are ignored
+///
+/// The [lineNumber] parameter is used for error reporting when exceptions are thrown.
+@visibleForTesting
+FlatEntry? parseLine(
+  String raw, {
+  int? lineNumber,
+  FlatParseOptions options = const FlatParseOptions(),
+}) {
+  final line = preprocessLine(raw, options.commentPrefix);
+  if (line == null) {
+    return null;
+  }
+
+  final ln = lineNumber ?? 0;
+  final strict = options.strict;
+  final decodeEscapesInQuoted = options.decodeEscapesInQuoted;
+  final onMissingEquals = options.onMissingEquals;
+  final onEmptyKey = options.onEmptyKey;
+
+  final sep = Constants.pairSeparator;
+  final idx = line.indexOf(sep);
+  if (idx < 0) {
+    if (strict) {
+      throw MissingEqualsException(ln, raw, column: line.length);
+    }
+    onMissingEquals?.call(ln, raw);
+
+    return null;
+  }
+
+  // Key left of separator, right trimRight
+  final trimmedKey = line.substring(0, idx).trimRight();
+  if (trimmedKey.isEmpty) {
+    if (strict) {
+      throw EmptyKeyException(ln, raw, column: idx + 1);
+    }
+    onEmptyKey?.call(ln, raw);
+
+    return null;
+  }
+
+  // A key the encoder could not write back out is not a key (SPEC.md 3).
+  final keyProblem = invalidKeyReason(trimmedKey);
+  if (keyProblem != null) {
+    if (strict) {
+      throw InvalidKeyException(trimmedKey, keyProblem, ln, raw);
+    }
+
+    return null;
+  }
+
+  // Value right of separator directly to parseValue
+  final value = parseValue(
+    line.substring(idx + sep.length),
+    decodeEscapesInQuoted: decodeEscapesInQuoted,
+    strict: strict,
+    lineNumber: ln,
+    rawLine: raw,
+  );
+
+  return FlatEntry(trimmedKey, value);
+}
+
+/// Trims and applies comment rules to a raw line.
+///
+/// This method preprocesses a raw configuration line by:
+/// - Removing BOM (Byte Order Mark) if present
+/// - Trimming whitespace
+/// - Checking if the line is a comment (starts with [commentPrefix])
+/// - Checking if the line is empty
+///
+/// Returns the cleaned line to be parsed, or `null` if the line should be ignored.
+@visibleForTesting
+String? preprocessLine(String raw, String commentPrefix) {
+  if (raw.isEmpty) {
+    return null;
+  }
+
+  var start = 0;
+  var end = raw.length;
+
+  // Strip BOM
+  if (raw.codeUnitAt(0) == Constants.bomCharCode) {
+    start = 1;
+  }
+
+  // Trim left
+  while (start < end) {
+    final c = raw.codeUnitAt(start);
+    if (!isWhitespace(c)) {
+      break;
+    }
+    start++;
+  }
+
+  // Check comment prefix (after Trim-Left)
+  if (commentPrefix.isNotEmpty &&
+      start + commentPrefix.length <= end &&
+      raw.startsWith(commentPrefix, start)) {
+    return null;
+  }
+
+  // Trim right
+  while (end > start) {
+    final c = raw.codeUnitAt(end - 1);
+    if (!isWhitespace(c)) {
+      break;
+    }
+    end--;
+  }
+
+  if (end <= start) {
+    return null;
+  }
+
+  // If nothing left, null; otherwise Substring without Trim-Allocation
+  return raw.substring(start, end);
 }

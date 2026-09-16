@@ -6,7 +6,7 @@ enum TestEnum { red, green, blue }
 void main() {
   group('fromMapData – csvItemEncoder (RFC-4180)', () {
     test('quotes items with separator and quotes', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'tags': ['hello', 'a,b', 'with "quote"'],
         },
@@ -25,7 +25,7 @@ void main() {
       // because it is line-based. rfc4180CsvItemEncoder is therefore only safe
       // for newline-free items.
       expect(
-        () => FlatConfig.fromMapData(
+        () => FlatDocument.fromData(
           {
             'tags': ['hello', 'multi\nline'],
           },
@@ -46,7 +46,7 @@ void main() {
     });
 
     test('respects custom separator token (e.g., "; ")', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'vals': ['plain', 'a; b', 'no-quote'],
         },
@@ -61,7 +61,7 @@ void main() {
     });
 
     test('csvNullToken appears for nulls when dropNulls=false', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'nums': [1, null, 3],
         },
@@ -77,7 +77,7 @@ void main() {
     });
 
     test('nulls are removed when dropNulls=true (no double delimiters)', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'nums': [1, null, 3, null],
         },
@@ -94,7 +94,7 @@ void main() {
 
   group('fromMapData – keyEscaper (root + child)', () {
     test('escapes separator in ROOT key segment', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'a.b': {'c': 1},
         },
@@ -109,7 +109,7 @@ void main() {
     });
 
     test('escapes separator in CHILD key segment', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'parent': {'x.y': 'v'},
         },
@@ -124,7 +124,7 @@ void main() {
     });
 
     test('works together with lists (multi) under escaped paths', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'root.key': {
             'list.with.dots': ['a', 'b'],
@@ -144,7 +144,7 @@ void main() {
 
   group('fromMapData – list mode: multi', () {
     test('preserves order and encodes scalars', () {
-      final doc = FlatConfig.fromMapData({
+      final doc = FlatDocument.fromData({
         'list': [1, 'a', true],
       }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
 
@@ -153,12 +153,12 @@ void main() {
     });
 
     test('null handling with dropNulls=false/true', () {
-      final d1 = FlatConfig.fromMapData({
+      final d1 = FlatDocument.fromData({
         'nums': [1, null, 2],
       }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
       expect(d1.allValues('nums'), ['1', null, '2']);
 
-      final d2 = FlatConfig.fromMapData(
+      final d2 = FlatDocument.fromData(
         {
           'nums': [1, null, 2],
         },
@@ -171,7 +171,7 @@ void main() {
     });
 
     test('composite items default to JSON, can skip or error', () {
-      final jsonDoc = FlatConfig.fromMapData({
+      final jsonDoc = FlatDocument.fromData({
         'items': [
           {'a': 1},
           [2, 3],
@@ -179,7 +179,7 @@ void main() {
       }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
       expect(jsonDoc.allValues('items'), ['{"a":1}', '[2,3]']);
 
-      final skipDoc = FlatConfig.fromMapData(
+      final skipDoc = FlatDocument.fromData(
         {
           'items': [
             1,
@@ -195,7 +195,7 @@ void main() {
       expect(skipDoc.allValues('items'), ['1', '2']);
 
       expect(
-        () => FlatConfig.fromMapData(
+        () => FlatDocument.fromData(
           {
             'items': [
               1,
@@ -220,7 +220,7 @@ void main() {
 
   group('fromMapData – list mode: csv (additional)', () {
     test('empty list becomes empty string', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {'list': <Object?>[]},
         options: const FlatMapDataOptions(
           listMode: FlatListMode.csv,
@@ -232,7 +232,7 @@ void main() {
     });
 
     test('composite items: default json, skip, and error', () {
-      final jsonDoc = FlatConfig.fromMapData(
+      final jsonDoc = FlatDocument.fromData(
         {
           'items': [
             {'a': 1},
@@ -246,7 +246,7 @@ void main() {
       );
       expect(jsonDoc['items'], '{"a":1},[2,3]');
 
-      final skipDoc = FlatConfig.fromMapData(
+      final skipDoc = FlatDocument.fromData(
         {
           'items': [
             1,
@@ -263,7 +263,7 @@ void main() {
       expect(skipDoc['items'], '1,2');
 
       expect(
-        () => FlatConfig.fromMapData(
+        () => FlatDocument.fromData(
           {
             'items': [
               1,
@@ -289,7 +289,7 @@ void main() {
 
   group('fromMapData – valueEncoder precedence', () {
     test('overrides scalars, nulls, and composites (multi)', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'a': null,
           'b': [
@@ -311,7 +311,7 @@ void main() {
     });
 
     test('overrides in csv mode and ignores dropNulls', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'b': [null, 1],
         },
@@ -330,7 +330,7 @@ void main() {
 
   group('fromMapData – scalar encoding', () {
     test('String, bool, num, enum, DateTime, Uri', () {
-      final doc = FlatConfig.fromMapData({
+      final doc = FlatDocument.fromData({
         's': 'str',
         'b1': true,
         'b0': false,
@@ -355,20 +355,20 @@ void main() {
   group('fromMapData – strict key validation', () {
     test('empty root key throws by default (strict=true)', () {
       expect(
-        () => FlatConfig.fromMapData({'': 1}),
+        () => FlatDocument.fromData({'': 1}),
         throwsA(isA<ArgumentError>()),
       );
     });
 
     test('empty root key is rejected', () {
       expect(
-        () => FlatConfig.fromMapData({'': 1}),
+        () => FlatDocument.fromData({'': 1}),
         throwsA(isA<ArgumentError>()),
       );
     });
 
     test('empty root with nested map flattens to child key', () {
-      final doc = FlatConfig.fromMapData({
+      final doc = FlatDocument.fromData({
         '': {'a': 1},
       });
       expect(doc['a'], '1');
@@ -389,14 +389,14 @@ void main() {
       'empty root key with null: strict=true throws; strict=false drops it',
       () {
         expect(
-          () => FlatConfig.fromMapData({'': null}),
+          () => FlatDocument.fromData({'': null}),
           throwsA(isA<ArgumentError>()),
         );
       },
     );
 
     test('custom separator and keyEscaper work together', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'root.part': {'child.part': 1},
         },
@@ -410,14 +410,14 @@ void main() {
     });
 
     test('insertion order of keys is preserved', () {
-      final doc = FlatConfig.fromMapData({'z': 1, 'a': 2, 'm': 3});
+      final doc = FlatDocument.fromData({'z': 1, 'a': 2, 'm': 3});
 
       expect(doc.keys.toList(), ['z', 'a', 'm']);
     });
 
     test('fallback: non-JSON-encodable object throws (root)', () {
       expect(
-        () => FlatConfig.fromMapData({
+        () => FlatDocument.fromData({
           'x': {1, 2}, // Set is not JSON-encodable → jsonEncode throws
         }),
         throwsA(isA<Object>()), // jsonEncode error (JsonUnsupportedObjectError)
@@ -427,7 +427,7 @@ void main() {
 
   group('fromMapData – per-item valueEncoder overrides', () {
     test('multi mode: overrides individual items (not root list)', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'l': [1, 2],
         },
@@ -442,7 +442,7 @@ void main() {
     });
 
     test('csv mode: overrides individual items (not root list)', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'l': [1, 2],
         },

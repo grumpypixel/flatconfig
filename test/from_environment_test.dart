@@ -7,7 +7,7 @@ void main() {
       test('loads simple env map into FlatDocument', () {
         final env = {'HOST': 'localhost', 'PORT': '8080', 'DEBUG': 'true'};
 
-        final doc = FlatConfig.fromEnvironment(env);
+        final doc = FlatDocument.fromEnvironment(env);
 
         expect(doc['HOST'], equals('localhost'));
         expect(doc['PORT'], equals('8080'));
@@ -16,7 +16,7 @@ void main() {
       });
 
       test('handles empty env map', () {
-        final doc = FlatConfig.fromEnvironment({});
+        final doc = FlatDocument.fromEnvironment({});
 
         expect(doc.isEmpty, isTrue);
         expect(doc.length, equals(0));
@@ -25,7 +25,7 @@ void main() {
       test('preserves key order', () {
         final env = {'ZULU': 'z', 'ALPHA': 'a', 'MIKE': 'm'};
 
-        final doc = FlatConfig.fromEnvironment(env);
+        final doc = FlatDocument.fromEnvironment(env);
         final keys = doc.keys.toList();
 
         expect(keys, equals(['ZULU', 'ALPHA', 'MIKE']));
@@ -33,7 +33,7 @@ void main() {
 
       test('returns FlatDocument compatible with all APIs', () {
         final env = {'KEY1': 'value1', 'KEY2': 'value2'};
-        final doc = FlatConfig.fromEnvironment(env);
+        final doc = FlatDocument.fromEnvironment(env);
 
         // Test that it works with standard FlatDocument methods
         expect(doc.toMap(), equals({'KEY1': 'value1', 'KEY2': 'value2'}));
@@ -52,7 +52,7 @@ void main() {
           'OTHER': 'value',
         };
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(prefix: 'APP_'),
         );
@@ -71,7 +71,7 @@ void main() {
           'OTHER': 'ignored',
         };
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(prefix: 'APP_', caseSensitive: false),
         );
@@ -91,7 +91,7 @@ void main() {
         () {
           final env = {'aPp_HoSt': 'localhost', 'APP_PORT': '8080'};
 
-          final doc = FlatConfig.fromEnvironment(
+          final doc = FlatDocument.fromEnvironment(
             env,
             options: const FlatEnvOptions(prefix: 'app_', caseSensitive: false),
           );
@@ -105,7 +105,7 @@ void main() {
       test('returns empty document when no keys match prefix', () {
         final env = {'HOST': 'localhost', 'PORT': '8080'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(prefix: 'APP_'),
         );
@@ -116,11 +116,11 @@ void main() {
       test('handles empty prefix as no filtering', () {
         final env = {'HOST': 'localhost', 'PORT': '8080'};
 
-        final doc1 = FlatConfig.fromEnvironment(
+        final doc1 = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(prefix: ''),
         );
-        final doc2 = FlatConfig.fromEnvironment(
+        final doc2 = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(prefix: null),
         );
@@ -138,7 +138,7 @@ void main() {
           'URL': 'https://\${HOST}:\${PORT}',
         };
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(interpolate: true),
         );
@@ -149,7 +149,7 @@ void main() {
       test('replaces missing variables with empty string', () {
         final env = {'URL': 'https://\${HOST}:\${PORT}'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(interpolate: true),
         );
@@ -164,7 +164,7 @@ void main() {
           'GREETING': '\${FIRST} \${SECOND}!',
         };
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(interpolate: true),
         );
@@ -178,7 +178,7 @@ void main() {
           'MESSAGE': '\${NAME} and \${NAME} went to the store',
         };
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(interpolate: true),
         );
@@ -189,7 +189,7 @@ void main() {
       test('does not interpolate when interpolate is false', () {
         final env = {'HOST': 'localhost', 'URL': 'https://\${HOST}'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(interpolate: false),
         );
@@ -200,7 +200,7 @@ void main() {
       test('skips interpolation on null values', () {
         final env = {'HOST': 'localhost'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(
             interpolate: true,
@@ -215,7 +215,7 @@ void main() {
       test('handles values without placeholders', () {
         final env = {'HOST': 'localhost', 'PORT': '8080'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(interpolate: true),
         );
@@ -227,7 +227,7 @@ void main() {
       test('interpolates from merged environment (defaults + env + merge)', () {
         final env = {'PORT': '8080'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(
             interpolate: true,
@@ -244,7 +244,7 @@ void main() {
       test('env overrides defaults', () {
         final env = {'PORT': '3000'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(
             defaults: {'HOST': 'localhost', 'PORT': '8080'},
@@ -258,7 +258,7 @@ void main() {
       test('merge overrides both env and defaults', () {
         final env = {'PORT': '3000', 'DEBUG': 'false'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(
             defaults: {'HOST': 'localhost', 'PORT': '8080'},
@@ -275,7 +275,7 @@ void main() {
       test('handles empty defaults map', () {
         final env = {'KEY': 'value'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(defaults: {}),
         );
@@ -286,7 +286,7 @@ void main() {
       test('handles empty merge map', () {
         final env = {'KEY': 'value'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(merge: {}),
         );
@@ -297,7 +297,7 @@ void main() {
       test('applies all three sources correctly', () {
         final env = {'B': 'env-b'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(
             defaults: {'A': 'default-a', 'B': 'default-b', 'C': 'default-c'},
@@ -316,7 +316,7 @@ void main() {
       test('keeps empty string values when keepEmptyValues is true', () {
         final env = {'KEY1': 'value', 'KEY2': '', 'KEY3': 'another'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(keepEmptyValues: true),
         );
@@ -330,7 +330,7 @@ void main() {
       test('drops empty string values when keepEmptyValues is false', () {
         final env = {'KEY1': 'value', 'KEY2': '', 'KEY3': 'another'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(keepEmptyValues: false),
         );
@@ -343,7 +343,7 @@ void main() {
         () {
           final env = {'B': ''};
 
-          final doc = FlatConfig.fromEnvironment(
+          final doc = FlatDocument.fromEnvironment(
             env,
             options: const FlatEnvOptions(
               keepEmptyValues: false,
@@ -359,7 +359,7 @@ void main() {
       test('treats whitespace as non-empty', () {
         final env = {'KEY1': ' ', 'KEY2': '\t'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(keepEmptyValues: false),
         );
@@ -372,7 +372,7 @@ void main() {
         // The format is line-based and cannot hold one. See Phase 2.10 for
         // whether the environment deserves a skip-instead-of-throw policy.
         expect(
-          () => FlatConfig.fromEnvironment({'KEY': 'a\nb'}),
+          () => FlatDocument.fromEnvironment({'KEY': 'a\nb'}),
           throwsA(
             isA<ArgumentError>().having(
               (e) => e.message,
@@ -392,7 +392,7 @@ void main() {
           'APP_DEBUG': 'true',
         };
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(prefix: 'APP_'),
         );
@@ -407,7 +407,7 @@ void main() {
       test('works with collapse()', () {
         final env = {'KEY1': 'value1', 'KEY2': 'value2'};
 
-        final doc = FlatConfig.fromEnvironment(env);
+        final doc = FlatDocument.fromEnvironment(env);
         final collapsed = doc.collapse();
 
         expect(collapsed['KEY1'], equals('value1'));
@@ -418,8 +418,8 @@ void main() {
         final env1 = {'HOST': 'localhost'};
         final env2 = {'PORT': '8080'};
 
-        final doc1 = FlatConfig.fromEnvironment(env1);
-        final doc2 = FlatConfig.fromEnvironment(env2);
+        final doc1 = FlatDocument.fromEnvironment(env1);
+        final doc2 = FlatDocument.fromEnvironment(env2);
         final merged = doc1.concat(doc2);
 
         expect(merged.toMap(), equals({'HOST': 'localhost', 'PORT': '8080'}));
@@ -432,7 +432,7 @@ void main() {
           'DB_HOST': 'dbserver',
         };
 
-        final doc = FlatConfig.fromEnvironment(env);
+        final doc = FlatDocument.fromEnvironment(env);
         final sliced = doc.slice('APP_');
 
         expect(
@@ -450,7 +450,7 @@ void main() {
           'APP_DEBUG': 'true',
         };
 
-        final doc = FlatConfig.fromEnvironment(env);
+        final doc = FlatDocument.fromEnvironment(env);
 
         expect(doc['APP.HOST'], equals('localhost'));
         expect(doc['APP-PORT'], equals('8080'));
@@ -464,7 +464,7 @@ void main() {
           'QUOTED': '"quoted value"',
         };
 
-        final doc = FlatConfig.fromEnvironment(env);
+        final doc = FlatDocument.fromEnvironment(env);
 
         expect(doc['PATH'], equals('/usr/bin:/usr/local/bin'));
         expect(doc['SPECIAL'], equals('value with = sign'));
@@ -477,7 +477,7 @@ void main() {
           env['KEY_$i'] = 'value_$i';
         }
 
-        final doc = FlatConfig.fromEnvironment(env);
+        final doc = FlatDocument.fromEnvironment(env);
 
         expect(doc.length, equals(1000));
         expect(doc['KEY_0'], equals('value_0'));
@@ -487,7 +487,7 @@ void main() {
       test('handles Unicode characters', () {
         final env = {'GREETING': 'Hello 世界 🌍', 'EMOJI': '🚀💻🎉'};
 
-        final doc = FlatConfig.fromEnvironment(env);
+        final doc = FlatDocument.fromEnvironment(env);
 
         expect(doc['GREETING'], equals('Hello 世界 🌍'));
         expect(doc['EMOJI'], equals('🚀💻🎉'));
@@ -498,7 +498,7 @@ void main() {
         // the placeholder text of the other variable
         final env = {'A': '\${B}', 'B': '\${A}'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(interpolate: true),
         );
@@ -518,7 +518,7 @@ void main() {
           'BAD4': 'HOST}',
         };
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(interpolate: true),
         );
@@ -533,7 +533,7 @@ void main() {
       test('custom varPattern works', () {
         final env = {'HOST': 'localhost', 'URL': '\$HOST/api'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(
             interpolate: true,
@@ -554,7 +554,7 @@ void main() {
           'OTHER_VAR': 'ignored',
         };
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(prefix: 'APP_', interpolate: true),
         );
@@ -569,7 +569,7 @@ void main() {
       test('layering defaults, env, and overrides', () {
         final env = {'HOST': 'prod.example.com', 'PORT': '8080'};
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(
             defaults: {
@@ -595,9 +595,9 @@ void main() {
         final dotEnv = {'APP_HOST': 'localhost', 'APP_PORT': '3000'};
         final testOverrides = {'APP_PORT': '9999'};
 
-        final doc1 = FlatConfig.fromEnvironment(systemEnv);
-        final doc2 = FlatConfig.fromEnvironment(dotEnv);
-        final doc3 = FlatConfig.fromEnvironment(testOverrides);
+        final doc1 = FlatDocument.fromEnvironment(systemEnv);
+        final doc2 = FlatDocument.fromEnvironment(dotEnv);
+        final doc3 = FlatDocument.fromEnvironment(testOverrides);
 
         final combined = doc1.concat(doc2).concat(doc3);
 
@@ -616,7 +616,7 @@ void main() {
           'API_HEADERS': 'Authorization: Bearer \${API_KEY}',
         };
 
-        final doc = FlatConfig.fromEnvironment(
+        final doc = FlatDocument.fromEnvironment(
           env,
           options: const FlatEnvOptions(interpolate: true),
         );

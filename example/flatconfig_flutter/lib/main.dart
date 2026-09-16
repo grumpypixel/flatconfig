@@ -233,7 +233,7 @@ class _InfoCard extends StatelessWidget {
 
 Future<FlatDocument> _loadConfigFromAssets() async {
   final content = await rootBundle.loadString('assets/config/app.conf');
-  return FlatConfig.parse(
+  return FlatDocument.parse(
     content,
     options: const FlatParseOptions(strict: false, decodeEscapesInQuoted: true),
   );

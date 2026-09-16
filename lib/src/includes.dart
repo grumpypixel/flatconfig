@@ -11,7 +11,7 @@ import 'options.dart';
 import 'parser.dart';
 import 'path_utils.dart' as path_utils;
 
-/// Extensions on [FlatConfig] for parsing configuration files with includes.
+/// Extensions for parsing configuration files with includes.
 ///
 /// These extensions provide methods for parsing configuration files
 /// with automatic include processing. The includes are processed recursively
@@ -24,7 +24,7 @@ import 'path_utils.dart' as path_utils;
 /// - Relative paths are resolved relative to the including file's directory
 /// - Absolute paths are used as-is
 /// - Circular includes are detected and cause an exception
-extension FlatConfigIncludes on FlatConfig {
+extension FlatConfigIncludes on FlatDocument {
   /// Parses a configuration file with automatic include processing.
   ///
   /// This method parses a configuration file and automatically processes any
@@ -46,10 +46,10 @@ extension FlatConfigIncludes on FlatConfig {
   /// Example:
   /// ```dart
   /// // Default behavior (Ghostty compatible)
-  /// final doc = await FlatConfig.parseWithIncludes(File('main.conf'));
+  /// final doc = await FlatConfigIncludes.parseWithIncludes(File('main.conf'));
   ///
   /// // Custom include key
-  /// final doc = await FlatConfig.parseWithIncludes(
+  /// final doc = await FlatConfigIncludes.parseWithIncludes(
   ///   File('main.conf'),
   ///   options: const FlatParseOptions(includeKey: 'include'),
   /// );
@@ -94,7 +94,7 @@ extension FlatConfigIncludes on FlatConfig {
   ///
   /// Example:
   /// ```dart
-  /// final doc = await FlatConfig.parseWithIncludesFromPath('main.conf');
+  /// final doc = await FlatConfigIncludes.parseWithIncludesFromPath('main.conf');
   /// ```
   static Future<FlatDocument> parseWithIncludesFromPath(
     String path, {
@@ -292,7 +292,7 @@ extension FlatConfigIncludes on FlatConfig {
     }
 
     // Parse the current file
-    final doc = await FlatConfig.parseFromByteStream(
+    final doc = await parseByteStream(
       file.openRead(),
       options: options,
       readOptions: readOptions,
@@ -365,7 +365,7 @@ extension FlatConfigIncludes on FlatConfig {
     }
 
     final content = file.readAsStringSync(encoding: readOptions.encoding);
-    final doc = FlatConfig.parse(
+    final doc = FlatDocument.parse(
       content,
       options: options,
       lineSplitter: readOptions.lineSplitter,

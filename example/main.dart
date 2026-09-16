@@ -24,7 +24,7 @@ difficulty = "normal"
 ''';
 
   // Parse configuration text into a FlatDocument
-  final doc = FlatConfig.parse(configText);
+  final doc = FlatDocument.parse(configText);
 
   print('🔍 Parsed document:');
   print(doc.debugDump());

@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('FlatDocument.stripPrefix', () {
     test('strip_prefix_rewrites_keys', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window.width = 1200
 window.height = 800
 theme = dark
@@ -18,7 +18,7 @@ theme = dark
     });
 
     test('strip_prefix_order_preserved', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window.b = 2
 window.a = 1
 window.c = 3
@@ -28,7 +28,7 @@ window.c = 3
     });
 
     test('strip_prefix_missing_prefix_empty', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 a = 1
 b = 2
 ''');
@@ -38,7 +38,7 @@ b = 2
     });
 
     test('strip_prefix_empty_prefix_clone_behavior', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 a = 1
 b = 2
 a = 3
@@ -50,7 +50,7 @@ a = 3
     });
 
     test('strip_prefix_excludes_bare_key_and_similar_prefixes', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window = legacy
 window.width = 1200
 windowx.width = 999
@@ -64,7 +64,7 @@ windowx.width = 999
     });
 
     test('strip_prefix_resolves_duplicates_latest_wins', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window.mode = a
 window.mode = b
 window.size = small
@@ -77,7 +77,7 @@ window.size = large
     });
 
     test('strip_prefix_drops_an_entry_whose_key_equals_the_prefix', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window. = value
 window.width = 800
 ''');
@@ -89,7 +89,7 @@ window.width = 800
     });
 
     test('strip_prefix_preserves_resets', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window.width =
 window.height = 600
 ''');

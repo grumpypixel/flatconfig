@@ -6,23 +6,24 @@ import 'dart:io';
 
 import 'package:flatconfig/flatconfig.dart';
 import 'package:flatconfig/src/io.dart' as io;
+import 'package:flatconfig/src/parser.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('FlatConfig.parse (String)', () {
+  group('FlatDocument.parse (String)', () {
     test('returns empty document for empty or whitespace-only input', () {
       // Test completely empty string
-      final doc1 = FlatConfig.parse('');
+      final doc1 = FlatDocument.parse('');
       expect(doc1, FlatDocument.empty());
       expect(doc1.keys, isEmpty);
 
       // Test whitespace-only string
-      final doc2 = FlatConfig.parse('   \t\n  ');
+      final doc2 = FlatDocument.parse('   \t\n  ');
       expect(doc2, FlatDocument.empty());
       expect(doc2.keys, isEmpty);
 
       // Test string with only newlines
-      final doc3 = FlatConfig.parse('\n\n\r\n');
+      final doc3 = FlatDocument.parse('\n\n\r\n');
       expect(doc3, FlatDocument.empty());
       expect(doc3.keys, isEmpty);
     });
@@ -36,7 +37,7 @@ shader = vignette=soft
 font-family =
 ''';
 
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
 
       expect(doc['background'], '343028');
       expect(doc.allValues('shader'), ['bloom=intense', 'vignette=soft']);
@@ -53,34 +54,34 @@ justakey
 another key
 k = v
 ''';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc.toMap(), containsPair('k', 'v'));
       expect(doc.keys.toList(), ['k']); // only valid line counted
     });
 
     test('trims whitespace around key and value', () {
       const src = '  key   =   value   ';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['key'], 'value');
     });
 
     test('handles CRLF (Windows) newlines', () {
       const src = 'a = 1\r\nb = 2\r\n';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['a'], '1');
       expect(doc['b'], '2');
     });
 
     test('indented comments are treated as comments after trim', () {
       const src = '   # comment\nx = 1';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['x'], '1');
       expect(doc.keys.length, 1);
     });
 
     test('empty value becomes null (reset)', () {
       const src = 'feature =';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['feature'], isNull);
       expect(doc.allValues('feature'), [null]);
     });
@@ -92,7 +93,7 @@ mode = a
 mode = b
 mode = c
 ''';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc.allValues('mode'), ['a', 'b', 'c']);
       expect(doc['mode'], 'c');
       expect(doc.keys.toList(), ['mode']);
@@ -100,13 +101,13 @@ mode = c
 
     test('value may contain "=" characters', () {
       const src = 'bind = ctrl+z=close_surface';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['bind'], 'ctrl+z=close_surface');
     });
 
     test('unicode is preserved', () {
       const src = 'greeting = Hey ya! 👋';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['greeting'], 'Hey ya! 👋');
     });
 
@@ -116,7 +117,7 @@ mode = c
           'color =\n'
           'color = aabbcc\n';
 
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc.allValues('color'), ['ffaa00', null, 'aabbcc']);
       expect(doc['color'], 'aabbcc');
     });
@@ -128,7 +129,7 @@ mode = c
           'k3 =   foo   \n'
           'k4 =';
 
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
 
       expect(doc['k1'], '   foo   '); // spaces preserved inside quotes
       expect(doc['k2'], ''); // empty quoted string -> empty string
@@ -138,15 +139,15 @@ mode = c
 
     test('quoted value may contain "=" characters', () {
       const src = 'k = "left=close_surface"';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['k'], 'left=close_surface');
     });
 
     test('encode -> parse roundtrip (comments are lost)', () {
       const src = 'x = 1\n# c\ny = \n';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       final out = doc.encode();
-      final doc2 = FlatConfig.parse(out);
+      final doc2 = FlatDocument.parse(out);
 
       expect(doc2['x'], '1');
       expect(doc2['y'], isNull);
@@ -156,7 +157,7 @@ mode = c
     test('strict mode throws on invalid line', () {
       const src = 'justakey\nk = v';
       expect(
-        () => FlatConfig.parse(
+        () => FlatDocument.parse(
           src,
           options: const FlatParseOptions().copyWith(strict: true),
         ),
@@ -167,7 +168,7 @@ mode = c
     test('onMissingEquals is called for ignored lines', () {
       const src = 'justakey\nk = v';
       var called = false;
-      FlatConfig.parse(
+      FlatDocument.parse(
         src,
         options: FlatParseOptions(onMissingEquals: (_, _) => called = true),
       );
@@ -176,27 +177,27 @@ mode = c
 
     test('does not support inline comments', () {
       const src = 'k = v # this is not an inline comment';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['k'], 'v # this is not an inline comment');
     });
 
     test('ignores empty key and trims value', () {
       const src = '   = value  ';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc.keys, isEmpty);
       expect(doc.toMap(), isEmpty);
     });
 
     test('whitespace-only lines are ignored', () {
       const src = '   \n\t\nkey = v\n';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc.toMap(), containsPair('key', 'v'));
       expect(doc.keys.length, 1);
     });
 
     test('no spaces around "=" and trailing spaces imply null', () {
       const src = 'a=1\nb=\nc=   \n';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['a'], '1');
       expect(doc['b'], isNull);
       expect(doc['c'], isNull);
@@ -206,7 +207,7 @@ mode = c
     test('callback provides accurate line and content', () {
       const src = '  # comment\ninvalidline\nk = v\n  noeq   \n';
       final calls = <Map<String, Object>>[];
-      FlatConfig.parse(
+      FlatDocument.parse(
         src,
         options: FlatParseOptions(
           onMissingEquals: (n, l) {
@@ -223,7 +224,7 @@ mode = c
 
     test('unicode in key is preserved', () {
       const src = 'Hey ya! 👋 = hi';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['Hey ya! 👋'], 'hi');
     });
   });
@@ -232,7 +233,7 @@ mode = c
     test('respects custom comment prefix (others are invalid)', () {
       const src = '; c\n# c2\nk = v\n';
       final lines = <int>[];
-      final doc = FlatConfig.parse(
+      final doc = FlatDocument.parse(
         src,
         options: FlatParseOptions(
           commentPrefix: ';',
@@ -246,7 +247,7 @@ mode = c
     test('collects issues and returns document', () {
       const src = 'ok = 1\ninvalid\n# c\nfoo = 2';
       var missingCount = 0;
-      final doc = FlatConfig.parse(
+      final doc = FlatDocument.parse(
         src,
         options: FlatParseOptions(onMissingEquals: (_, _) => missingCount++),
       );
@@ -258,7 +259,7 @@ mode = c
     test('collects empty key issue', () {
       const src = 'ok = 1\n = value\nfoo = 2\n';
       var emptyCount = 0;
-      final doc = FlatConfig.parse(
+      final doc = FlatDocument.parse(
         src,
         options: FlatParseOptions(onEmptyKey: (_, _) => emptyCount++),
       );
@@ -267,10 +268,10 @@ mode = c
     });
   });
 
-  group('FlatConfig.parse custom comments and strict/errors', () {
+  group('FlatDocument.parse custom comments and strict/errors', () {
     test('custom comment prefix ";" works after trim', () {
       const src = ' ; comment after trim\n; real comment\nkey = v\n';
-      final doc = FlatConfig.parse(
+      final doc = FlatDocument.parse(
         src,
         options: const FlatParseOptions(commentPrefix: ';'),
       );
@@ -281,7 +282,7 @@ mode = c
     test('parseLines strict=true throws and onMissingEquals collects', () {
       final lines = ['x', 'k = v'];
       expect(
-        () => FlatConfig.parseLines(
+        () => FlatDocument.parseLines(
           lines,
           options: const FlatParseOptions(strict: true),
         ),
@@ -289,7 +290,7 @@ mode = c
       );
 
       var called = false;
-      FlatConfig.parseLines(
+      FlatDocument.parseLines(
         lines,
         options: FlatParseOptions(onMissingEquals: (_, _) => called = true),
       );
@@ -298,7 +299,7 @@ mode = c
 
     test('single comment prefix only: other prefix lines are not comments', () {
       const src = '  # c1\n// c2\nkey = v\n';
-      final doc = FlatConfig.parse(
+      final doc = FlatDocument.parse(
         src,
         // default is '#', so '//' is not treated as comment
       );
@@ -310,7 +311,7 @@ mode = c
     test('strict=true throws on empty key', () {
       const src = '   = value';
       expect(
-        () => FlatConfig.parse(
+        () => FlatDocument.parse(
           src,
           options: const FlatParseOptions(strict: true),
         ),
@@ -321,7 +322,7 @@ mode = c
     test('parseLines strict=true throws on empty key', () {
       final lines = ['= value'];
       expect(
-        () => FlatConfig.parseLines(
+        () => FlatDocument.parseLines(
           lines,
           options: const FlatParseOptions(strict: true),
         ),
@@ -333,7 +334,7 @@ mode = c
   group('FlatConf quoted escapes toggle', () {
     test(r'decodeEscapesInQuoted=false preserves \\" and \\\"', () {
       const src = r'k = "He said: \"hi\" \\ o/"';
-      final doc = FlatConfig.parse(
+      final doc = FlatDocument.parse(
         src,
         options: const FlatParseOptions(decodeEscapesInQuoted: false),
       );
@@ -344,7 +345,7 @@ mode = c
       'decodeEscapesInQuoted=true but no escapes leaves string unchanged',
       () {
         const src = 'k = "plain"';
-        final doc = FlatConfig.parse(
+        final doc = FlatDocument.parse(
           src,
           options: const FlatParseOptions(decodeEscapesInQuoted: true),
         );
@@ -357,7 +358,7 @@ mode = c
       () {
         const src = 'a = "abc"\n# c\n';
         var called = false;
-        final doc = FlatConfig.parse(
+        final doc = FlatDocument.parse(
           src,
           options: FlatParseOptions(
             decodeEscapesInQuoted: true,
@@ -372,7 +373,7 @@ mode = c
 
     test(r'decodeEscapesInQuoted=true: only \" and \\ change; others kept', () {
       const src = r'k = "keep \n and \t; fix: \" and \\"';
-      final doc = FlatConfig.parse(
+      final doc = FlatDocument.parse(
         src,
         options: const FlatParseOptions(decodeEscapesInQuoted: true),
       );
@@ -385,7 +386,7 @@ mode = c
     test('reports correct line for missing = with CRLF', () {
       const src = 'ok = 1\r\ninvalid\r\nnext = 2\r\n';
       final lines = <int>[];
-      final doc = FlatConfig.parse(
+      final doc = FlatDocument.parse(
         src,
         options: FlatParseOptions(onMissingEquals: (n, _) => lines.add(n)),
       );
@@ -396,29 +397,26 @@ mode = c
     });
   });
 
-  group('FlatConfig.parseLines commentPrefixes edge cases', () {
+  group('FlatDocument.parseLines commentPrefixes edge cases', () {
     test('a commentPrefix spanning a line break is rejected', () {
       // No single line could ever match it. This has to hold in release
       // builds too, which is why it is a check and not an assert.
       const options = FlatParseOptions(commentPrefix: '#\n');
 
       expect(
-        () => FlatConfig.parse('k = v', options: options),
+        () => FlatDocument.parse('k = v', options: options),
         throwsArgumentError,
       );
       expect(
-        () => FlatConfig.parseLines(const ['k = v'], options: options),
+        () => FlatDocument.parseLines(const ['k = v'], options: options),
         throwsArgumentError,
       );
       expect(
-        () => FlatConfig.parseFromStringStream(
-          Stream.value('k = v'),
-          options: options,
-        ),
+        () => parseStringStream(Stream.value('k = v'), options: options),
         throwsArgumentError,
       );
       expect(
-        () => FlatConfig.parseEntriesFromStringStream(
+        () => streamEntriesFromStrings(
           Stream.value('k = v'),
           options: options,
         ).toList(),
@@ -430,12 +428,12 @@ mode = c
       final lines = ['# comment', 'k = v'];
 
       var called = false;
-      final doc = FlatConfig.parseLines(
+      final doc = FlatDocument.parseLines(
         lines,
         options: const FlatParseOptions(commentPrefix: ''),
       );
       // simulate non-throwing collection
-      FlatConfig.parseLines(
+      FlatDocument.parseLines(
         lines,
         options: FlatParseOptions(
           onMissingEquals: (_, _) => called = true,
@@ -450,7 +448,7 @@ mode = c
     test('callback counts all invalid lines', () {
       final lines = const ['ok = 1', 'bad1', 'bad2', '# c', 'k = 2'];
       var count = 0;
-      final doc = FlatConfig.parseLines(
+      final doc = FlatDocument.parseLines(
         lines,
         options: FlatParseOptions(onMissingEquals: (_, _) => count++),
       );
@@ -460,14 +458,14 @@ mode = c
     });
 
     test('commentPrefix="#" treats # as comment (default)', () {
-      final doc = FlatConfig.parse('key = v\n# c');
+      final doc = FlatDocument.parse('key = v\n# c');
       expect(doc['key'], 'v');
       expect(doc.keys.toList(), ['key']);
     });
 
     test('custom single comment prefix via callbacks (others invalid)', () {
       var count = 0;
-      final doc = FlatConfig.parseLines(
+      final doc = FlatDocument.parseLines(
         const ['; c', '# c2', 'k = v'],
         options: FlatParseOptions(
           commentPrefix: ';',
@@ -484,7 +482,7 @@ mode = c
       // Inner quotes must be escaped: a quoted value closes at its first
       // unescaped quote, so the previous unescaped source is malformed now.
       const src = r'k = "He said: \"hi\" \\ o/"';
-      final doc = FlatConfig.parse(
+      final doc = FlatDocument.parse(
         src,
         options: const FlatParseOptions(decodeEscapesInQuoted: true),
       );
@@ -492,7 +490,7 @@ mode = c
     });
   });
 
-  group('FlatConfig.parseFromString and parseLines', () {
+  group('FlatDocument.parse and parseLines', () {
     test('parseLines (via convert) works like parse', () {
       const src = '''
 # comment
@@ -501,8 +499,8 @@ shader = bloom=intense
 font-family =
 ''';
 
-      final doc1 = FlatConfig.parse(src);
-      final doc2 = FlatConfig.parseLines(const LineSplitter().convert(src));
+      final doc1 = FlatDocument.parse(src);
+      final doc2 = FlatDocument.parseLines(const LineSplitter().convert(src));
 
       expect(doc1['background'], doc2['background']);
       expect(doc1['shader'], doc2['shader']);
@@ -520,7 +518,7 @@ font-family =
         'another = value',
       ];
 
-      final doc = FlatConfig.parseLines(strings);
+      final doc = FlatDocument.parseLines(strings);
 
       expect(doc['background'], '343028');
       expect(doc['shader'], 'bloom=intense');
@@ -545,7 +543,7 @@ font-family =
         'key3 = value3',
       ];
 
-      final doc = FlatConfig.parseLines(strings);
+      final doc = FlatDocument.parseLines(strings);
 
       expect(doc.keys.length, 3);
       expect(doc['key1'], 'value1');
@@ -561,7 +559,7 @@ font-family =
         'another invalid line',
       ];
 
-      final doc = FlatConfig.parseLines(strings);
+      final doc = FlatDocument.parseLines(strings);
 
       expect(doc.keys.length, 2);
       expect(doc['key1'], 'value1');
@@ -573,7 +571,7 @@ font-family =
 
   group('FlatConfIO.parseFile (File)', () {
     test('parses file asynchronously', () async {
-      final file = File('test/tmp_FlatConfig.conf');
+      final file = File('test/tmp_parser.conf');
       addTearDown(() {
         if (file.existsSync()) {
           file.deleteSync();
@@ -628,7 +626,7 @@ shader = vignette=soft
       expect(doc['b'], '2');
     });
 
-    test('quoted values in files match FlatConfig.parse semantics', () async {
+    test('quoted values in files match FlatDocument.parse semantics', () async {
       final file = File('test/tmp_flatconf_quoted.conf');
       addTearDown(() {
         if (file.existsSync()) {
@@ -652,7 +650,7 @@ shader = vignette=soft
       expect(doc['k4'], isNull); // empty -> null
     });
 
-    test('parity with FlatConfig.parse for unquoted values', () async {
+    test('parity with FlatDocument.parse for unquoted values', () async {
       final file = File('test/tmp_flatconf_parity.conf');
       addTearDown(() {
         if (file.existsSync()) {
@@ -669,7 +667,7 @@ shader = vignette=soft
 
       file.writeAsStringSync(src);
 
-      final docString = FlatConfig.parse(src);
+      final docString = FlatDocument.parse(src);
       final docFile = await file.parseFlat();
 
       expect(docFile['a'], docString['a']);
@@ -747,7 +745,7 @@ shader = vignette=soft
     expect(content.endsWith('\n'), isTrue);
   });
 
-  group('FlatConfig.encode (quoting behavior)', () {
+  group('FlatDocument.encode (quoting behavior)', () {
     test(
       'quotes values with leading/trailing spaces when quoteIfWhitespace=true',
       () {
@@ -755,7 +753,7 @@ shader = vignette=soft
         final out = doc.encode();
         expect(out.trim(), 'k = "  spaced  "');
 
-        final reparsed = FlatConfig.parse(out);
+        final reparsed = FlatDocument.parse(out);
         expect(reparsed['k'], '  spaced  ');
       },
     );
@@ -768,7 +766,7 @@ shader = vignette=soft
       expect(out.split('\n')[0], 'a = "x"');
       expect(out.contains('b = " y "'), isTrue);
 
-      final reparsed = FlatConfig.parse(out);
+      final reparsed = FlatDocument.parse(out);
       expect(reparsed['a'], 'x');
       expect(reparsed['b'], ' y ');
     });
@@ -782,7 +780,7 @@ shader = vignette=soft
       expect(out.contains(r'\"hello\"'), isTrue);
       expect(out.contains(r'\\ o/'), isTrue);
 
-      final reparsed = FlatConfig.parse(
+      final reparsed = FlatDocument.parse(
         out,
         options: const FlatParseOptions(decodeEscapesInQuoted: true),
       );
@@ -793,7 +791,7 @@ shader = vignette=soft
       final doc = FlatDocument([FlatEntry('k', '\tfoo\t')]);
       final out = doc.encode();
       expect(out.trim(), 'k = "\tfoo\t"');
-      final reparsed = FlatConfig.parse(out);
+      final reparsed = FlatDocument.parse(out);
       expect(reparsed['k'], '\tfoo\t');
     });
 
@@ -802,7 +800,7 @@ shader = vignette=soft
       final doc = FlatDocument([FlatEntry('k', '${nbsp}x$nbsp')]);
       final out = doc.encode();
       expect(out.contains('"'), isTrue);
-      final reparsed = FlatConfig.parse(out);
+      final reparsed = FlatDocument.parse(out);
       expect(reparsed['k'], '${nbsp}x$nbsp');
     });
 
@@ -810,7 +808,7 @@ shader = vignette=soft
       final doc = FlatDocument([FlatEntry('k', 'left=right')]);
       final out = doc.encode();
       expect(out.trim(), 'k = "left=right"');
-      final reparsed = FlatConfig.parse(out);
+      final reparsed = FlatDocument.parse(out);
       expect(reparsed['k'], 'left=right');
     });
 
@@ -820,7 +818,7 @@ shader = vignette=soft
         options: const FlatEncodeOptions(commentPrefix: '#'),
       );
       expect(out.trim(), 'k = "# danger"');
-      final reparsed = FlatConfig.parse(out);
+      final reparsed = FlatDocument.parse(out);
       expect(reparsed['k'], '# danger');
     });
 
@@ -828,7 +826,7 @@ shader = vignette=soft
       final doc = FlatDocument([FlatEntry('k', 'say "hi"')]);
       final out = doc.encode();
       expect(out.contains(r'"say \"hi\""'), isTrue);
-      final reparsed = FlatConfig.parse(out);
+      final reparsed = FlatDocument.parse(out);
       expect(reparsed['k'], 'say "hi"');
     });
 
@@ -848,10 +846,10 @@ shader = vignette=soft
     });
   });
 
-  group('FlatConfig.fromMap / fromDynamicMap', () {
+  group('FlatDocument.fromMap', () {
     test('fromMap preserves order and nulls become resets', () {
       final map = {'a': '1', 'b': null, 'c': ' x '};
-      final doc = FlatConfig.fromMap(map);
+      final doc = FlatDocument.fromMap(map);
       expect(doc.keys.toList(), ['a', 'b', 'c']);
       expect(doc.allValues('a'), ['1']);
       expect(doc.allValues('b'), [null]);
@@ -862,66 +860,59 @@ shader = vignette=soft
       expect(encoded.contains('\nb = '), isTrue);
     });
 
-    test('fromDynamicMap uses default toString and custom encoder', () {
-      final doc1 = FlatConfig.fromDynamicMap({'i': 42, 'b': true, 'n': null});
-      expect(doc1['i'], '42');
-      expect(doc1['b'], 'true');
-      expect(doc1['n'], isNull);
+    test('stringifying dynamic values is the caller\'s job now', () {
+      // fromDynamicMap guessed at toString(); mapping explicitly is both
+      // shorter to explain and impossible to get surprised by.
+      final data = <String, Object?>{'i': 42, 'b': true, 'n': null};
+      final doc = FlatDocument.fromMap({
+        for (final e in data.entries) e.key: e.value?.toString(),
+      });
 
-      final doc2 = FlatConfig.fromDynamicMap(
-        {'i': 7, 's': ' x '},
-        valueEncoder: (k, v) {
-          if (v is int) {
-            return '0x${v.toRadixString(16)}';
-          }
-
-          return v?.toString();
-        },
-      );
-      expect(doc2['i'], '0x7');
-      expect(doc2['s'], ' x ');
+      expect(doc['i'], '42');
+      expect(doc['b'], 'true');
+      expect(doc['n'], isNull);
     });
   });
 
-  group('FlatConfig.parseFromString edge values', () {
+  group('FlatDocument.parse edge values', () {
     test('empty quoted string yields empty string', () {
       const src = 'k = ""';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['k'], '');
     });
 
     test('unquoted trimmed to empty becomes null', () {
       const src = 'k =    ';
-      final doc = FlatConfig.parse(src);
+      final doc = FlatDocument.parse(src);
       expect(doc['k'], isNull);
     });
   });
 
-  group('FlatConfig.preprocessLine', () {
+  group('preprocessLine', () {
     test('returns trimmed line for non-empty input', () {
-      expect(FlatConfig.preprocessLine('  key = v  ', '#'), 'key = v');
-      expect(FlatConfig.preprocessLine('x', '#'), 'x');
+      expect(preprocessLine('  key = v  ', '#'), 'key = v');
+      expect(preprocessLine('x', '#'), 'x');
     });
 
     test('returns null for empty or whitespace-only lines', () {
-      expect(FlatConfig.preprocessLine('', '#'), isNull);
-      expect(FlatConfig.preprocessLine('   \t', '#'), isNull);
+      expect(preprocessLine('', '#'), isNull);
+      expect(preprocessLine('   \t', '#'), isNull);
     });
 
     test('returns null for comments with default #', () {
-      expect(FlatConfig.preprocessLine('# c', '#'), isNull);
-      expect(FlatConfig.preprocessLine('   # indented', '#'), isNull);
+      expect(preprocessLine('# c', '#'), isNull);
+      expect(preprocessLine('   # indented', '#'), isNull);
     });
 
     test('respects custom comment prefix', () {
-      expect(FlatConfig.preprocessLine('; c', ';'), isNull);
-      expect(FlatConfig.preprocessLine('   ; c', ';'), isNull);
-      expect(FlatConfig.preprocessLine('# c', ';'), '# c');
+      expect(preprocessLine('; c', ';'), isNull);
+      expect(preprocessLine('   ; c', ';'), isNull);
+      expect(preprocessLine('# c', ';'), '# c');
     });
 
     test('empty commentPrefix disables comment handling', () {
-      expect(FlatConfig.preprocessLine('# c', ''), '# c');
-      expect(FlatConfig.preprocessLine('   # c', ''), '# c');
+      expect(preprocessLine('# c', ''), '# c');
+      expect(preprocessLine('   # c', ''), '# c');
     });
   });
 
@@ -937,7 +928,7 @@ shader = vignette=soft
         ]);
 
         var missingCount = 0;
-        final doc = await FlatConfig.parseFromStringStream(
+        final doc = await parseStringStream(
           lines,
           options: FlatParseOptions(onMissingEquals: (_, _) => missingCount++),
         );
@@ -951,7 +942,7 @@ shader = vignette=soft
     test('parseFromByteStream splits CRLF and parses entries', () async {
       final bytes = utf8.encode('a = 1\r\nb = 2\r\n');
       final stream = Stream<List<int>>.value(bytes);
-      final doc = await FlatConfig.parseFromByteStream(
+      final doc = await FlatDocument.parseBytes(
         stream,
         readOptions: const FlatStreamReadOptions(lineSplitter: LineSplitter()),
       );
@@ -961,7 +952,7 @@ shader = vignette=soft
 
     test('parseEntries yields only valid entries in order', () async {
       final bytes = utf8.encode('  # c\nkey = 1\nbad\nz = \n');
-      final entries = await FlatConfig.parseEntries(
+      final entries = await FlatDocument.streamEntries(
         Stream<List<int>>.value(bytes),
       ).toList();
 
@@ -976,7 +967,7 @@ shader = vignette=soft
       'regex pairSeparator match at position 0 triggers empty-key callback (non-strict)',
       () {
         var emptyCalls = 0;
-        final doc = FlatConfig.parse(
+        final doc = FlatDocument.parse(
           '= v',
           options: FlatParseOptions(onEmptyKey: (_, _) => emptyCalls++),
         );
@@ -988,7 +979,7 @@ shader = vignette=soft
     test(
       'parseValue early return via custom separator and empty unquoted value',
       () {
-        final doc = FlatConfig.parse(
+        final doc = FlatDocument.parse(
           'k ->   ',
           options: const FlatParseOptions(),
         );
@@ -1052,9 +1043,7 @@ shader = vignette=soft
         'x = 1',
       ]);
 
-      final entries = await FlatConfig.parseEntriesFromStringStream(
-        lines,
-      ).toList();
+      final entries = await streamEntriesFromStrings(lines).toList();
 
       expect(entries.first.key, 'key');
       expect(entries.first.value, 'v');
@@ -1063,7 +1052,7 @@ shader = vignette=soft
     });
   });
 
-  group('FlatConfig.parseLines convenience method', () {
+  group('FlatDocument.parseLines convenience method', () {
     test('parseLines is equivalent to parse', () {
       const lines = [
         '# comment',
@@ -1074,8 +1063,8 @@ shader = vignette=soft
         'another = value',
       ];
 
-      final doc1 = FlatConfig.parseLines(lines);
-      final doc2 = FlatConfig.parse(lines.join('\n'));
+      final doc1 = FlatDocument.parseLines(lines);
+      final doc2 = FlatDocument.parse(lines.join('\n'));
 
       expect(doc1['background'], doc2['background']);
       expect(doc1['shader'], doc2['shader']);
@@ -1088,7 +1077,7 @@ shader = vignette=soft
       const lines = ['; comment', 'key = value', 'invalid line'];
 
       var missingCount = 0;
-      final doc = FlatConfig.parseLines(
+      final doc = FlatDocument.parseLines(
         lines,
         options: FlatParseOptions(
           commentPrefix: ';',
@@ -1102,7 +1091,7 @@ shader = vignette=soft
 
     test('parseLines handles empty list', () {
       const lines = <String>[];
-      final doc = FlatConfig.parseLines(lines);
+      final doc = FlatDocument.parseLines(lines);
 
       expect(doc, FlatDocument.empty());
       expect(doc.keys, isEmpty);
@@ -1110,7 +1099,7 @@ shader = vignette=soft
 
     test('parseLines handles list with only comments and empty lines', () {
       const lines = ['# comment', '', '   # indented comment', '   '];
-      final doc = FlatConfig.parseLines(lines);
+      final doc = FlatDocument.parseLines(lines);
 
       expect(doc, FlatDocument.empty());
       expect(doc.keys, isEmpty);
@@ -1118,7 +1107,7 @@ shader = vignette=soft
 
     test('parseLines processes valid entries correctly', () {
       const lines = ['a = 1', 'b = 2', 'c = 3'];
-      final doc = FlatConfig.parseLines(lines);
+      final doc = FlatDocument.parseLines(lines);
 
       expect(doc['a'], '1');
       expect(doc['b'], '2');
@@ -1128,7 +1117,7 @@ shader = vignette=soft
 
     test('parseLines handles duplicate keys', () {
       const lines = ['key = first', 'key = second', 'key = third'];
-      final doc = FlatConfig.parseLines(lines);
+      final doc = FlatDocument.parseLines(lines);
 
       expect(doc['key'], 'third');
       expect(doc.allValues('key'), ['first', 'second', 'third']);
@@ -1138,7 +1127,7 @@ shader = vignette=soft
       const lines = ['valid = 1', 'invalid line', 'another = 2'];
 
       expect(
-        () => FlatConfig.parseLines(
+        () => FlatDocument.parseLines(
           lines,
           options: const FlatParseOptions(strict: true),
         ),
@@ -1148,7 +1137,7 @@ shader = vignette=soft
 
     group('parseLine', () {
       test('parses valid key-value pairs', () {
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           'key=value',
           lineNumber: 1,
           options: const FlatParseOptions(
@@ -1163,7 +1152,7 @@ shader = vignette=soft
       });
 
       test('handles quoted values', () {
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           'key="quoted value"',
           lineNumber: 1,
           options: const FlatParseOptions(
@@ -1178,7 +1167,7 @@ shader = vignette=soft
       });
 
       test('handles empty values', () {
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           'key=',
           lineNumber: 1,
           options: const FlatParseOptions(
@@ -1193,7 +1182,7 @@ shader = vignette=soft
       });
 
       test('handles whitespace around key and value', () {
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           '  key  =  value  ',
           lineNumber: 1,
           options: const FlatParseOptions(
@@ -1208,7 +1197,7 @@ shader = vignette=soft
       });
 
       test('returns null for empty lines', () {
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           '',
           lineNumber: 1,
           options: const FlatParseOptions(
@@ -1221,7 +1210,7 @@ shader = vignette=soft
       });
 
       test('returns null for whitespace-only lines', () {
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           '   ',
           lineNumber: 1,
           options: const FlatParseOptions(
@@ -1234,7 +1223,7 @@ shader = vignette=soft
       });
 
       test('returns null for comment lines', () {
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           '# This is a comment',
           lineNumber: 1,
           options: const FlatParseOptions(
@@ -1247,7 +1236,7 @@ shader = vignette=soft
       });
 
       test('handles custom comment prefix', () {
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           '// This is a comment',
           lineNumber: 1,
           options: const FlatParseOptions(
@@ -1261,7 +1250,7 @@ shader = vignette=soft
 
       test('handles lines without equals in strict mode', () {
         expect(
-          () => FlatConfig.parseLine(
+          () => parseLine(
             'key without equals',
             lineNumber: 1,
             options: const FlatParseOptions(
@@ -1276,7 +1265,7 @@ shader = vignette=soft
 
       test('handles lines without equals in non-strict mode', () {
         var callbackCalled = false;
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           'key without equals',
           lineNumber: 1,
           options: FlatParseOptions(
@@ -1296,7 +1285,7 @@ shader = vignette=soft
 
       test('handles empty key in strict mode', () {
         expect(
-          () => FlatConfig.parseLine(
+          () => parseLine(
             '=value',
             lineNumber: 1,
             options: const FlatParseOptions(
@@ -1311,7 +1300,7 @@ shader = vignette=soft
 
       test('handles empty key in non-strict mode', () {
         var callbackCalled = false;
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           '=value',
           lineNumber: 1,
           options: FlatParseOptions(
@@ -1330,7 +1319,7 @@ shader = vignette=soft
       });
 
       test('handles BOM in input', () {
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           '\uFEFFkey=value',
           lineNumber: 1,
           options: const FlatParseOptions(
@@ -1345,7 +1334,7 @@ shader = vignette=soft
       });
 
       test('handles decodeEscapesInQuoted option', () {
-        final result = FlatConfig.parseLine(
+        final result = parseLine(
           'key="escaped \\"quote\\""',
           lineNumber: 1,
           options: const FlatParseOptions(
@@ -1362,53 +1351,47 @@ shader = vignette=soft
 
     group('preprocessLine', () {
       test('removes BOM from beginning of line', () {
-        final result = FlatConfig.preprocessLine('\uFEFFkey=value', '#');
+        final result = preprocessLine('\uFEFFkey=value', '#');
         expect(result, 'key=value');
       });
 
       test('returns null for empty line', () {
-        final result = FlatConfig.preprocessLine('', '#');
+        final result = preprocessLine('', '#');
         expect(result, isNull);
       });
 
       test('returns null for whitespace-only line', () {
-        final result = FlatConfig.preprocessLine('   ', '#');
+        final result = preprocessLine('   ', '#');
         expect(result, isNull);
       });
 
       test('returns null for comment line', () {
-        final result = FlatConfig.preprocessLine('# comment', '#');
+        final result = preprocessLine('# comment', '#');
         expect(result, isNull);
       });
 
       test('returns null for custom comment prefix', () {
-        final result = FlatConfig.preprocessLine('// comment', '//');
+        final result = preprocessLine('// comment', '//');
         expect(result, isNull);
       });
 
       test('trims whitespace from valid lines', () {
-        final result = FlatConfig.preprocessLine('  key=value  ', '#');
+        final result = preprocessLine('  key=value  ', '#');
         expect(result, 'key=value');
       });
 
       test('handles empty comment prefix', () {
-        final result = FlatConfig.preprocessLine('key=value', '');
+        final result = preprocessLine('key=value', '');
         expect(result, 'key=value');
       });
 
       test(
         'handles line that starts with comment prefix but is not a comment',
         () {
-          final result = FlatConfig.preprocessLine('key#value', '#');
+          final result = preprocessLine('key#value', '#');
           expect(result, 'key#value');
         },
       );
-    });
-  });
-
-  group('FlatConfig API extras', () {
-    test('const constructor can be instantiated', () {
-      expect(const FlatConfig(), isA<FlatConfig>());
     });
   });
 }

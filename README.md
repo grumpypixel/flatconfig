@@ -48,7 +48,7 @@ import 'package:flatconfig/flatconfig.dart';
 ### Platform Notes
 
 `flatconfig` is fully **Web/WASM-safe** – all core parsing and document features
-(`FlatConfig`, `FlatDocument`, accessors, encoding, etc.) work on every platform.
+(`FlatDocument`, accessors, encoding, etc.) work on every platform.
 
 🖥️ **File & Include APIs (I/O only):**
 `parseFlatFile(...)`, `parseFileWithIncludes(...)`, `File.parseFlat()` etc.
@@ -60,7 +60,7 @@ Use the in-memory API for web and WASM environments:
 
 ```dart
 const raw = 'theme = dark';
-final doc = FlatConfig.parse(raw);
+final doc = FlatDocument.parse(raw);
 print(doc['theme']); // dark
 ```
 
@@ -91,7 +91,7 @@ void main() {
   texture =
   ''';
 
-  final doc = FlatConfig.parse(raw);
+  final doc = FlatDocument.parse(raw);
 
   print(doc['background']);         // → 343028
   print(doc['foreground']);         // → f3d735
@@ -122,7 +122,7 @@ import 'package:flatconfig/flatconfig.dart';
 
 void main() {
   const raw = 'theme = dark';
-  final doc = FlatConfig.parse(raw);
+  final doc = FlatDocument.parse(raw);
   print(doc['theme']); // dark
 }
 ```
@@ -200,10 +200,10 @@ A document built in code from a key the format cannot represent is a bug at the
 call site, not input to be tolerated.
 
 > **Note:**
-> `FlatDocument.fromMap(...)` and `FlatConfig.fromDynamicMap(...)` are **shallow** factories.
-> They convert only one level of key-value pairs and do not traverse nested maps or lists.
+> `FlatDocument.fromMap(...)` is a **shallow** factory. It converts one level of
+> key-value pairs and does not traverse nested maps or lists.
 > For structured data that needs to be flattened into key paths (e.g. `window.width = 5120`),
-> use [`FlatConfig.fromMapData`](#deep-flattening-with-frommapdata).
+> use [`FlatDocument.fromData`](#deep-flattening-with-fromdata).
 
 ## Data Model
 
@@ -233,7 +233,7 @@ class FlatDocument {
 ### Strings
 
 ```dart
-final doc = FlatConfig.parse(
+final doc = FlatDocument.parse(
   raw,
   options: const FlatParseOptions(
     strict: false,                 // throw on invalid lines if true
@@ -359,7 +359,7 @@ Resolvers are tried in the order provided; the first resolver that returns a non
 - On *Windows* (and optionally macOS), include cycle detection uses *case-insensitive* paths.  
 - **Include paths:** Quoted paths (e.g. `config-file = "path/with\\ spaces.conf"`) are supported, and simple escapes for quotes/backslashes are **decoded** for paths.  
 - **Values:** Decoding of escapes inside quoted **values** is controlled by `FlatParseOptions.decodeEscapesInQuoted`.  
-- Web builds are supported for in-memory parsing (`FlatConfig.parse()` and resolver-based includes), but *file includes* require `dart:io` and are not available in Flutter Web.
+- Web builds are supported for in-memory parsing (`FlatDocument.parse()` and resolver-based includes), but *file includes* require `dart:io` and are not available in Flutter Web.
 
 ### In-Memory and Hybrid Includes
 
@@ -436,7 +436,7 @@ Use prefix-based helpers to extract or rewrite subdocuments from the resolved/la
 (unique keys; last value wins):
 
 ```dart
-final doc = FlatConfig.parse('''
+final doc = FlatDocument.parse('''
 window.width = 1200
 window.height = 800
 theme = dark
@@ -583,7 +583,7 @@ Pass the entire document to a context-aware converter — useful for multi-field
 ```dart
 final db = doc.getAsWith('db', (raw, key, d) {
   if (raw == null) return null;
-  final sub = FlatConfig.parse(raw).toMap();
+  final sub = FlatDocument.parse(raw).toMap();
   final host = sub['host'];
   final port = int.tryParse(sub['port'] ?? '');
   return (host != null && port != null) ? '$host:$port' : null;
@@ -725,11 +725,10 @@ final shallow = FlatDocument.fromMap({
   'font-size': '14',
 });
 
-// From a dynamic map (typed values converted to strings)
-final dynamicMap = FlatConfig.fromDynamicMap({
-  'version': 2.0,
-  'enabled': true,
-  'tags': ['alpha', 'beta'],
+// From typed values: stringify them yourself, so you decide the format
+final typed = {'version': 2.0, 'enabled': true};
+final fromTyped = FlatDocument.fromMap({
+  for (final e in typed.entries) e.key: e.value.toString(),
 });
 
 // From a list of entries
@@ -750,13 +749,13 @@ final single = FlatDocument.single('theme', value: 'dark');
 > Each map entry becomes exactly one key in the resulting document.
 > For structured or nested data, use `fromMapData` below.
 
-### Deep Flattening with `fromMapData`
+### Deep Flattening with `fromData`
 
-When you need to flatten nested `Map` / `List` structures into flat key-path pairs, use `FlatConfig.fromMapData`.
+When you need to flatten nested `Map` / `List` structures into flat key-path pairs, use `FlatDocument.fromData`.
 It recursively traverses maps and lists, joining paths with `.` by default.
 
 ```dart
-final doc = FlatConfig.fromMapData({
+final doc = FlatDocument.fromData({
   'theme': 'dark',
   'window': {
     'width': 5120,
@@ -798,7 +797,7 @@ for (final e in doc.entries) {
 Example with advanced options:
 
 ```dart
-final doc = FlatConfig.fromMapData(
+final doc = FlatDocument.fromData(
   {
     'window': {'w': 5120, 'h': 2160},
     'colors': ['red', 'mint,green', 'blue'],
@@ -841,7 +840,7 @@ and wraps any item containing the separator, quotes, or newlines in quotes.
 
 ### Round-Trip Workflow
 
-Together with `FlatConfig.parse` and `FlatDocument.encode`,
+Together with `FlatDocument.parse` and `FlatDocument.encode`,
 `fromMapData` completes a full round-trip pipeline
 between structured data and human-editable config files:
 
@@ -863,8 +862,8 @@ that need to stay both **machine-readable** and **human-editable**.
 You can easily verify round-trip symmetry between parsing and encoding:
 
 ```dart
-final doc = FlatConfig.fromMapData({'a': 1});
-final roundTrip = FlatConfig.parse(doc.encode());
+final doc = FlatDocument.fromData({'a': 1});
+final roundTrip = FlatDocument.parse(doc.encode());
 print(roundTrip.toMap()); // {a: 1}
 ```
 

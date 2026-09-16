@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('FlatDocument.slice', () {
     test('slice_matches_only_prefix', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window.width = 1200
 window.height = 800
 theme = dark
@@ -18,7 +18,7 @@ theme = dark
     });
 
     test('slice_preserves_order', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window.b = 2
 window.a = 1
 window.c = 3
@@ -28,7 +28,7 @@ window.c = 3
     });
 
     test('slice_empty_prefix_clones', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 a = 1
 b = 2
 a = 3
@@ -43,7 +43,7 @@ a = 3
     });
 
     test('slice_missing_prefix_returns_empty', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 a = 1
 b = 2
 ''');
@@ -53,7 +53,7 @@ b = 2
     });
 
     test('slice_does_not_mutate_source', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window.width = 1200
 theme = dark
 ''');
@@ -63,7 +63,7 @@ theme = dark
     });
 
     test('slice_excludes_bare_key_and_similar_prefixes', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window = legacy
 window.width = 800
 windowx.width = 999
@@ -76,7 +76,7 @@ windowx.width = 999
     });
 
     test('slice_latest_view_resolves_duplicates', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 window.width = 800
 window.width = 1024
 window.height = 600

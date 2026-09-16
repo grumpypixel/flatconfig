@@ -45,13 +45,13 @@ void main() {
     });
 
     test('the parser skips such a line in lax mode', () {
-      final doc = FlatConfig.parse('"a b" = v\ngood = 1');
+      final doc = FlatDocument.parse('"a b" = v\ngood = 1');
       expect(doc.keys, ['good']);
     });
 
     test('the parser reports it in strict mode', () {
       expect(
-        () => FlatConfig.parse(
+        () => FlatDocument.parse(
           '"a b" = v',
           options: const FlatParseOptions(strict: true),
         ),
@@ -65,7 +65,7 @@ void main() {
 
     test('validity does not depend on the configured comment prefix', () {
       // Otherwise a file written under one prefix loses entries under another.
-      final doc = FlatConfig.parse(
+      final doc = FlatDocument.parse(
         '#key = zero\nx = 1',
         options: const FlatParseOptions(commentPrefix: ';'),
       );
@@ -73,7 +73,7 @@ void main() {
     });
 
     test('keys are case-sensitive', () {
-      final doc = FlatConfig.parse('Theme = a\ntheme = b');
+      final doc = FlatDocument.parse('Theme = a\ntheme = b');
       expect(doc['Theme'], 'a');
       expect(doc['theme'], 'b');
     });
@@ -83,12 +83,15 @@ void main() {
     test('lax: a second quoted run makes the token literal', () {
       // Closing at the last quote instead would silently yield
       // `one" junk "two`, which no one wrote and no one can detect.
-      expect(FlatConfig.parse('a = "one" junk "two"')['a'], '"one" junk "two"');
+      expect(
+        FlatDocument.parse('a = "one" junk "two"')['a'],
+        '"one" junk "two"',
+      );
     });
 
     test('strict: trailing content after the closer is an error', () {
       expect(
-        () => FlatConfig.parse(
+        () => FlatDocument.parse(
           'a = "one" junk "two"',
           options: const FlatParseOptions(strict: true),
         ),
@@ -97,9 +100,9 @@ void main() {
     });
 
     test('only whitespace may follow the closer', () {
-      expect(FlatConfig.parse('a = "one"   ')['a'], 'one');
+      expect(FlatDocument.parse('a = "one"   ')['a'], 'one');
       expect(
-        () => FlatConfig.parse(
+        () => FlatDocument.parse(
           'a = "one"x',
           options: const FlatParseOptions(strict: true),
         ),
@@ -108,9 +111,9 @@ void main() {
     });
 
     test('an unterminated quote is malformed', () {
-      expect(FlatConfig.parse('a = "open')['a'], '"open');
+      expect(FlatDocument.parse('a = "open')['a'], '"open');
       expect(
-        () => FlatConfig.parse(
+        () => FlatDocument.parse(
           'a = "open',
           options: const FlatParseOptions(strict: true),
         ),
@@ -119,49 +122,49 @@ void main() {
     });
 
     test('an escaped quote does not close the value', () {
-      expect(FlatConfig.parse(r'a = "say \"hi\" now"')['a'], 'say "hi" now');
+      expect(FlatDocument.parse(r'a = "say \"hi\" now"')['a'], 'say "hi" now');
     });
   });
 
   group('SPEC 5.2 — escapes', () {
     test('decoding is on by default', () {
-      expect(FlatConfig.parse(r'a = "q\"q"')['a'], 'q"q');
-      expect(FlatConfig.parse(r'a = "b\\c"')['a'], r'b\c');
+      expect(FlatDocument.parse(r'a = "q\"q"')['a'], 'q"q');
+      expect(FlatDocument.parse(r'a = "b\\c"')['a'], r'b\c');
     });
 
     test('every other backslash stays literal', () {
       // There is no \t escape, so Windows paths survive without doubling.
-      expect(FlatConfig.parse(r'a = "C:\temp\x"')['a'], r'C:\temp\x');
+      expect(FlatDocument.parse(r'a = "C:\temp\x"')['a'], r'C:\temp\x');
     });
 
     test('unquoted values are never escape-processed', () {
-      expect(FlatConfig.parse(r'a = C:\temp\x')['a'], r'C:\temp\x');
+      expect(FlatDocument.parse(r'a = C:\temp\x')['a'], r'C:\temp\x');
     });
 
     test('the inline grammar preserves them too', () {
       // splitRespectingQuotes used to consume every backslash as an escape
       // marker without copying it, so this returned win -> 'C:tempx'.
-      final doc = FlatConfig.parse(r'paths = win=C:\temp\x,unix=/tmp');
+      final doc = FlatDocument.parse(r'paths = win=C:\temp\x,unix=/tmp');
       final paths = doc.getDocument('paths');
       expect(paths['win'], r'C:\temp\x');
       expect(paths['unix'], '/tmp');
     });
 
     test('a regex survives the inline grammar', () {
-      final doc = FlatConfig.parse(r'rules = digits=\d+,word=\w+');
+      final doc = FlatDocument.parse(r'rules = digits=\d+,word=\w+');
       final rules = doc.getDocument('rules');
       expect(rules['digits'], r'\d+');
       expect(rules['word'], r'\w+');
     });
 
     test('a trailing backslash survives', () {
-      final doc = FlatConfig.parse(r'paths = dir=C:\temp\,other=x');
+      final doc = FlatDocument.parse(r'paths = dir=C:\temp\,other=x');
       expect(doc.getDocument('paths')['dir'], r'C:\temp\');
     });
   });
 
   group('SPEC 6 — absent, reset and empty string are three states', () {
-    final doc = FlatConfig.parse('reset =\nempty = ""\nvalue = x');
+    final doc = FlatDocument.parse('reset =\nempty = ""\nvalue = x');
 
     test('parsing keeps them apart', () {
       expect(doc.containsKey('absent'), isFalse);

@@ -47,7 +47,7 @@ hp2 = [::1]:8080
 hp3 = localhost
   ''';
 
-  final doc = FlatConfig.parse(cfg);
+  final doc = FlatDocument.parse(cfg);
 
   print('🔢 Booleans & numbers:');
   print(

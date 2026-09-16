@@ -24,7 +24,7 @@ void main() {
   group('Deep nesting & mixed types', () {
     test('deeply nested maps with mixed scalars', () {
       final now = DateTime.utc(2025, 1, 2, 3, 4, 5);
-      final doc = FlatConfig.fromMapData({
+      final doc = FlatDocument.fromData({
         'a': {
           'b': {
             'c': {
@@ -52,7 +52,7 @@ void main() {
     });
 
     test('list in map in list triggers JSON fallback for inner composites', () {
-      final doc = FlatConfig.fromMapData({
+      final doc = FlatDocument.fromData({
         'pipeline': [
           {
             'name': 'blur',
@@ -73,7 +73,7 @@ void main() {
 
   group('Key/path edge cases', () {
     test('child non-string map key is stringified', () {
-      final doc = FlatConfig.fromMapData({
+      final doc = FlatDocument.fromData({
         'a': {42: 1},
       });
 
@@ -81,7 +81,7 @@ void main() {
     });
 
     test('root non-string map key is stringified', () {
-      final doc = FlatConfig.fromMapData({
+      final doc = FlatDocument.fromData({
         42.toString(): {'x': 1}, // simulate non-string origin
       });
 
@@ -91,7 +91,7 @@ void main() {
     test(
       'child empty key produces path with trailing separator (documented behavior)',
       () {
-        final doc = FlatConfig.fromMapData({
+        final doc = FlatDocument.fromData({
           'parent': {'': 'v'},
         }, options: const FlatMapDataOptions(separator: '.'));
 
@@ -101,7 +101,7 @@ void main() {
     );
 
     test('custom separator with overlapping characters + keyEscaper', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'root:part': {'child::part': 1},
         },
@@ -123,7 +123,7 @@ void main() {
     test(
       'valueEncoder on root Map short-circuits traversal (beats keyEscaper)',
       () {
-        final doc = FlatConfig.fromMapData(
+        final doc = FlatDocument.fromData(
           {
             'r.o.o.t': {'child': 1},
           },
@@ -154,7 +154,7 @@ void main() {
         return item; // no quoting
       }
 
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'list': ['a', 'b'],
         },
@@ -172,7 +172,7 @@ void main() {
 
   group('CSV all-nulls & empty', () {
     test('all nulls with dropNulls=false -> only csvNullToken repeated', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'n': [null, null],
         },
@@ -188,7 +188,7 @@ void main() {
     });
 
     test('empty list is empty string (csv)', () {
-      final doc = FlatConfig.fromMapData({
+      final doc = FlatDocument.fromData({
         'e': <Object?>[],
       }, options: const FlatMapDataOptions(listMode: FlatListMode.csv));
 
@@ -198,13 +198,13 @@ void main() {
 
   group('Root null handling (dropNulls)', () {
     test('dropNulls=false creates explicit reset entry', () {
-      final doc = FlatConfig.fromMapData({'k': null});
+      final doc = FlatDocument.fromData({'k': null});
       expect(doc.allValues('k'), [null]);
       expect(doc['k'], isNull);
     });
 
     test('dropNulls=true omits the key entirely', () {
-      final doc = FlatConfig.fromMapData({
+      final doc = FlatDocument.fromData({
         'k': null,
       }, options: const FlatMapDataOptions(dropNulls: true));
       expect(doc.allValues('k'), isEmpty);
@@ -216,7 +216,7 @@ void main() {
   group('JSON fallback behavior', () {
     test('non-encodable custom class throws JsonUnsupportedObjectError', () {
       expect(
-        () => FlatConfig.fromMapData({'obj': _Nope()}),
+        () => FlatDocument.fromData({'obj': _Nope()}),
         throwsA(isA<JsonUnsupportedObjectError>()),
       );
     });
@@ -225,7 +225,7 @@ void main() {
       'Set falls back to JSON -> also throws by default (non-encodable)',
       () {
         expect(
-          () => FlatConfig.fromMapData({
+          () => FlatDocument.fromData({
             's': {1, 2, 3},
           }),
           throwsA(isA<JsonUnsupportedObjectError>()),
@@ -234,12 +234,12 @@ void main() {
     );
 
     test('custom object with toJson() is JSON-encodable (root)', () {
-      final doc = FlatConfig.fromMapData({'obj': _OkRoot()});
+      final doc = FlatDocument.fromData({'obj': _OkRoot()});
       expect(doc['obj'], '{"v":"x"}');
     });
 
     test('custom object with toJson() in list encodes via JSON', () {
-      final doc = FlatConfig.fromMapData({
+      final doc = FlatDocument.fromData({
         'l': [_OkVal(1), _OkVal(2)],
       }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
       expect(doc.allValues('l'), ['{"n":1}', '{"n":2}']);
@@ -271,7 +271,7 @@ void main() {
     test('a whitespace-only key is rejected', () {
       // The parser trims keys, so '   ' could never be read back (SPEC.md 3).
       expect(
-        () => FlatConfig.fromMapData({'   ': 'x'}),
+        () => FlatDocument.fromData({'   ': 'x'}),
         throwsA(isA<ArgumentError>()),
       );
     });
@@ -283,7 +283,7 @@ void main() {
       for (var i = 0; i < 200; i++) {
         map['k$i'] = [i, i + 1];
       }
-      final doc = FlatConfig.fromMapData(map);
+      final doc = FlatDocument.fromData(map);
 
       // Spot check a few positions and values
       expect(doc.allValues('k0'), ['0', '1']);
@@ -300,7 +300,7 @@ void main() {
 
   group('CSV raw join without encoder', () {
     test('no quoting is applied when csvItemEncoder is null', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'csv': ['a,b', 'x'],
         },
@@ -315,7 +315,7 @@ void main() {
 
   group('KeyEscaper with double-colon separator at root', () {
     test('root and child containing :: are both escaped', () {
-      final doc = FlatConfig.fromMapData(
+      final doc = FlatDocument.fromData(
         {
           'root::part': {'child::part': 1},
         },

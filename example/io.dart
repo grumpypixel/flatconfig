@@ -85,7 +85,7 @@ servers = host=a,port=8080 | host=b,port=9090
 
   // 6) Append a new document and write back
   final merged = collapsed.concat(
-    FlatConfig.fromMap({
+    FlatDocument.fromMap({
       'generated.by': 'example/io.dart',
       'generated.when': DateTime.now().toUtc().toIso8601String(),
     }),

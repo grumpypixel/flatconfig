@@ -1,7 +1,7 @@
 // Main barrel file for the flatconfig package.
 //
 // This entrypoint is Web- and WASM-safe:
-// - Pure parsing APIs (FlatConfig, FlatDocument, etc.) are always available.
+// - Pure parsing APIs (FlatDocument, FlatEntry, etc.) are always available.
 // - File and include APIs are conditionally exported only on dart:io platforms.
 export 'src/document.dart' show FlatDocument, FlatEntry;
 export 'src/document_accessors.dart' show FlatDocumentAccessors;
@@ -58,4 +58,3 @@ export 'src/options.dart'
         OnErrorHandler;
 // Resolver-based include support (web-safe core + conditional IO resolver)
 export 'src/parse_with_resolver.dart' show FlatConfigResolverIncludes;
-export 'src/parser.dart' show FlatConfig;

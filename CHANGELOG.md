@@ -12,10 +12,35 @@ Added:
   tracks where the implementation still deviates.
 - **`InvalidKeyException`** — raised in strict mode for a key that breaks
   `SPEC.md` §3.
-- **`FlatConfig.fromEnvironment()`** — build a document from environment
+- **`FlatDocument.fromEnvironment()`** — build a document from environment
   variables.
 
 Fixed:
+
+- **`FlatConfig` is deleted; the entry points are statics on `FlatDocument`.**
+  It was an instantiable `const` class holding no state, used only as a static
+  namespace — and it was not even a complete one, since include parsing hung off
+  separate static-extension namespaces. Dart's convention is a static factory on
+  the type being produced (`Uri.parse`, `int.parse`), so there is now one type
+  name to learn instead of three:
+
+  | was | is |
+  |---|---|
+  | `FlatConfig.parse` | `FlatDocument.parse` |
+  | `FlatConfig.parseLines` | `FlatDocument.parseLines` |
+  | `FlatConfig.parseFromByteStream` | `FlatDocument.parseBytes` |
+  | `FlatConfig.parseEntries` | `FlatDocument.streamEntries` |
+  | `FlatConfig.fromMap` | `FlatDocument.fromMap` (the two are now one) |
+  | `FlatConfig.fromMapData` | `FlatDocument.fromData` |
+  | `FlatConfig.fromEnvironment` | `FlatDocument.fromEnvironment` |
+
+  `parseFromStringStream` and `parseEntriesFromStringStream` are internal: the
+  byte-stream entry points cover the public need, and a caller holding lines
+  already has `parseLines`. `parseLine` and `preprocessLine` were public only for
+  tests and now live behind a `src/` import.
+  `fromDynamicMap` is deleted. It guessed at `toString()` for arbitrary objects,
+  which is a formatting decision the caller should be making; map to `String?`
+  first and pass the result to `fromMap`.
 
 - **Quoted values close at the first unescaped quote**, not the last.
   `a = "one" junk "two"` was accepted even in strict mode and yielded
@@ -98,7 +123,7 @@ Changed (breaking):
   `encode()` already terminates the last line.
 - `rfc4180CsvItemEncoder` is only safe for newline-free items. RFC-4180 permits
   a newline inside a quoted field; this format cannot store one.
-- `FlatConfig.fromEnvironment` throws on a variable whose value contains a
+- `FlatDocument.fromEnvironment` throws on a variable whose value contains a
   newline, rather than storing something unreadable.
 
 ## 0.5.0

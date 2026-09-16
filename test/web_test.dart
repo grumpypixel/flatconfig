@@ -11,7 +11,7 @@ void main() {
   });
 
   test('core parsing works on web', () {
-    final doc = FlatConfig.parse('a = 1\n');
+    final doc = FlatDocument.parse('a = 1\n');
     expect(doc.getInt('a'), 1);
   });
 }

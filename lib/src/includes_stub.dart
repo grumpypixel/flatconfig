@@ -1,6 +1,5 @@
 import 'document.dart';
 import 'options.dart';
-import 'parser.dart';
 
 Never _unsupported(String fn) =>
     throw UnsupportedError('$fn is not supported on this platform (web/wasm).');
@@ -8,7 +7,7 @@ Never _unsupported(String fn) =>
 /// Mirror of the `FlatConfigIncludes` extension from includes.dart,
 /// but without file access – all methods throw UnsupportedError.
 /// (Signatures must match the IO counterpart exactly.)
-extension FlatConfigIncludes on FlatConfig {
+extension FlatConfigIncludes on FlatDocument {
   /// Parses a configuration file with include support.
   ///
   /// This web/wasm stub mirrors the IO API but always throws

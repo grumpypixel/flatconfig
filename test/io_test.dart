@@ -258,7 +258,7 @@ key2 = value2
         await file.writeFlat(doc);
         final content = file.readAsStringSync().trim();
         expect(content, 'k = "\tfoo\t"');
-        final reparsed = FlatConfig.parse(content);
+        final reparsed = FlatDocument.parse(content);
         expect(reparsed['k'], '\tfoo\t');
       },
     );

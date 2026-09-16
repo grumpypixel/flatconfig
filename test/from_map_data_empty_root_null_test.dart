@@ -6,7 +6,7 @@ void main() {
     // An empty key has no wire form (SPEC.md 3), and there is no lenient mode
     // left that would drop it quietly instead.
     expect(
-      () => FlatConfig.fromMapData({'': null}),
+      () => FlatDocument.fromData({'': null}),
       throwsA(isA<ArgumentError>()),
     );
   });

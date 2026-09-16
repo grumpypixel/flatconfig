@@ -1746,7 +1746,7 @@ void main() {
   group('non-finite numbers are not numbers', () {
     // double.tryParse accepts these. NaN defeats a range guard silently:
     // every comparison with it is false, so min/max never apply.
-    final doc = FlatConfig.parse(
+    final doc = FlatDocument.parse(
       'nan = NaN\ninf = Infinity\nneg = -Infinity\nok = 0.5',
     );
 

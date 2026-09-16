@@ -48,11 +48,11 @@ const _values = <String?>[
   '   ',
 ];
 
-FlatDocument _rebuild(FlatDocument d) => FlatConfig.parse(d.encode());
+FlatDocument _rebuild(FlatDocument d) => FlatDocument.parse(d.encode());
 
 void _expectRoundTrip(FlatDocument original, {String? reason}) {
   final encoded = original.encode();
-  final actual = FlatConfig.parse(encoded);
+  final actual = FlatDocument.parse(encoded);
   expect(
     actual.entries,
     original.entries,
@@ -125,7 +125,7 @@ void main() {
         ];
         final original = FlatDocument(entries);
         final encoded = original.encode();
-        final actual = FlatConfig.parse(encoded);
+        final actual = FlatDocument.parse(encoded);
         if (actual.entries.toString() != original.entries.toString()) {
           failures.add(
             '  ${_visible(encoded)}\n'

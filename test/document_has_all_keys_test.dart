@@ -79,7 +79,7 @@ void main() {
     });
 
     test('duplicates: last write wins; last is null', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 k = v1
 k =
 ''');
@@ -98,7 +98,7 @@ k =
     });
 
     test('case-insensitive with null handling', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 HOST =
 ''');
 
@@ -113,7 +113,7 @@ HOST =
     });
 
     test('mixed: some present, some null, some missing', () {
-      final doc = FlatConfig.parse('''
+      final doc = FlatDocument.parse('''
 a = 1
 b =
 ''');
@@ -131,7 +131,7 @@ b =
     });
 
     test('keys list may contain duplicates (should still succeed)', () {
-      final doc = FlatConfig.parse('a = 1');
+      final doc = FlatDocument.parse('a = 1');
       expect(doc.hasAllKeys(['a', 'a', 'a']), isTrue);
     });
 
@@ -182,10 +182,10 @@ b =
     test(
       'whitespace-only value is present after parsing quoted vs. unquoted',
       () {
-        final quoted = FlatConfig.parse('k = "   "'); // preserved whitespace
+        final quoted = FlatDocument.parse('k = "   "'); // preserved whitespace
         expect(quoted.hasAllKeys(['k']), isTrue);
 
-        final unquoted = FlatConfig.parse('k =   '); // becomes null reset
+        final unquoted = FlatDocument.parse('k =   '); // becomes null reset
         expect(unquoted.hasAllKeys(['k']), isFalse);
         expect(unquoted.hasAllKeys(['k'], ignoreNulls: false), isTrue);
       },

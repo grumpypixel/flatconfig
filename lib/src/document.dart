@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:meta/meta.dart';
 
+import 'from_map_data.dart';
 import 'lookup.dart';
+import 'options.dart';
+import 'parser.dart';
 import 'parser_utils.dart';
 import 'validation.dart';
 
@@ -110,7 +115,7 @@ class FlatDocument {
   /// the corresponding configuration values. The map is copied defensively
   /// and the order of iteration determines the order of entries.
   ///
-  /// Throws a [FormatException] if any key breaks SPEC.md 3. Leniency belongs
+  /// Throws an [ArgumentError] if any key breaks SPEC.md 3. Leniency belongs
   /// to the parser, where hand-edited files arrive; a document built in code
   /// from a key the format cannot represent is a bug at the call site.
   factory FlatDocument.fromMap(Map<String, String?> map) =>
@@ -120,12 +125,70 @@ class FlatDocument {
   ///
   /// The provided entries are copied defensively and preserve their order.
   ///
-  /// Throws a [FormatException] if any key breaks SPEC.md 3.
+  /// Throws an [ArgumentError] if any key breaks SPEC.md 3.
   factory FlatDocument.fromEntries(Iterable<FlatEntry> entries) =>
       FlatDocument(entries.toList());
 
   // Private const constructor used internally
   const FlatDocument._(this.entries);
+
+  // ── from text ──────────────────────────────────────────────────────────
+
+  /// Parses a configuration string.
+  ///
+  /// ```dart
+  /// final doc = FlatDocument.parse('background = 343028');
+  /// print(doc['background']); // 343028
+  /// ```
+  static FlatDocument parse(
+    String source, {
+    FlatParseOptions options = const FlatParseOptions(),
+    LineSplitter lineSplitter = const LineSplitter(),
+  }) => parseSource(source, options: options, lineSplitter: lineSplitter);
+
+  /// Parses a configuration that has already been split into lines.
+  static FlatDocument parseLines(
+    List<String> lines, {
+    FlatParseOptions options = const FlatParseOptions(),
+  }) => parseSourceLines(lines, options: options);
+
+  /// Parses a configuration from a byte stream, decoding it first.
+  static Future<FlatDocument> parseBytes(
+    Stream<List<int>> bytes, {
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+  }) => parseByteStream(bytes, options: options, readOptions: readOptions);
+
+  /// Lazily yields entries from a byte stream as they are read.
+  ///
+  /// Use this when the document is too large to hold at once; otherwise
+  /// [parseBytes] is the simpler read.
+  static Stream<FlatEntry> streamEntries(
+    Stream<List<int>> bytes, {
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+  }) =>
+      streamEntriesFromBytes(bytes, options: options, readOptions: readOptions);
+
+  // ── from data ──────────────────────────────────────────────────────────
+
+  /// Builds a document from environment-like maps.
+  ///
+  /// This is pure: it reads no ambient state. Pass `Platform.environment`
+  /// yourself if that is what you mean.
+  static FlatDocument fromEnvironment(
+    Map<String, String> env, {
+    FlatEnvOptions options = const FlatEnvOptions(),
+  }) => documentFromEnvironment(env, options: options);
+
+  /// Builds a document by flattening nested map and list data into key paths.
+  ///
+  /// Nested maps become `a.b.c = value`; lists become either repeated entries
+  /// or one CSV value, depending on [options].
+  static FlatDocument fromData(
+    Map<String, Object?> data, {
+    FlatMapDataOptions options = const FlatMapDataOptions(),
+  }) => flatDocumentFromMapData(data, options: options);
 
   /// The list of configuration entries in this document.
   ///

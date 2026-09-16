@@ -13,7 +13,7 @@ void main(List<String> args) async {
 
   // Warmup: JIT to temperature
   for (var i = 0; i < 5; i++) {
-    final d = FlatConfig.parse(sample);
+    final d = FlatDocument.parse(sample);
     d.encode();
     d.whereKey('k0').toList();
     d.whereKeys(['k0', 'k1', 'k2']).toList();
@@ -27,17 +27,17 @@ void main(List<String> args) async {
   }
 
   // Test-fixture data
-  final doc = FlatConfig.parse(sample);
+  final doc = FlatDocument.parse(sample);
   final bytes = file.readAsBytesSync();
 
   // Small helper documents for getDocument/getListOfDocuments/getHexColor
-  final docPairs = FlatConfig.fromMap({
+  final docPairs = FlatDocument.fromMap({
     'mini': r'a=1, b = "x = y", c=, d = " spaced "',
   });
-  final docListOfDocs = FlatConfig.fromMap({
+  final docListOfDocs = FlatDocument.fromMap({
     'servers': r'host=a,port=1 | host=b,port=2 | note="x = y"',
   });
-  final docColors = FlatConfig.fromMap({
+  final docColors = FlatDocument.fromMap({
     'cRgb': '#123',
     'cRgba': '#1234',
     'cRrGgBb': '#112233',
@@ -67,7 +67,7 @@ void main(List<String> args) async {
       iterations: iterations,
       repeats: repeats,
       body: () {
-        final d = FlatConfig.parse(sample);
+        final d = FlatDocument.parse(sample);
         _sink ^= d.length;
       },
     ).minus(baseline),
@@ -278,7 +278,7 @@ void main(List<String> args) async {
       iterations: iterations,
       repeats: repeats,
       body: () async {
-        final d = await FlatConfig.parseFromByteStream(Stream.value(bytes));
+        final d = await FlatDocument.parseBytes(Stream.value(bytes));
         _sink ^= d.length;
       },
     ),
@@ -291,7 +291,7 @@ void main(List<String> args) async {
       repeats: repeats,
       body: () async {
         var c = 0;
-        await for (final e in FlatConfig.parseEntries(file.openRead())) {
+        await for (final e in FlatDocument.streamEntries(file.openRead())) {
           c ^= (e.value?.length ?? 0);
         }
         _sink ^= c;
@@ -368,7 +368,7 @@ feature-b = off
       iterations: iterations,
       repeats: repeats,
       body: () {
-        final d = FlatConfig.parse(
+        final d = FlatDocument.parse(
           strictSample,
           options: const FlatParseOptions(strict: false),
         );
@@ -384,7 +384,7 @@ feature-b = off
       repeats: repeats,
       body: () {
         try {
-          final d = FlatConfig.parse(
+          final d = FlatDocument.parse(
             strictSample,
             options: const FlatParseOptions(strict: true),
           );
