@@ -8,6 +8,14 @@ is still outstanding.
 
 Added:
 
+- **`doc/migration.md`** — the complete 0.5.x table of what to type instead,
+  derived from the public API delta against the `v0.5.0` tag rather than from
+  memory. Its last section lists the changes that compile and behave
+  differently, which is the half the compiler cannot point at.
+- **`FlatDocument.parseLineStream`** — the asynchronous counterpart to
+  `parseLines`, for a source that hands out lines rather than bytes. The split
+  into four libraries left it unexported while the synchronous `parseLines`
+  stayed public, which was a hole rather than a decision.
 - **`FlatDocument.withValue`, `without` and `withEntry`** — editing a document
   no longer means rebuilding its entry list by hand. All three return a new
   document and leave the original alone. `withValue` leaves exactly one entry
@@ -62,9 +70,10 @@ Changed:
   `writeFlatSync`, `FlatDocument.saveToFile` and `saveToFileSync` are gone;
   `File(path).parseFlat()`, `.parseFlatSync()`, `.parseWithIncludes()`,
   `.parseWithIncludesSync()`, `.writeFlat(doc)` and `.writeFlatSync(doc)` cover
-  all of it. Three spellings of one workflow meant three places for a fix to
-  miss: `File.parseWithIncludesSync` was the one that never grew an
-  `includeOptions` parameter.
+  all of it. Three spellings of one workflow meant three places for a change to
+  miss one: `parseFileWithIncludes` and `File.parseWithIncludes` both took a
+  `cache:` argument, and `File.parseWithIncludesSync`, which lived in a
+  different file, never grew one.
 - **`FlatConfigResolverIncludes.parseStringWithIncludes` is now the top-level
   `parseWithIncludes`,** and `parseStringWithIncludesSync` is
   `parseWithIncludesSync`. They were static members on an extension, which is a
@@ -107,6 +116,10 @@ Changed:
 
 Fixed:
 
+- **The dartdoc examples compile again.** Twenty-one of them still called
+  `FlatConfig`, deleted earlier in this cycle, so the documentation for the
+  parser, the options and the document itself demonstrated an API that no
+  longer exists.
 - **`config-file = "` no longer crashes.** A lone quote satisfies both "starts
   with a quote" and "ends with a quote", so the unquoting asked for
   `substring(1, 0)` and a hand-edited file reached the caller as a
@@ -221,15 +234,14 @@ Fixed:
   | `FlatConfig.parse` | `FlatDocument.parse` |
   | `FlatConfig.parseLines` | `FlatDocument.parseLines` |
   | `FlatConfig.parseFromByteStream` | `FlatDocument.parseBytes` |
+  | `FlatConfig.parseFromStringStream` | `FlatDocument.parseLineStream` |
   | `FlatConfig.parseEntries` | `FlatDocument.streamEntries` |
   | `FlatConfig.fromMap` | `FlatDocument.fromMap` (the two are now one) |
   | `FlatConfig.fromMapData` | `FlatDocument.fromData` |
   | `FlatConfig.fromEnvironment` | `FlatDocument.fromEnvironment` |
 
-  `parseFromStringStream` and `parseEntriesFromStringStream` are internal: the
-  byte-stream entry points cover the public need, and a caller holding lines
-  already has `parseLines`. `parseLine` and `preprocessLine` were public only for
-  tests and now live behind a `src/` import.
+  `parseEntriesFromStringStream`, `parseLine` and `preprocessLine` were public
+  only for tests and now live behind a `src/` import.
   `fromDynamicMap` is deleted. It guessed at `toString()` for arbitrary objects,
   which is a formatting decision the caller should be making; map to `String?`
   first and pass the result to `fromMap`.

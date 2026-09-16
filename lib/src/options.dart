@@ -402,7 +402,7 @@ enum MultilineValuePolicy {
 /// Options for loading environment variables into a FlatDocument.
 ///
 /// These options control how environment-like maps are processed when using
-/// [FlatConfig.fromEnvironment], including prefix filtering, interpolation,
+/// [FlatDocument.fromEnvironment], including prefix filtering, interpolation,
 /// and precedence handling. Pure in-memory; no dart:io required.
 class FlatEnvOptions {
   /// Creates a new [FlatEnvOptions] with the specified configuration.
@@ -495,7 +495,7 @@ class FlatEnvOptions {
   /// Example:
   /// ```dart
   /// final env = {'APP_HOST': 'localhost', 'APP_PORT': '8080', 'OTHER': 'value'};
-  /// final doc = FlatConfig.fromEnvironment(
+  /// final doc = FlatDocument.fromEnvironment(
   ///   env,
   ///   options: FlatEnvOptions(prefix: 'APP_'),
   /// );
@@ -511,7 +511,7 @@ class FlatEnvOptions {
   /// Example with case-insensitive matching:
   /// ```dart
   /// final env = {'app_host': 'localhost', 'APP_PORT': '8080'};
-  /// final doc = FlatConfig.fromEnvironment(
+  /// final doc = FlatDocument.fromEnvironment(
   ///   env,
   ///   options: FlatEnvOptions(prefix: 'APP_', caseSensitive: false),
   /// );
@@ -539,7 +539,7 @@ class FlatEnvOptions {
   ///   'PORT': '8080',
   ///   'URL': 'http://${HOST}:${PORT}',
   /// };
-  /// final doc = FlatConfig.fromEnvironment(
+  /// final doc = FlatDocument.fromEnvironment(
   ///   env,
   ///   options: FlatEnvOptions(interpolate: true),
   /// );
@@ -565,13 +565,13 @@ class FlatEnvOptions {
   /// Example:
   /// ```dart
   /// final env = {'KEY1': 'value', 'KEY2': ''};
-  /// final doc1 = FlatConfig.fromEnvironment(
+  /// final doc1 = FlatDocument.fromEnvironment(
   ///   env,
   ///   options: FlatEnvOptions(keepEmptyValues: true),
   /// );
   /// print(doc1.toMap()); // {KEY1: value, KEY2: }
   ///
-  /// final doc2 = FlatConfig.fromEnvironment(
+  /// final doc2 = FlatDocument.fromEnvironment(
   ///   env,
   ///   options: FlatEnvOptions(keepEmptyValues: false),
   /// );
@@ -635,7 +635,7 @@ class FlatEnvOptions {
   /// Example:
   /// ```dart
   /// final env = {'PORT': '3000'};
-  /// final doc = FlatConfig.fromEnvironment(
+  /// final doc = FlatDocument.fromEnvironment(
   ///   env,
   ///   options: FlatEnvOptions(
   ///     defaults: {'HOST': 'localhost', 'PORT': '8080'},
@@ -653,7 +653,7 @@ class FlatEnvOptions {
   /// Example:
   /// ```dart
   /// final env = {'PORT': '3000'};
-  /// final doc = FlatConfig.fromEnvironment(
+  /// final doc = FlatDocument.fromEnvironment(
   ///   env,
   ///   options: FlatEnvOptions(
   ///     merge: {'PORT': '9000'},

@@ -40,7 +40,7 @@ import 'validation.dart';
 /// debug = true
 /// ''';
 ///
-/// final doc = FlatConfig.parse(config);
+/// final doc = FlatDocument.parse(config);
 /// print(doc['background']); // 343028
 /// print(doc['title']); // My Application
 /// ```
@@ -72,7 +72,7 @@ FlatDocument parseSource(
 ///   '# This is a comment',
 /// ];
 ///
-/// final doc = FlatConfig.parseLines(lines);
+/// final doc = FlatDocument.parseLines(lines);
 /// ```
 FlatDocument parseSourceLines(
   List<String> lines, {
@@ -104,7 +104,7 @@ FlatDocument parseSourceLines(
 /// Example:
 /// ```dart
 /// final file = File('config.flat');
-/// final doc = await FlatConfig.parseFromByteStream(file.openRead());
+/// final doc = await FlatDocument.parseBytes(file.openRead());
 /// ```
 Future<FlatDocument> parseByteStream(
   Stream<List<int>> stream, {
@@ -153,7 +153,7 @@ Future<FlatDocument> parseStringStream(
 ///
 /// Example:
 /// ```dart
-/// await for (final entry in FlatConfig.parseEntries(file.openRead())) {
+/// await for (final entry in FlatDocument.streamEntries(file.openRead())) {
 ///   print('${entry.key} = ${entry.value}');
 /// }
 /// ```
@@ -217,7 +217,7 @@ Stream<FlatEntry> streamEntriesFromStrings(
 /// Example - Basic usage:
 /// ```dart
 /// final env = {'HOST': 'localhost', 'PORT': '8080'};
-/// final doc = FlatConfig.fromEnvironment(env);
+/// final doc = FlatDocument.fromEnvironment(env);
 /// print(doc['HOST']); // localhost
 /// ```
 ///
@@ -248,7 +248,7 @@ Stream<FlatEntry> streamEntriesFromStrings(
 ///   'PORT': '8080',
 ///   'URL': 'https://${HOST}:${PORT}',
 /// };
-/// final doc = FlatConfig.fromEnvironment(
+/// final doc = FlatDocument.fromEnvironment(
 ///   env,
 ///   options: FlatEnvOptions(interpolate: true),
 /// );
@@ -258,7 +258,7 @@ Stream<FlatEntry> streamEntriesFromStrings(
 /// Example - With precedence:
 /// ```dart
 /// final env = {'PORT': '3000'};
-/// final doc = FlatConfig.fromEnvironment(
+/// final doc = FlatDocument.fromEnvironment(
 ///   env,
 ///   options: FlatEnvOptions(
 ///     defaults: {'HOST': 'localhost', 'PORT': '8080'},

@@ -154,7 +154,7 @@ typedef CsvItemEncoder = String Function(String item, String keyPath);
 /// Escaper for path key segments before concatenation (applied to root and child segments).
 typedef KeyEscaper = String Function(String rawKey);
 
-/// Public top-level entrypoint used by FlatConfig.fromMapData.
+/// Public top-level entrypoint used by FlatDocument.fromData.
 FlatDocument flatDocumentFromMapData(
   Map<String, Object?> data, {
   FlatDataOptions options = const FlatDataOptions(),

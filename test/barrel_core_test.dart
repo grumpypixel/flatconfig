@@ -2,6 +2,8 @@
 /// public signatures but is not exported fails here rather than downstream.
 library barrel_core_test;
 
+import 'dart:convert';
+
 import 'package:flatconfig/flatconfig.dart';
 import 'package:test/test.dart';
 
@@ -52,6 +54,32 @@ void main() {
       returnsNormally,
     );
     expect(() => FlatEntry('a=b', 'v'), throwsA(isA<ArgumentError>()));
+  });
+
+  test('every way into a document is reachable from the core barrel', () async {
+    // A source is text, lines, lines over time, or bytes. Each shape needs its
+    // own entry point, and the asynchronous line one went unexported once
+    // already while its synchronous twin stayed public.
+    const source = 'a = 1\nb = 2\n';
+    const lines = ['a = 1', 'b = 2'];
+    final expected = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
+
+    expect(FlatDocument.parse(source), expected);
+    expect(FlatDocument.parseLines(lines), expected);
+    expect(
+      await FlatDocument.parseLineStream(Stream.fromIterable(lines)),
+      expected,
+    );
+    expect(
+      await FlatDocument.parseBytes(Stream.value(utf8.encode(source))),
+      expected,
+    );
+    expect(
+      await FlatDocument.streamEntries(
+        Stream.value(utf8.encode(source)),
+      ).toList(),
+      expected.entries,
+    );
   });
 
   test('the parse exceptions are reachable from the core barrel', () {

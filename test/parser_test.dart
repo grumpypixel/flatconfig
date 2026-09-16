@@ -434,7 +434,10 @@ mode = c
         throwsArgumentError,
       );
       expect(
-        () => parseStringStream(Stream.value('k = v'), options: options),
+        () => FlatDocument.parseLineStream(
+          Stream.value('k = v'),
+          options: options,
+        ),
         throwsArgumentError,
       );
       expect(
@@ -962,7 +965,7 @@ shader = vignette=soft
         ]);
 
         var missingCount = 0;
-        final doc = await parseStringStream(
+        final doc = await FlatDocument.parseLineStream(
           lines,
           options: FlatParseOptions(
             onIssue: (i) {

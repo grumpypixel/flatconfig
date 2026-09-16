@@ -118,7 +118,7 @@ class FlatEntry {
 /// font-size = 14
 /// ''';
 ///
-/// final doc = FlatConfig.parse(config);
+/// final doc = FlatDocument.parse(config);
 /// print(doc['background']); // ffaa00 (last value)
 /// print(doc.allValues('background')); // [343028, ffaa00] (all values)
 /// ```
@@ -177,6 +177,16 @@ class FlatDocument {
     List<String> lines, {
     FlatParseOptions options = const FlatParseOptions(),
   }) => parseSourceLines(lines, options: options);
+
+  /// Parses a configuration whose lines arrive over time.
+  ///
+  /// The asynchronous counterpart to [parseLines], for a source that hands out
+  /// lines rather than bytes — stdin, or a socket behind a [LineSplitter].
+  /// Bytes are the commoner case and [parseBytes] decodes and splits them.
+  static Future<FlatDocument> parseLineStream(
+    Stream<String> lines, {
+    FlatParseOptions options = const FlatParseOptions(),
+  }) => parseStringStream(lines, options: options);
 
   /// Parses a configuration from a byte stream, decoding it first.
   static Future<FlatDocument> parseBytes(
@@ -300,7 +310,7 @@ class FlatDocument {
   /// background =
   /// ''';
   ///
-  /// final doc = FlatConfig.parse(config);
+  /// final doc = FlatDocument.parse(config);
   /// print(doc.allValues('background')); // [343028, ffaa00, null]
   /// ```
   List<String?> allValues(String key) {
@@ -733,7 +743,7 @@ class FlatDocument {
   /// title = My App
   /// ''';
   ///
-  /// final doc = FlatConfig.parse(config);
+  /// final doc = FlatDocument.parse(config);
   /// final collapsed = doc.collapse();
   /// print(collapsed['background']); // ffaa00
   /// ```
@@ -832,7 +842,7 @@ class FlatDocument {
   ///
   /// Example:
   /// ```dart
-  /// final doc = FlatConfig.fromMap({'background': '343028', 'title': 'My App'});
+  /// final doc = FlatDocument.fromMap({'background': '343028', 'title': 'My App'});
   /// final text = doc.encode();
   /// print(text);
   /// // background = 343028
@@ -893,7 +903,7 @@ class FlatDocument {
   ///
   /// Example:
   /// ```dart
-  /// final doc = FlatConfig.fromMap({'background': '343028'});
+  /// final doc = FlatDocument.fromMap({'background': '343028'});
   /// final bytes = doc.encodeToBytesWithWriteOptions();
   /// await File('config.flat').writeAsBytes(bytes);
   /// ```

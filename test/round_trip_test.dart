@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flatconfig/flatconfig.dart';
-import 'package:flatconfig/src/parser.dart';
 import 'package:test/test.dart';
 
 /// Round-trip property: for every document a user can legally build,
@@ -179,7 +178,7 @@ quoted = "say "hi""
         writeOptions: const FlatStreamWriteOptions(lineTerminator: '\r\n'),
       );
 
-      expect(await parseByteStream(Stream.value(bytes)), everyValue);
+      expect(await FlatDocument.parseBytes(Stream.value(bytes)), everyValue);
     });
   });
 

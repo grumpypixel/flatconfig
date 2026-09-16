@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flatconfig/flatconfig.dart';
-import 'package:flatconfig/src/parser.dart';
 import 'package:test/test.dart';
 
 /// Reading a document that arrives in pieces.
@@ -41,19 +40,22 @@ void main() {
     test('the whole thing at once', () async {
       final bytes = utf8.encode(source);
 
-      expect(await parseByteStream(Stream.value(bytes)), expected);
+      expect(await FlatDocument.parseBytes(Stream.value(bytes)), expected);
     });
 
     for (final size in const [1, 2, 3, 5, 7, 16]) {
       test('cut into $size-byte chunks', () async {
         final bytes = utf8.encode(source);
 
-        expect(await parseByteStream(_chunked(bytes, size)), expected);
+        expect(await FlatDocument.parseBytes(_chunked(bytes, size)), expected);
       });
     }
 
     test('an empty stream is an empty document', () async {
-      expect(await parseByteStream(const Stream.empty()), FlatDocument.empty());
+      expect(
+        await FlatDocument.parseBytes(const Stream.empty()),
+        FlatDocument.empty(),
+      );
     });
 
     test('empty chunks in between change nothing', () async {
@@ -64,20 +66,20 @@ void main() {
         const <int>[],
       ]);
 
-      expect(await parseByteStream(stream), expected);
+      expect(await FlatDocument.parseBytes(stream), expected);
     });
   });
 
   group('a BOM is stripped once, and only at the front', () {
     test('a BOM alone yields an empty document', () async {
       expect(
-        await parseByteStream(Stream.value(utf8.encode('\uFEFF'))),
+        await FlatDocument.parseBytes(Stream.value(utf8.encode('\uFEFF'))),
         FlatDocument.empty(),
       );
     });
 
     test('a second BOM is part of the value', () async {
-      final doc = await parseByteStream(
+      final doc = await FlatDocument.parseBytes(
         Stream.value(utf8.encode('\uFEFFa = \uFEFFx\n')),
       );
 
@@ -109,7 +111,7 @@ void main() {
 
     test('lax reports the issues and keeps going', () async {
       final issues = <FlatIssue>[];
-      final doc = await parseByteStream(
+      final doc = await FlatDocument.parseBytes(
         Stream.value(utf8.encode(broken)),
         options: FlatParseOptions(onIssue: issues.add),
       );
@@ -124,7 +126,7 @@ void main() {
 
     test('strict throws on the first one', () {
       expect(
-        () => parseByteStream(
+        () => FlatDocument.parseBytes(
           Stream.value(utf8.encode(broken)),
           options: const FlatParseOptions(strict: true),
         ),
@@ -133,10 +135,10 @@ void main() {
     });
 
     test('a string stream agrees with a byte stream', () async {
-      final fromBytes = await parseByteStream(
+      final fromBytes = await FlatDocument.parseBytes(
         Stream.value(utf8.encode(broken)),
       );
-      final fromStrings = await parseStringStream(
+      final fromStrings = await FlatDocument.parseLineStream(
         Stream.fromIterable(const LineSplitter().convert(broken)),
       );
 
@@ -145,7 +147,7 @@ void main() {
 
     test('the reported line number counts lines, not chunks', () async {
       final issues = <FlatIssue>[];
-      await parseByteStream(
+      await FlatDocument.parseBytes(
         _chunked(utf8.encode(broken), 3),
         options: FlatParseOptions(onIssue: issues.add),
       );

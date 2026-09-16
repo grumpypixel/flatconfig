@@ -406,8 +406,8 @@ two orthogonal operations that were already there:
 - `collapse()` — one entry per key
 
 - [x] Delete both `merge` methods and the `override:` boolean.
-- [ ] Document the `concat` + `collapse` idiom in the migration guide.
-      (Phase 4; `concat`'s dartdoc carries it for now.)
+- [x] Document the `concat` + `collapse` idiom in the migration guide.
+      `doc/migration.md` §5, with the growing-file failure mode spelled out.
 
 ### 2.5 Model lookup explicitly
 
@@ -619,8 +619,10 @@ abstract interface class SyncIncludeResolver {
       directive was, which a flattened list cannot express. An optional include
       that resolved to nothing contributes an empty group, so the groups stay
       aligned with the directives.
-- [ ] Expose include parsing from `flatconfig_includes.dart`, not from a static
-      extension namespace. Deferred to 2.13, which creates that library.
+- [x] Expose include parsing from `flatconfig_includes.dart`, not from a static
+      extension namespace. Deferred to 2.13, which creates that library, and
+      done there: `parseWithIncludes` and `parseWithIncludesSync` are top-level
+      functions of that barrel.
 - [x] Make `IncludeUnit` immutable with value equality.
 - [x] `ghostty_semantics.dart` is now `include_assembly.dart`: it holds two
       policies, so the old name described only one of them.
@@ -811,8 +813,10 @@ Currently shipped to pub.dev: `PACKAGE_REVIEW.md` (39 KB), `improvements.md`
 (36 KB), `tool/tmp_bench.conf` (171 KB), the `justfile`, and an empty
 `coverage-review/` directory. There is no `.pubignore`.
 
-- [ ] Add `.pubignore`. Delete `PACKAGE_REVIEW.md`, `improvements.md`,
+- [x] Add `.pubignore`. Delete `PACKAGE_REVIEW.md`, `improvements.md`,
       `coverage-review/`. Remove the unused `mocktail` dev dependency.
+      Done alongside the 0.5.0 release work. What the `.pubignore` does *not*
+      exclude yet is `test/`, which is why the archive is 192 KB.
 
 ### 4.2 Fix the README contradictions
 
@@ -831,22 +835,45 @@ Currently shipped to pub.dev: `PACKAGE_REVIEW.md` (39 KB), `improvements.md`
 
 ### 4.4 Fix the Flutter example
 
-- [ ] `test/widget_test.dart` is still the generated counter template and fails.
+- [x] `test/widget_test.dart` is still the generated counter template and fails.
+      Replaced in Phase 3 with tests for the title, the welcome message and the
+      `parseHexColor` converter the example now needs.
 - [ ] Convert `MyApp` to a `StatefulWidget` with the future cached in
       `initState()`; it currently recreates the future on every rebuild.
 - [ ] Add an async `AssetBundleIncludeResolver` to the example — it is the
       clearest demonstration of why Phase 2.11 matters.
-- [ ] Stop excluding the example from the root analyzer.
+- [x] Stop excluding the example from the root analyzer. The root
+      `analysis_options.yaml` excludes only generated directories now, and CI
+      runs `flutter analyze` and `flutter test` on the example.
 
 ### 4.5 Versioning and migration
 
-- [ ] Add an `[Unreleased]` changelog section now. `fromEnvironment` and
+- [x] Add an `[Unreleased]` changelog section now. `fromEnvironment` and
       `FlatEnvOptions` are already public on `main` while the version is still
       `0.5.0`, so two public APIs share one version number.
-- [ ] `doc/migration.md`: complete 0.5.x → 1.0.0 rename/removal table with
+- [x] `doc/migration.md`: complete 0.5.x → 1.0.0 rename/removal table with
       before/after examples. **No runtime compatibility shims.**
 - [ ] `CONTRIBUTING.md`, issue templates.
-- [ ] Verify the public API delta against the 0.5.0 tag before release.
+- [x] Verify the public API delta against the 0.5.0 tag before release.
+
+      Done by diffing the dartdoc `index.json` of the `v0.5.0` tree against the
+      current one, which is mechanical and therefore complete: 87 public
+      symbols gone, 63 reachable under a new owner, 102 added, and every
+      include type moved from the single barrel to `flatconfig_includes.dart`.
+      `doc/migration.md` is written from that delta rather than from memory.
+
+      The delta was worth running before the guide rather than after it, since
+      it found two defects the test suite could not:
+
+      - Twenty-one dartdoc examples in `lib/` still called the deleted
+        `FlatConfig`. Documentation is not compiled, so nothing failed.
+      - `Stream<String>` parsing had no public entry point. 0.5.0 exported
+        `FlatConfig.parseFromStringStream`; the four-barrel split left the
+        implementation in `src/parser.dart` unexported while the synchronous
+        `parseLines` stayed public. It is now
+        `FlatDocument.parseLineStream`. The signal was `stream_reading_test.dart`
+        importing `package:flatconfig/src/parser.dart` to reach it — a test
+        reaching past the barrels is worth treating as an API report.
 
 ---
 
