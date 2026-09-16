@@ -146,7 +146,7 @@ included_key = included_value
       file.writeAsStringSync('a=1\ninvalid\nb=2\n');
       var count = 0;
       final doc = await file.parseFlat(
-        options: FlatParseOptions(onMissingEquals: (_, _) => count++),
+        options: FlatParseOptions(onIssue: (_) => count++),
       );
       expect(doc['a'], '1');
       expect(doc['b'], '2');
@@ -182,7 +182,9 @@ included_key = included_value
       file.writeAsBytesSync(bomPlus);
       var empty = false;
       await file.parseFlat(
-        options: FlatParseOptions(onEmptyKey: (_, _) => empty = true),
+        options: FlatParseOptions(
+          onIssue: (i) => empty = i.kind == FlatIssueKind.emptyKey,
+        ),
       );
       expect(empty, isTrue);
     });

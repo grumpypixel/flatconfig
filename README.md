@@ -21,7 +21,7 @@ Perfect for tools, CLIs, and Flutter apps that need structured settings without 
 - 🧩 **Tiny syntax:** `key = value` (values may be quoted)  
 - 📦 **Pure Dart**, minimal dependencies (`meta`; `path` for includes)  
 - 📝 **Supports duplicates**, preserves entry order  
-- 🔐 **Strict or lenient parsing**, optional callbacks for invalid lines  
+- 🔐 **Strict or lenient parsing**, with one `onIssue` channel for every problem  
 - ✅ **Valid by construction** — an entry the format cannot write out cannot be built  
 - 📁 **Async/sync file I/O**, handles UTF-8 BOM and any line endings  
 - 🧠 **Typed accessors** with one rule: `getX`, `getXOr`, `requireX` for every type  
@@ -199,6 +199,39 @@ Leniency belongs to the parser, where hand-edited files actually arrive. There
 `FlatParseOptions.strict` decides whether a malformed line throws or is skipped.
 A document built in code from a key the format cannot represent is a bug at the
 call site, not input to be tolerated.
+
+### Reporting Parse Problems
+
+In lenient mode a malformed line is skipped. `onIssue` tells you when that
+happens, so "skipped" does not have to mean "silent":
+
+```dart
+final doc = FlatDocument.parse(source, options: FlatParseOptions(
+  onIssue: (issue) => stderr.writeln(
+    '${issue.line}:${issue.column} ${issue.message}',
+  ),
+));
+```
+
+Every `FlatIssue` carries a `kind`, the 1-based `line` and `column`, and the
+`rawLine` as it appeared in the file. The kinds are `missingEquals`, `emptyKey`,
+`invalidKey`, `unterminatedQuote` and `trailingAfterQuote`; more may be added,
+so match the ones you care about rather than switching exhaustively.
+
+Strict mode throws the matching `FlatParseException` subclass for exactly the
+same inputs, which means you can develop against `onIssue` and ship with
+`strict: true` without discovering new failures.
+
+Throwing from the handler aborts the parse. That is how you build a policy
+between the two — intolerant of one kind, forgiving of the rest:
+
+```dart
+FlatParseOptions(onIssue: (issue) {
+  if (issue.kind == FlatIssueKind.invalidKey) {
+    throw FormatException(issue.message, issue.rawLine, issue.column);
+  }
+});
+```
 
 > **Note:**
 > `FlatDocument.fromMap(...)` is a **shallow** factory. It converts one level of

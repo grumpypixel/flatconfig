@@ -5,6 +5,7 @@ import 'package:meta/meta.dart';
 import 'constants.dart';
 import 'document.dart';
 import 'exceptions.dart';
+import 'issue.dart';
 import 'options.dart';
 import 'parser_utils.dart';
 import 'validation.dart';
@@ -381,8 +382,7 @@ FlatEntry? parseLine(
   final ln = lineNumber ?? 0;
   final strict = options.strict;
   final decodeEscapesInQuoted = options.decodeEscapesInQuoted;
-  final onMissingEquals = options.onMissingEquals;
-  final onEmptyKey = options.onEmptyKey;
+  final onIssue = options.onIssue;
 
   final sep = Constants.pairSeparator;
   final idx = line.indexOf(sep);
@@ -390,7 +390,14 @@ FlatEntry? parseLine(
     if (strict) {
       throw MissingEqualsException(ln, raw, column: line.length);
     }
-    onMissingEquals?.call(ln, raw);
+    onIssue?.call(
+      FlatIssue(
+        kind: FlatIssueKind.missingEquals,
+        line: ln,
+        column: line.length,
+        rawLine: raw,
+      ),
+    );
 
     return null;
   }
@@ -401,7 +408,14 @@ FlatEntry? parseLine(
     if (strict) {
       throw EmptyKeyException(ln, raw, column: idx + 1);
     }
-    onEmptyKey?.call(ln, raw);
+    onIssue?.call(
+      FlatIssue(
+        kind: FlatIssueKind.emptyKey,
+        line: ln,
+        column: idx + 1,
+        rawLine: raw,
+      ),
+    );
 
     return null;
   }
@@ -412,6 +426,15 @@ FlatEntry? parseLine(
     if (strict) {
       throw InvalidKeyException(trimmedKey, keyProblem, ln, raw);
     }
+    onIssue?.call(
+      FlatIssue(
+        kind: FlatIssueKind.invalidKey,
+        line: ln,
+        column: 1,
+        rawLine: raw,
+        detail: keyProblem,
+      ),
+    );
 
     return null;
   }
@@ -423,6 +446,8 @@ FlatEntry? parseLine(
     strict: strict,
     lineNumber: ln,
     rawLine: raw,
+    onIssue: onIssue,
+    columnOffset: idx + sep.length,
   );
 
   return FlatEntry(trimmedKey, value);

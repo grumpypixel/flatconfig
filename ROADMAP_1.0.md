@@ -523,9 +523,14 @@ class FlatParseOptions {
 }
 ```
 
-- [ ] Replace both callbacks with `onIssue`. New issue kinds become additive.
-- [ ] Export `FlatParseException` (currently the base class of exported
+- [x] Replace both callbacks with `onIssue`. New issue kinds become additive.
+- [x] Export `FlatParseException` (currently the base class of exported
       subclasses is itself hidden).
+
+Done, and it closed a gap: `invalidKey`, `unterminatedQuote` and
+`trailingAfterQuote` had no callback at all, so lenient mode dropped those lines
+without a word. All five kinds now report, and strict mode throws the matching
+exception for the same input.
 
 ### 2.9 Options as proper value types
 

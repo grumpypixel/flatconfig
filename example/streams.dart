@@ -4,14 +4,12 @@ import 'dart:io';
 
 import 'package:flatconfig/flatconfig.dart';
 
-// Reuse the same options everywhere.
+// Reuse the same options everywhere. One handler covers every kind of
+// problem, so nothing here changes when the parser learns to report a new one.
 final laxWithWarn = FlatParseOptions(
-  // strict remains default=false → missing "=" are ignored
-  onMissingEquals: (ln, raw) {
-    stderr.writeln('  [warn] missing "=" in line $ln: $raw');
-  },
-  onEmptyKey: (ln, raw) {
-    stderr.writeln('  [warn] empty key at line $ln: $raw');
+  // strict stays false → unparseable lines are skipped, not thrown
+  onIssue: (issue) {
+    stderr.writeln('  [warn] line ${issue.line}: ${issue.message}');
   },
 );
 
@@ -99,10 +97,10 @@ Future<void> main(List<String> args) async {
       badLines,
       options: FlatParseOptions(
         strict: false,
-        onMissingEquals: (ln, line) =>
-            stderr.writeln('  [lax warn] missing "=" in line $ln: $line'),
-        onEmptyKey: (ln, line) =>
-            stderr.writeln('  [lax warn] empty key in line $ln: $line'),
+        onIssue: (issue) => stderr.writeln(
+          '  [lax warn] ${issue.kind.name} at line ${issue.line}, '
+          'column ${issue.column}: ${issue.rawLine}',
+        ),
       ),
     );
     stdout.writeln('lax result:');

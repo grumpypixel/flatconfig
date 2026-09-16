@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'constants.dart';
 import 'exceptions.dart';
+import 'issue.dart';
 import 'validation.dart';
 
 /// Parses a value token from a configuration line.
@@ -28,6 +29,8 @@ String? parseValue(
   bool strict = false,
   int? lineNumber,
   String? rawLine,
+  OnIssue? onIssue,
+  int columnOffset = 0,
 }) {
   if (raw.isEmpty) {
     return null;
@@ -77,7 +80,16 @@ String? parseValue(
         );
       }
 
-      // lax: as before -> treat as unquoted (return trimmed token)
+      onIssue?.call(
+        FlatIssue(
+          kind: FlatIssueKind.unterminatedQuote,
+          line: lineNumber ?? 0,
+          column: columnOffset + start + 1,
+          rawLine: rawLine ?? raw,
+        ),
+      );
+
+      // lax: treat as unquoted, returning the trimmed token
       return slice;
     }
 
@@ -96,7 +108,16 @@ String? parseValue(
           );
         }
 
-        // lax: return the entire trimmed token as before
+        onIssue?.call(
+          FlatIssue(
+            kind: FlatIssueKind.trailingAfterQuote,
+            line: lineNumber ?? 0,
+            column: columnOffset + start + j + 1,
+            rawLine: rawLine ?? raw,
+          ),
+        );
+
+        // lax: return the entire trimmed token
         return slice;
       }
       j++;

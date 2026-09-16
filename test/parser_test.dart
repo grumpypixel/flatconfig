@@ -164,12 +164,16 @@ mode = c
       );
     });
 
-    test('onMissingEquals is called for ignored lines', () {
+    test('onIssue is called for ignored lines', () {
       const src = 'justakey\nk = v';
       var called = false;
       FlatDocument.parse(
         src,
-        options: FlatParseOptions(onMissingEquals: (_, _) => called = true),
+        options: FlatParseOptions(
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) called = true;
+          },
+        ),
       );
       expect(called, isTrue);
     });
@@ -209,8 +213,10 @@ mode = c
       FlatDocument.parse(
         src,
         options: FlatParseOptions(
-          onMissingEquals: (n, l) {
-            calls.add({'n': n, 'l': l});
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) {
+              calls.add({'n': i.line, 'l': i.rawLine});
+            }
           },
         ),
       );
@@ -236,7 +242,9 @@ mode = c
         src,
         options: FlatParseOptions(
           commentPrefix: ';',
-          onMissingEquals: (n, _) => lines.add(n),
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) lines.add(i.line);
+          },
         ),
       );
       expect(lines.isNotEmpty, isTrue);
@@ -248,7 +256,11 @@ mode = c
       var missingCount = 0;
       final doc = FlatDocument.parse(
         src,
-        options: FlatParseOptions(onMissingEquals: (_, _) => missingCount++),
+        options: FlatParseOptions(
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) missingCount++;
+          },
+        ),
       );
       expect(doc['ok'], '1');
       expect(doc['foo'], '2');
@@ -260,7 +272,11 @@ mode = c
       var emptyCount = 0;
       final doc = FlatDocument.parse(
         src,
-        options: FlatParseOptions(onEmptyKey: (_, _) => emptyCount++),
+        options: FlatParseOptions(
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.emptyKey) emptyCount++;
+          },
+        ),
       );
       expect(emptyCount, 1);
       expect(doc.keys.toList(), ['ok', 'foo']); // empty key line is ignored
@@ -278,7 +294,7 @@ mode = c
       expect(doc.keys.toList(), ['key']);
     });
 
-    test('parseLines strict=true throws and onMissingEquals collects', () {
+    test('parseLines strict=true throws and onIssue collects', () {
       final lines = ['x', 'k = v'];
       expect(
         () => FlatDocument.parseLines(
@@ -291,7 +307,11 @@ mode = c
       var called = false;
       FlatDocument.parseLines(
         lines,
-        options: FlatParseOptions(onMissingEquals: (_, _) => called = true),
+        options: FlatParseOptions(
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) called = true;
+          },
+        ),
       );
       expect(called, isTrue);
     });
@@ -361,8 +381,7 @@ mode = c
           src,
           options: FlatParseOptions(
             decodeEscapesInQuoted: true,
-            onMissingEquals: (_, _) => called = true,
-            onEmptyKey: (_, _) => called = true,
+            onIssue: (_) => called = true,
           ),
         );
         expect(called, isFalse);
@@ -387,7 +406,11 @@ mode = c
       final lines = <int>[];
       final doc = FlatDocument.parse(
         src,
-        options: FlatParseOptions(onMissingEquals: (n, _) => lines.add(n)),
+        options: FlatParseOptions(
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) lines.add(i.line);
+          },
+        ),
       );
       expect(lines, isNotEmpty);
       expect(lines.first, 2);
@@ -435,7 +458,9 @@ mode = c
       FlatDocument.parseLines(
         lines,
         options: FlatParseOptions(
-          onMissingEquals: (_, _) => called = true,
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) called = true;
+          },
           commentPrefix: '',
         ),
       );
@@ -449,7 +474,11 @@ mode = c
       var count = 0;
       final doc = FlatDocument.parseLines(
         lines,
-        options: FlatParseOptions(onMissingEquals: (_, _) => count++),
+        options: FlatParseOptions(
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) count++;
+          },
+        ),
       );
       expect(count, 2);
       expect(doc['ok'], '1');
@@ -468,7 +497,9 @@ mode = c
         const ['; c', '# c2', 'k = v'],
         options: FlatParseOptions(
           commentPrefix: ';',
-          onMissingEquals: (_, _) => count++,
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) count++;
+          },
         ),
       );
       expect(count, greaterThan(0));
@@ -707,7 +738,11 @@ shader = vignette=soft
 
       var called = false;
       await file.parseFlat(
-        options: FlatParseOptions(onMissingEquals: (_, _) => called = true),
+        options: FlatParseOptions(
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) called = true;
+          },
+        ),
       );
       expect(called, isTrue);
     });
@@ -929,7 +964,11 @@ shader = vignette=soft
         var missingCount = 0;
         final doc = await parseStringStream(
           lines,
-          options: FlatParseOptions(onMissingEquals: (_, _) => missingCount++),
+          options: FlatParseOptions(
+            onIssue: (i) {
+              if (i.kind == FlatIssueKind.missingEquals) missingCount++;
+            },
+          ),
         );
 
         expect(doc['key'], 'v');
@@ -968,7 +1007,11 @@ shader = vignette=soft
         var emptyCalls = 0;
         final doc = FlatDocument.parse(
           '= v',
-          options: FlatParseOptions(onEmptyKey: (_, _) => emptyCalls++),
+          options: FlatParseOptions(
+            onIssue: (i) {
+              if (i.kind == FlatIssueKind.emptyKey) emptyCalls++;
+            },
+          ),
         );
         expect(emptyCalls, 1);
         expect(doc.keys, isEmpty); // empty key line is ignored
@@ -995,8 +1038,7 @@ shader = vignette=soft
         commentPrefix: ';',
         decodeEscapesInQuoted: true,
         strict: true,
-        onMissingEquals: (_, _) => missing++,
-        onEmptyKey: (_, _) => empty++,
+        onIssue: (i) => i.kind == FlatIssueKind.emptyKey ? empty++ : missing++,
       );
 
       final fallback = base.copyWith();
@@ -1008,16 +1050,29 @@ shader = vignette=soft
         commentPrefix: '#',
         decodeEscapesInQuoted: false,
         strict: false,
-        onMissingEquals: (_, _) => missing += 10,
-        onEmptyKey: (_, _) => empty += 10,
+        onIssue: (i) =>
+            i.kind == FlatIssueKind.emptyKey ? empty += 10 : missing += 10,
       );
       expect(overridden.commentPrefix, '#');
       expect(overridden.decodeEscapesInQuoted, isFalse);
       expect(overridden.strict, isFalse);
 
       // sanity: callbacks are callable
-      overridden.onMissingEquals?.call(1, 'x');
-      overridden.onEmptyKey?.call(1, 'x');
+      const where = FlatIssue(
+        kind: FlatIssueKind.missingEquals,
+        line: 1,
+        column: 1,
+        rawLine: 'x',
+      );
+      overridden.onIssue?.call(where);
+      overridden.onIssue?.call(
+        FlatIssue(
+          kind: FlatIssueKind.emptyKey,
+          line: where.line,
+          column: where.column,
+          rawLine: where.rawLine,
+        ),
+      );
       expect(missing, 10);
       expect(empty, 10);
     });
@@ -1080,7 +1135,9 @@ shader = vignette=soft
         lines,
         options: FlatParseOptions(
           commentPrefix: ';',
-          onMissingEquals: (_, _) => missingCount++,
+          onIssue: (i) {
+            if (i.kind == FlatIssueKind.missingEquals) missingCount++;
+          },
         ),
       );
 
@@ -1271,10 +1328,11 @@ shader = vignette=soft
             commentPrefix: '#',
             strict: false,
             decodeEscapesInQuoted: false,
-            onMissingEquals: (lineNumber, raw) {
+            onIssue: (issue) {
               callbackCalled = true;
-              expect(lineNumber, 1);
-              expect(raw, 'key without equals');
+              expect(issue.kind, FlatIssueKind.missingEquals);
+              expect(issue.line, 1);
+              expect(issue.rawLine, 'key without equals');
             },
           ),
         );
@@ -1306,10 +1364,11 @@ shader = vignette=soft
             commentPrefix: '#',
             strict: false,
             decodeEscapesInQuoted: false,
-            onEmptyKey: (lineNumber, raw) {
+            onIssue: (issue) {
               callbackCalled = true;
-              expect(lineNumber, 1);
-              expect(raw, '=value');
+              expect(issue.kind, FlatIssueKind.emptyKey);
+              expect(issue.line, 1);
+              expect(issue.rawLine, '=value');
             },
           ),
         );

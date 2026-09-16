@@ -1,12 +1,13 @@
 import 'dart:convert';
 
 import 'constants.dart';
+import 'issue.dart';
 
 /// Callback function invoked when a parsing error occurs.
 ///
 /// The [lineNumber] parameter indicates the 1-based line number where the error
 /// occurred, and [line] contains the raw line content that caused the error.
-typedef OnErrorHandler = void Function(int lineNumber, String line);
+// Issue reporting lives in issue.dart; see FlatIssue and OnIssue.
 
 /// Options that control how configuration files are parsed.
 ///
@@ -23,8 +24,7 @@ class FlatParseOptions {
     this.strict = false,
     this.includeKey = Constants.includeKey,
     this.maxIncludeDepth = 64,
-    this.onMissingEquals,
-    this.onEmptyKey,
+    this.onIssue,
   });
 
   /// Prefix used to mark comment lines.
@@ -72,17 +72,18 @@ class FlatParseOptions {
   /// is extremely deep. Defaults to 64.
   final int maxIncludeDepth;
 
-  /// Handler called when a line is missing the `=` separator.
+  /// Called for each problem found while parsing, when [strict] is false.
   ///
-  /// This is only called when [strict] is false. If null, invalid lines are
-  /// silently ignored.
-  final OnErrorHandler? onMissingEquals;
-
-  /// Handler called when a key is empty (e.g., `= value`).
+  /// One handler covers every [FlatIssueKind], so a new kind of problem becomes
+  /// additive rather than another callback on this class. If null, unparseable
+  /// lines are skipped silently.
   ///
-  /// This is only called when [strict] is false. If null, invalid lines are
-  /// silently ignored.
-  final OnErrorHandler? onEmptyKey;
+  /// ```dart
+  /// FlatParseOptions(
+  ///   onIssue: (i) => stderr.writeln('${i.line}: ${i.message}'),
+  /// )
+  /// ```
+  final OnIssue? onIssue;
 
   /// Returns a copy of these options with selectively replaced fields.
   ///
@@ -94,16 +95,14 @@ class FlatParseOptions {
     bool? strict,
     String? includeKey,
     int? maxIncludeDepth,
-    OnErrorHandler? onMissingEquals,
-    OnErrorHandler? onEmptyKey,
+    OnIssue? onIssue,
   }) => FlatParseOptions(
     commentPrefix: commentPrefix ?? this.commentPrefix,
     decodeEscapesInQuoted: decodeEscapesInQuoted ?? this.decodeEscapesInQuoted,
     strict: strict ?? this.strict,
     includeKey: includeKey ?? this.includeKey,
     maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
-    onMissingEquals: onMissingEquals ?? this.onMissingEquals,
-    onEmptyKey: onEmptyKey ?? this.onEmptyKey,
+    onIssue: onIssue ?? this.onIssue,
   );
 }
 

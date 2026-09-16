@@ -8,6 +8,9 @@ is still outstanding.
 
 Added:
 
+- **`FlatIssue`, `FlatIssueKind` and `FlatParseOptions.onIssue`** — one channel
+  for every problem the parser finds, carrying the kind, the 1-based line and
+  column, and the raw line.
 - **`package:flatconfig/flatconfig_accessors.dart`** — ready-made accessors for
   `DateTime`, `Duration`, `Uri`, JSON and enums, in the same three shapes as the
   core catalog. A program reading strings and numbers no longer carries a date
@@ -23,6 +26,18 @@ Added:
   variables.
 
 Fixed:
+
+- **Lenient parsing no longer drops lines in silence.** `onMissingEquals` and
+  `onEmptyKey` covered two of the five things that can go wrong; an invalid key,
+  an unterminated quote and trailing characters after a quote were skipped with
+  no way to find out. One `onIssue` handler now reports all five, and a sixth
+  kind becomes additive rather than a third callback on `FlatParseOptions`.
+  Strict mode throws the matching `FlatParseException` for exactly the same
+  inputs, so `onIssue` in development and `strict: true` in production cannot
+  disagree. Throwing from the handler aborts the parse, which gives you the
+  policies between the two.
+  `OnErrorHandler` is replaced by `OnIssue`; `FlatParseException` is now
+  exported, having been the hidden base class of five exported subclasses.
 
 - **The accessors and document helpers are members of `FlatDocument`, not
   extensions.** An extension cannot be overridden, does not appear under the
