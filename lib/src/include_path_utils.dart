@@ -34,17 +34,17 @@ class ProcessedIncludePath {
 ProcessedIncludePath processIncludePath(String rawPath) {
   var path = rawPath.trim();
 
-  if (path.isEmpty) {
-    return ProcessedIncludePath(path: '', isOptional: false, isEmpty: true);
-  }
-
   final optional = path.startsWith(Constants.optionalIncludePrefix);
   if (optional) {
     path = path.substring(1).trim();
   }
 
-  // Handle quoted paths (for paths that actually start with Constants.quote)
-  if (path.startsWith(Constants.quote) && path.endsWith(Constants.quote)) {
+  // A single quote character is not a quoted path: it opens one and never
+  // closes it. Without the length check both tests below pass for it and the
+  // unquoting runs off the end of the string.
+  if (path.length >= 2 &&
+      path.startsWith(Constants.quote) &&
+      path.endsWith(Constants.quote)) {
     path = path.substring(1, path.length - 1);
   }
 
@@ -52,5 +52,11 @@ ProcessedIncludePath processIncludePath(String rawPath) {
   // even when the parser didn't decode quoted escapes.
   path = unescapeQuotesAndBackslashes(path);
 
-  return ProcessedIncludePath(path: path, isOptional: optional, isEmpty: false);
+  // Emptiness is decided on what is left, so a directive that names nothing
+  // after the marker and the quotes are gone asks no resolver anything.
+  return ProcessedIncludePath(
+    path: path,
+    isOptional: optional,
+    isEmpty: path.isEmpty,
+  );
 }
