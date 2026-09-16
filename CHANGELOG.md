@@ -32,6 +32,11 @@ Fixed:
 - **`toMap()` and `valuesOf()` are unmodifiable after `cache()`.** Pre-caching
   handed out a writable view of a document documented as immutable, so
   `doc.cache(); doc.toMap()['a'] = 'x';` changed the document.
+- **Path identity no longer assumes macOS is case-insensitive.** Every macOS
+  path was lowercased, so on a case-sensitive APFS volume `Foo.conf` and
+  `foo.conf` collapsed into one canonical id, inventing include cycles and
+  serving cached content from the wrong file. The filesystem is now asked, once
+  per directory, and case is folded only where it answers yes.
 - **Guards on public input throw instead of asserting.** A `commentPrefix`
   containing a line break, a multi-character separator, and an empty line
   terminator now raise `ArgumentError` in release builds, where `assert` does

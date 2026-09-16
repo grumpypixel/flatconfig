@@ -10,17 +10,14 @@ folded in below, with reproductions.
 
 ## Where this stands
 
-Last updated after Phase 1.2. Verify with `dart test` (expect 774 passing) and
-`sed -n '/^### Open/,$p' SPEC.md` for the remaining format deviations.
+Last updated after Phase 1.7. Verify with `dart test` (expect 778 passing),
+`dart test --compiler exe` for the same suite without assertions, and
+`sed -n '/^### Open/,$p' SPEC.md` for format deviations.
 
-**Done:** Phase 0 in full; Phase 1.1 through 1.6, plus 1.8 and 1.9. `SPEC.md` Appendix A is
-empty — every listed deviation is fixed and pinned by a test.
+**Done:** Phase 0 and Phase 1, in full. `SPEC.md` Appendix A is empty — every
+listed deviation is fixed and pinned by a test.
 
-**Open in Phase 1, in the order I would take them:**
-
-| Item | Reproduction, verified on this tree | Why it is still here |
-|---|---|---|
-| 1.7 | path canonicalization | not started |
+**Next:** Phase 2, the 1.0 API. Nothing in Phase 1 is left open.
 
 **How the work is organised.** Every fix carries a regression test.
 `test/round_trip_test.dart` is the property gate for the format and must stay
@@ -28,7 +25,7 @@ green; `test/spec_conformance_test.dart` has one group per `SPEC.md` section.
 `SPEC.md` Appendix A is the live scoreboard: it lists what still deviates, and a
 row moves from Open to Fixed only when a test pins it.
 
-**What is unreleased.** The `v1` bookmark carries four breaking commits that are
+**What is unreleased.** The `v1` bookmark carries the Phase 1 breaking commits that are
 not in any published version. `CHANGELOG.md` has an Unreleased section for them.
 `main` stays on 0.5.x so it can still be patched.
 
@@ -195,9 +192,10 @@ comparisons with NaN are false, so every range guard is bypassed.
 case-sensitive, collapsing `Foo.conf` and `foo.conf` into one canonical ID —
 producing false include cycles and wrong cache hits.
 
-- [ ] Lowercase on Windows only, or detect filesystem case sensitivity.
-- [ ] Put the strategy behind an injectable interface so it is testable off
-      Windows.
+- [x] Detect filesystem case sensitivity rather than guessing from the
+      platform. Windows still answers without a probe.
+- [x] Put the strategy behind an injectable interface (`PathCaseFolding`) so it
+      is testable off Windows.
 
 ### 1.8 Replace assertions on public input
 

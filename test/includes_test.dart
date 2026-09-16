@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:flatconfig/flatconfig.dart';
 import 'package:flatconfig/src/includes.dart' as inc;
 import 'package:flatconfig/src/parser_utils.dart';
+import 'package:flatconfig/src/path_utils.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
@@ -44,16 +46,64 @@ void main() {
       );
     });
 
-    test('normalizeCanonicalPath behavior (platform dependent)', () async {
-      // Just validate that on case-insensitive filesystems (Windows and macOS)
-      // it lowercases, and on case-sensitive filesystems it returns input unchanged.
-      // We cannot change Platform here, so check current behavior is consistent.
-      const input = 'C:/Some/Path/File.CONF';
-      final out = inc.FlatConfigIncludes.normalizeCanonicalPath(input);
-      if (Platform.isWindows || Platform.isMacOS) {
-        expect(out, equals(input.toLowerCase()));
-      } else {
-        expect(out, equals(input));
+    test('normalizeCanonicalPath folds only when told to', () {
+      // The strategy is injectable so both branches are reachable on any
+      // platform, which is the whole point of not keying off Platform alone.
+      const input = '/Some/Path/File.CONF';
+
+      expect(
+        normalizeCanonicalPath(input, folding: const FixedCaseFolding(true)),
+        equals(input.toLowerCase()),
+      );
+      expect(
+        normalizeCanonicalPath(input, folding: const FixedCaseFolding(false)),
+        equals(input),
+      );
+    });
+
+    test('a path that does not exist is left alone', () {
+      // Nothing to probe, so the harmless answer wins: two spellings stay
+      // distinct rather than collapsing onto one file.
+      const input = '/no/such/File.CONF';
+
+      expect(
+        normalizeCanonicalPath(input, folding: FilesystemCaseFolding()),
+        equals(input),
+      );
+    });
+
+    test('the filesystem probe agrees with the filesystem', () async {
+      final dir = await Directory.systemTemp.createTemp('flatconfig_case_');
+      addTearDown(() => dir.delete(recursive: true));
+
+      final file = File(p.join(dir.path, 'Theme.conf'));
+      await file.writeAsString('k = v\n');
+
+      // Whether this volume is case-insensitive is not ours to assert, but the
+      // probe has to match what opening the other spelling actually does.
+      final otherSpelling = File(p.join(dir.path, 'THEME.CONF'));
+      final volumeFoldsCase = otherSpelling.existsSync();
+
+      expect(
+        FilesystemCaseFolding().isCaseInsensitive(file.path),
+        equals(volumeFoldsCase),
+      );
+    });
+
+    test('two genuinely different spellings are not merged', () async {
+      final dir = await Directory.systemTemp.createTemp('flatconfig_case_');
+      addTearDown(() => dir.delete(recursive: true));
+
+      final lower = File(p.join(dir.path, 'theme.conf'));
+      await lower.writeAsString('k = v\n');
+
+      final upper = File(p.join(dir.path, 'THEME.CONF'));
+      await upper.writeAsString('a much longer body, so the sizes differ\n');
+
+      // On a case-sensitive volume these are two files; the probe must not call
+      // the volume case-insensitive just because both names resolve.
+      if (lower.readAsStringSync() != upper.readAsStringSync()) {
+        expect(FilesystemCaseFolding().isCaseInsensitive(lower.path), isFalse);
       }
     });
 
