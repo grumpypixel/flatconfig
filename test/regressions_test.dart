@@ -1,7 +1,10 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flatconfig/flatconfig_includes.dart';
 import 'package:test/test.dart';
 
-/// The two shipped defects that no other test file pins, named after what went
+/// The shipped defects that no other test file pins, named after what went
 /// wrong rather than after the release that fixed it. The rest are covered
 /// where they belong topically: quoting and backslashes in
 /// `spec_conformance_test.dart`, the empty string in `round_trip_test.dart`,
@@ -10,10 +13,35 @@ import 'package:test/test.dart';
 /// `includes_test.dart`.
 ///
 /// Everything here asserts a thrown error or a returned value, never an
-/// `assert`: a release build strips assertions, and one of these two defects
-/// was a guard that existed only as one.
+/// `assert`: a release build strips assertions, and one of these defects was a
+/// guard that existed only as one.
 
 void main() {
+  group('a byte stream is whatever the caller happens to hold', () {
+    // Both entry points transformed the stream with a decoder, which is a
+    // StreamTransformer<List<int>, String> and throws when bound to a
+    // Stream<Uint8List>. Every test passed the stream straight to the
+    // parameter, where inference made it a Stream<List<int>> and hid it; a
+    // caller who names the stream first gets the subtype and the crash.
+    final utf8Bytes = Uint8List.fromList(utf8.encode('a = 1\nb = 2\n'));
+    final expected = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
+
+    test('parseBytes accepts a Stream<Uint8List>', () async {
+      final Stream<Uint8List> bytes = Stream.value(utf8Bytes);
+
+      expect(await FlatDocument.parseBytes(bytes), expected);
+    });
+
+    test('streamEntries accepts a Stream<Uint8List>', () async {
+      final Stream<Uint8List> bytes = Stream.value(utf8Bytes);
+
+      expect(
+        await FlatDocument.streamEntries(bytes).toList(),
+        expected.entries,
+      );
+    });
+  });
+
   group('a number that is not finite is not a number', () {
     // The range accessors compared with <= and >=, which are false for NaN in
     // both directions, so NaN passed every range unchecked. Those accessors

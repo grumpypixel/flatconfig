@@ -112,6 +112,10 @@ Future<FlatDocument> parseByteStream(
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
 }) async => parseStringStream(
   stream
+      // A decoder is a StreamTransformer<List<int>, String>, which cannot bind
+      // to a Stream<Uint8List> even though that is a subtype — and a byte
+      // stream from utf8.encode, a socket or an HTTP body usually is one.
+      .cast<List<int>>()
       .transform(readOptions.encoding.decoder)
       .transform(readOptions.lineSplitter),
   options: options,
@@ -163,6 +167,7 @@ Stream<FlatEntry> streamEntriesFromBytes(
   FlatParseOptions options = const FlatParseOptions(),
 }) async* {
   final lines = stream
+      .cast<List<int>>()
       .transform(readOptions.encoding.decoder)
       .transform(readOptions.lineSplitter);
 
