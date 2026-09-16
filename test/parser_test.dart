@@ -4,7 +4,7 @@ library parser_test;
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 import 'package:flatconfig/src/io.dart' as io;
 import 'package:flatconfig/src/parser.dart';
 import 'package:test/test.dart';
@@ -616,7 +616,7 @@ shader = vignette=soft
 ''';
       file.writeAsStringSync(src);
 
-      final doc = await io.parseFlatFile(file.path);
+      final doc = await File(file.path).parseFlat();
       expect(doc['background'], '343028');
       expect(doc['font-family'], isNull);
       expect(doc.allValues('shader'), ['vignette=soft']);

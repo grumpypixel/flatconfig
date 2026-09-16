@@ -3,7 +3,7 @@ library include_cache_test;
 
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 import 'package:test/test.dart';
 
 /// A resolver that records which units it was asked for.
@@ -33,13 +33,12 @@ void main() {
           '\n',
     });
 
-    FlatDocument parse(FlatParseOptions options) =>
-        FlatConfigResolverIncludes.parseStringWithIncludesSync(
-          source,
-          resolver: resolver,
-          originId: 'mem:root',
-          options: options,
-        );
+    FlatDocument parse(FlatParseOptions options) => parseWithIncludesSync(
+      source,
+      resolver: resolver,
+      originId: 'mem:root',
+      options: options,
+    );
 
     test('a later call sees its own parse options, not the earlier ones', () {
       expect(parse(const FlatParseOptions())['path'], r'C:\temp');
@@ -52,11 +51,7 @@ void main() {
 
     test('the same origin id with different text yields different text', () {
       FlatDocument parseText(String text) =>
-          FlatConfigResolverIncludes.parseStringWithIncludesSync(
-            text,
-            resolver: resolver,
-            originId: 'mem:root',
-          );
+          parseWithIncludesSync(text, resolver: resolver, originId: 'mem:root');
 
       expect(parseText('a = 1\n')['a'], '1');
       expect(parseText('b = 2\n').lookup('a'), isA<FlatAbsent>());
@@ -64,12 +59,12 @@ void main() {
     });
 
     test('a changed include key changes what counts as an include', () {
-      final byDefault = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final byDefault = parseWithIncludesSync(
         source,
         resolver: resolver,
         originId: 'mem:root',
       );
-      final byOtherKey = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final byOtherKey = parseWithIncludesSync(
         source,
         resolver: resolver,
         originId: 'mem:root',
@@ -90,7 +85,7 @@ void main() {
         'shared.conf': 'shared = yes\n',
       });
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         'config-file = left.conf\nconfig-file = right.conf\n',
         resolver: resolver,
         originId: 'mem:root',

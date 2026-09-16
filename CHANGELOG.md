@@ -41,6 +41,32 @@ Added:
 
 Changed:
 
+- **The package is four libraries instead of one.**
+  `package:flatconfig/flatconfig.dart` is the web-safe core;
+  `flatconfig_includes.dart` adds resolver-based includes,
+  `flatconfig_accessors.dart` the `DateTime`/`Duration`/`Uri`/JSON/enum
+  accessors, and `flatconfig_io.dart` everything that needs `dart:io`. Each of
+  the three re-exports the core, so a program still writes one import. The
+  conditional exports are gone with them: on the web you do not import
+  `flatconfig_io.dart`, rather than importing a stub that compiles and then
+  throws. That stub is what made `'text'.parseFlat()` — an extension on
+  `Object` — look valid on every platform.
+- **`File` is the only way to read or write a file.** `parseFlatFile`,
+  `parseFlatFileSync`, `parseFileWithIncludes`, the top-level `writeFlat` and
+  `writeFlatSync`, `FlatDocument.saveToFile` and `saveToFileSync` are gone;
+  `File(path).parseFlat()`, `.parseFlatSync()`, `.parseWithIncludes()`,
+  `.parseWithIncludesSync()`, `.writeFlat(doc)` and `.writeFlatSync(doc)` cover
+  all of it. Three spellings of one workflow meant three places for a fix to
+  miss: `File.parseWithIncludesSync` was the one that never grew an
+  `includeOptions` parameter.
+- **`FlatConfigResolverIncludes.parseStringWithIncludes` is now the top-level
+  `parseWithIncludes`,** and `parseStringWithIncludesSync` is
+  `parseWithIncludesSync`. They were static members on an extension, which is a
+  way of spelling a top-level function that reads as if it were a method on
+  `FlatDocument`.
+- **`splitRespectingQuotes` and `indexOfUnquoted` are exported.** `SPEC.md` §5
+  pins what they do, and they are what a custom `FlatConverter` needs to split
+  an inline list the way the parser would.
 - **`IncludeResolver.resolve` is now asynchronous and takes an
   `IncludeRequest`.** The sync-only interface excluded an HTTP endpoint, a
   database row and a Flutter asset behind `rootBundle.loadString()` by

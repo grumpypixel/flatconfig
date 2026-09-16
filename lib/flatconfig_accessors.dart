@@ -7,14 +7,15 @@
 /// with the same `getX` / `getXOr` / `requireX` shapes.
 ///
 /// ```dart
-/// import 'package:flatconfig/flatconfig.dart';
 /// import 'package:flatconfig/flatconfig_accessors.dart';
 ///
 /// final doc = FlatDocument.parse('timeout = 30s');
 /// print(doc.requireDuration('timeout')); // 0:00:30.000000
 /// ```
 ///
-/// Web- and WASM-safe: it adds parsing only, no `dart:io`.
+/// Web- and WASM-safe: it adds parsing only, no `dart:io`. Re-exports
+/// `package:flatconfig/flatconfig.dart`, so one import is enough.
 library;
 
+export 'flatconfig.dart';
 export 'src/optional_accessors.dart' show FlatDocumentOptionalAccessors;

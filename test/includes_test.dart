@@ -3,7 +3,7 @@ library includes_test;
 
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 import 'package:flatconfig/src/include_traversal.dart';
 import 'package:flatconfig/src/includes.dart' as inc;
 import 'package:flatconfig/src/parser_utils.dart';
@@ -828,9 +828,7 @@ foreground = f3d735
 ''');
 
       // Parse with includes using path
-      final doc = await FlatConfigIncludes.parseWithIncludesFromPath(
-        mainFile.path,
-      );
+      final doc = await File(mainFile.path).parseWithIncludes();
 
       // Verify all entries are present
       expect(doc['background'], equals('343028'));
@@ -852,9 +850,7 @@ foreground = f3d735
 ''');
 
       // Parse with includes using path (sync)
-      final doc = FlatConfigIncludes.parseWithIncludesFromPathSync(
-        mainFile.path,
-      );
+      final doc = File(mainFile.path).parseWithIncludesSync();
 
       // Verify all entries are present
       expect(doc['background'], equals('343028'));
@@ -883,7 +879,7 @@ foreground = f3d735
       expect(doc['foreground'], equals('f3d735'));
     });
 
-    test('parseFileWithIncludes convenience function', () async {
+    test('File.parseWithIncludes from a path', () async {
       // Create main config file
       final mainFile = File('${tempDir.path}/main.conf');
       await mainFile.writeAsString('''
@@ -898,7 +894,7 @@ foreground = f3d735
 ''');
 
       // Parse with includes using convenience function
-      final doc = await parseFileWithIncludes(mainFile.path);
+      final doc = await File(mainFile.path).parseWithIncludes();
 
       // Verify all entries are present
       expect(doc['background'], equals('343028'));

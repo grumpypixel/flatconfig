@@ -1,10 +1,10 @@
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_includes.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('parse_with_resolver additional cases', () {
     test('empty input yields empty document', () {
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         '',
         resolver: MemoryIncludeResolver(const {}),
         originId: 'mem:root',
@@ -14,7 +14,7 @@ void main() {
 
     test('ignores empty include values', () {
       final text = ['config-file = ', 'a = 1', 'config-file =   '].join('\n');
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         text,
         resolver: MemoryIncludeResolver(const {}),
         originId: 'mem:root',
@@ -24,7 +24,7 @@ void main() {
 
     test('optional missing include is ignored, required throws', () {
       final textOpt = 'config-file = ?mem:missing\n';
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         textOpt,
         resolver: MemoryIncludeResolver(const {}),
         originId: 'mem:root',
@@ -33,7 +33,7 @@ void main() {
 
       final textReq = 'config-file = mem:missing\n';
       expect(
-        () => FlatConfigResolverIncludes.parseStringWithIncludesSync(
+        () => parseWithIncludesSync(
           textReq,
           resolver: MemoryIncludeResolver(const {}),
           originId: 'mem:root',
@@ -47,7 +47,7 @@ void main() {
         r'mem:C:\X.conf': 'k = v\n',
       }, prefix: 'mem:');
       final text = 'config-file = "mem:C:\\X.conf"\n';
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',
@@ -61,7 +61,7 @@ void main() {
         'mem:b': 'config-file = mem:a\n',
       }, prefix: 'mem:');
       expect(
-        () => FlatConfigResolverIncludes.parseStringWithIncludesSync(
+        () => parseWithIncludesSync(
           'config-file = mem:a\n',
           resolver: mem,
           originId: 'mem:root',
@@ -77,7 +77,7 @@ void main() {
 
       final text = ['k = before', 'config-file = mem:i', 'k = tail'].join('\n');
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',
@@ -92,7 +92,7 @@ void main() {
       // The text contains literal backslashes that should be unescaped
       final text = 'config-file = mem:C\\foo\\bar.conf\n';
 
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         text,
         resolver: MemoryIncludeResolver({
           // The path should match exactly what's in the text after unescaping
@@ -108,7 +108,7 @@ void main() {
       final mem = MemoryIncludeResolver({'mem:a': 'k = v\n'}, prefix: 'mem:');
 
       expect(
-        () => FlatConfigResolverIncludes.parseStringWithIncludesSync(
+        () => parseWithIncludesSync(
           'config-file = mem:a\n',
           resolver: mem,
           originId: 'mem:root',
@@ -126,7 +126,7 @@ void main() {
       // Double quoted path - parser strips outer quotes, leaving inner quotes
       // This triggers line 175 in parse_with_resolver.dart
       final text = 'config-file = "\\"quoted path.conf\\""\n';
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         text,
         resolver: mem,
         originId: 'mem:root',

@@ -5,100 +5,19 @@ import 'includes.dart';
 import 'options.dart';
 import 'parser.dart';
 
-/// Reads a configuration file and parses it into a [FlatDocument].
+/// Reading and writing flat configuration files.
 ///
-/// This is a convenience function that opens a file at the given [path] and
-/// parses its contents as a flat configuration file. The parsing behavior
-/// can be customized using [options] and [readOptions].
-///
-/// Example:
-/// ```dart
-/// final doc = await parseFlatFile('config.flat');
-/// print(doc['background']); // 343028
-/// ```
-Future<FlatDocument> parseFlatFile(
-  String path, {
-  FlatParseOptions options = const FlatParseOptions(),
-  FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-}) async => File(path).parseFlat(options: options, readOptions: readOptions);
-
-/// Reads and parses a configuration file synchronously from [path].
-FlatDocument parseFlatFileSync(
-  String path, {
-  FlatParseOptions options = const FlatParseOptions(),
-  FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-}) => File(path).parseFlatSync(options: options, readOptions: readOptions);
-
-/// Reads a configuration file with includes and parses it into a [FlatDocument].
-///
-/// Preferred alias for reading with includes from a path.
-///
-/// Example:
-/// ```dart
-/// final doc = await parseFileWithIncludes('main.conf');
-/// print(doc['background']); // 343028
-/// ```
-Future<FlatDocument> parseFileWithIncludes(
-  String path, {
-  FlatParseOptions options = const FlatParseOptions(),
-  FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
-  FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-}) async => FlatConfigIncludes.parseWithIncludesFromPath(
-  path,
-  options: options,
-  includeOptions: includeOptions,
-  readOptions: readOptions,
-);
-
-/// Writes a [FlatDocument] to a file asynchronously.
-///
-/// Top-level variant to match the web/wasm stub and barrel export.
-Future<void> writeFlat(
-  String path,
-  FlatDocument doc, {
-  FlatEncodeOptions options = const FlatEncodeOptions(),
-  FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
-}) async {
-  await File(path).writeAsBytes(
-    doc.encodeToBytesWithWriteOptions(
-      options: options,
-      writeOptions: writeOptions,
-    ),
-  );
-}
-
-/// Writes a [FlatDocument] to a file synchronously.
-///
-/// Top-level variant to match the web/wasm stub and barrel export.
-void writeFlatSync(
-  String path,
-  FlatDocument doc, {
-  FlatEncodeOptions options = const FlatEncodeOptions(),
-  FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
-}) {
-  File(path).writeAsBytesSync(
-    doc.encodeToBytesWithWriteOptions(
-      options: options,
-      writeOptions: writeOptions,
-    ),
-  );
-}
-
-/// File-based helpers for reading and writing flat configuration files.
-///
-/// This extension adds methods to [File] for working with flat configuration files.
-/// It provides both asynchronous and synchronous methods for reading and writing
-/// configuration data.
+/// This is the whole file API: a path becomes a [File], and a [File] parses or
+/// is written to. There is no second spelling as a top-level function or as a
+/// method on the document.
 extension FlatConfigIO on File {
-  /// Parses this file asynchronously into a [FlatDocument].
+  /// Parses this file into a [FlatDocument].
   ///
-  /// This method reads the file contents and parses them as a flat configuration
-  /// file. The parsing behavior can be customized using [options] and [readOptions].
+  /// Include directives are left as ordinary entries; use [parseWithIncludes]
+  /// to follow them.
   ///
-  /// Example:
   /// ```dart
-  /// final file = File('config.flat');
-  /// final doc = await file.parseFlat();
+  /// final doc = await File('config.flat').parseFlat();
   /// ```
   Future<FlatDocument> parseFlat({
     FlatParseOptions options = const FlatParseOptions(),
@@ -111,143 +30,80 @@ extension FlatConfigIO on File {
     return parseStringStream(lines, options: options);
   }
 
-  /// Parses this file synchronously into a [FlatDocument].
+  /// Parses this file into a [FlatDocument], reading it in one go.
   ///
-  /// This is a synchronous version of [parseFlat] that reads the entire file
-  /// into memory before parsing. Use this when you need synchronous access
-  /// to the configuration data.
-  ///
-  /// Example:
-  /// ```dart
-  /// final file = File('config.flat');
-  /// final doc = file.parseFlatSync();
-  /// ```
+  /// The synchronous counterpart to [parseFlat], which streams instead.
   FlatDocument parseFlatSync({
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) {
-    final content = readAsStringSync(encoding: readOptions.encoding);
+  }) => FlatDocument.parse(
+    readAsStringSync(encoding: readOptions.encoding),
+    options: options,
+    lineSplitter: readOptions.lineSplitter,
+  );
 
-    return FlatDocument.parse(
-      content,
-      options: options,
-      lineSplitter: readOptions.lineSplitter,
-    );
-  }
-
-  /// Parses this file synchronously with automatic include processing.
+  /// Parses this file and follows every include it names.
   ///
-  /// Synchronous counterpart to [parseWithIncludes]. Mirrors Ghostty semantics
-  /// and uses the same options and behaviors.
+  /// Relative paths resolve against this file's directory, a `?` prefix marks
+  /// an include optional, cycles are detected, and
+  /// [FlatIncludeOptions.mergePolicy] decides the resulting order.
+  ///
+  /// ```dart
+  /// final doc = await File('main.conf').parseWithIncludes();
+  /// ```
+  ///
+  /// Throws [CircularIncludeException] on a cycle,
+  /// [MissingIncludeException] for a required include that is not there, and
+  /// [MaxIncludeDepthExceededException] past
+  /// [FlatIncludeOptions.maxIncludeDepth].
+  Future<FlatDocument> parseWithIncludes({
+    FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
+    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+  }) => FlatConfigIncludes.parseWithIncludes(
+    this,
+    options: options,
+    includeOptions: includeOptions,
+    readOptions: readOptions,
+  );
+
+  /// Parses this file and follows every include it names, synchronously.
   FlatDocument parseWithIncludesSync({
     FlatParseOptions options = const FlatParseOptions(),
+    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
   }) => FlatConfigIncludes.parseWithIncludesSync(
     this,
     options: options,
+    includeOptions: includeOptions,
     readOptions: readOptions,
   );
 
-  /// Writes a [FlatDocument] to this file asynchronously.
+  /// Writes [doc] to this file, replacing whatever was there.
   ///
-  /// This method encodes the document to text and writes it to the file.
-  /// The encoding and formatting behavior can be customized using [options]
-  /// and [writeOptions].
-  ///
-  /// Example:
   /// ```dart
-  /// final file = File('config.flat');
-  /// final doc = FlatDocument.fromMap({'background': '343028'});
-  /// await file.writeFlat(doc);
+  /// await File('config.flat').writeFlat(doc);
   /// ```
   Future<void> writeFlat(
     FlatDocument doc, {
     FlatEncodeOptions options = const FlatEncodeOptions(),
     FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
-  }) async {
-    await writeAsBytes(
-      doc.encodeToBytesWithWriteOptions(
-        options: options,
-        writeOptions: writeOptions,
-      ),
-    );
-  }
+  }) => writeAsBytes(
+    doc.encodeToBytesWithWriteOptions(
+      options: options,
+      writeOptions: writeOptions,
+    ),
+  );
 
-  /// Writes a [FlatDocument] to this file synchronously.
-  ///
-  /// This is a synchronous version of [writeFlat] that writes the document
-  /// to the file immediately. Use this when you need synchronous file operations.
-  ///
-  /// Example:
-  /// ```dart
-  /// final file = File('config.flat');
-  /// final doc = FlatDocument.fromMap({'background': '343028'});
-  /// file.writeFlatSync(doc);
-  /// ```
+  /// Writes [doc] to this file, replacing whatever was there, synchronously.
   void writeFlatSync(
     FlatDocument doc, {
     FlatEncodeOptions options = const FlatEncodeOptions(),
     FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
-  }) {
-    writeAsBytesSync(
-      doc.encodeToBytesWithWriteOptions(
-        options: options,
-        writeOptions: writeOptions,
-      ),
-    );
-  }
-}
-
-/// Adds file I/O functionality to [FlatDocument].
-///
-/// This extension adds methods to [FlatDocument] for saving configuration data
-/// to files. It provides both asynchronous and synchronous methods for writing
-/// documents to the filesystem.
-extension FlatDocumentIO on FlatDocument {
-  /// Saves this document to a file asynchronously.
-  ///
-  /// This method creates or overwrites a file at the given [path] with the
-  /// encoded contents of this document. The encoding and formatting behavior
-  /// can be customized using [options] and [writeOptions].
-  ///
-  /// Example:
-  /// ```dart
-  /// final doc = FlatDocument.fromMap({'background': '343028'});
-  /// await doc.saveToFile('config.flat');
-  /// ```
-  Future<void> saveToFile(
-    String path, {
-    FlatEncodeOptions options = const FlatEncodeOptions(),
-    FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
-  }) async {
-    await File(path).writeAsBytes(
-      encodeToBytesWithWriteOptions(
-        options: options,
-        writeOptions: writeOptions,
-      ),
-    );
-  }
-
-  /// Saves this document to a file synchronously.
-  ///
-  /// This is a synchronous version of [saveToFile] that writes the document
-  /// to the file immediately. Use this when you need synchronous file operations.
-  ///
-  /// Example:
-  /// ```dart
-  /// final doc = FlatDocument.fromMap({'background': '343028'});
-  /// doc.saveToFileSync('config.flat');
-  /// ```
-  void saveToFileSync(
-    String path, {
-    FlatEncodeOptions options = const FlatEncodeOptions(),
-    FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
-  }) {
-    File(path).writeAsBytesSync(
-      encodeToBytesWithWriteOptions(
-        options: options,
-        writeOptions: writeOptions,
-      ),
-    );
-  }
+  }) => writeAsBytesSync(
+    doc.encodeToBytesWithWriteOptions(
+      options: options,
+      writeOptions: writeOptions,
+    ),
+  );
 }

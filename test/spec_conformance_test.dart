@@ -1,5 +1,4 @@
 import 'package:flatconfig/flatconfig.dart';
-import 'package:flatconfig/src/parser_utils.dart';
 import 'package:test/test.dart';
 
 /// Regression tests for the rules SPEC.md fixes, one group per section.

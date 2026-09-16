@@ -90,40 +90,6 @@ extension FlatConfigIncludes on FlatDocument {
     ),
   );
 
-  /// Parses a configuration file with includes from a file path.
-  ///
-  /// This is a convenience method that creates a [File] object from the given
-  /// [path] and calls [parseWithIncludes].
-  ///
-  /// Example:
-  /// ```dart
-  /// final doc = await FlatConfigIncludes.parseWithIncludesFromPath('main.conf');
-  /// ```
-  static Future<FlatDocument> parseWithIncludesFromPath(
-    String path, {
-    FlatParseOptions options = const FlatParseOptions(),
-    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
-    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) async => parseWithIncludes(
-    File(path),
-    options: options,
-    includeOptions: includeOptions,
-    readOptions: readOptions,
-  );
-
-  /// Synchronous variant of [parseWithIncludesFromPath].
-  static FlatDocument parseWithIncludesFromPathSync(
-    String path, {
-    FlatParseOptions options = const FlatParseOptions(),
-    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
-    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) => parseWithIncludesSync(
-    File(path),
-    options: options,
-    includeOptions: includeOptions,
-    readOptions: readOptions,
-  );
-
   /// Resolves a canonical path for a file, handling symbolic links.
   ///
   /// This method attempts to resolve symbolic links to get the canonical path.
@@ -348,52 +314,4 @@ extension FlatConfigIncludes on FlatDocument {
   @visibleForTesting
   static String normalizeCanonicalPath(String path) =>
       path_utils.normalizeCanonicalPath(path);
-}
-
-/// Extensions on [File] for parsing flat configuration files with includes.
-///
-/// These extensions provide convenient methods for parsing configuration files
-/// directly from File objects with automatic include processing.
-extension FileIncludes on File {
-  /// Parses this configuration file with automatic include processing.
-  ///
-  /// This method parses the current file and automatically processes any
-  /// include directives found within it. The include key is configurable via
-  /// [FlatIncludeOptions.includeKey] (defaults to `config-file` for Ghostty compatibility).
-  /// The includes are processed recursively with cycle detection and support
-  /// for optional includes.
-  ///
-  /// Include processing follows Ghostty semantics:
-  /// - Include directives are processed at the end of the current file
-  /// - Later entries in the current file do not override entries from included files
-  /// - If multiple included files define the same key, the later include wins
-  /// - Defensive guard: includes have a maximum recursion depth (default 64)
-  /// - Optional includes are prefixed with `?` and are silently ignored if missing
-  /// - Relative paths are resolved relative to the including file's directory
-  /// - Absolute paths are used as-is
-  /// - Circular includes are detected and cause an exception
-  ///
-  /// Example:
-  /// ```dart
-  /// final file = File('main.conf');
-  /// final doc = await file.parseWithIncludes();
-  ///
-  /// // Custom include key
-  /// final doc = await file.parseWithIncludes(
-  ///   options: const FlatIncludeOptions(includeKey: 'include'),
-  /// );
-  /// ```
-  ///
-  /// Throws [CircularIncludeException] if a circular include is detected.
-  /// Throws [MissingIncludeException] if a required include file is missing.
-  Future<FlatDocument> parseWithIncludes({
-    FlatParseOptions options = const FlatParseOptions(),
-    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
-    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) async => FlatConfigIncludes.parseWithIncludes(
-    this,
-    options: options,
-    includeOptions: includeOptions,
-    readOptions: readOptions,
-  );
 }

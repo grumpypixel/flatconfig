@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 import 'package:path/path.dart' as p;
 
 Future<void> main() async {
@@ -26,7 +26,7 @@ config-file = ${base.path}
 config-file = mem:hotfix.conf
 ''';
 
-    final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+    final doc = parseWithIncludesSync(
       text,
       resolver: resolver,
       originId: p.join(temp.path, 'virtual_main.conf'),

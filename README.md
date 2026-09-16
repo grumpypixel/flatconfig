@@ -46,34 +46,33 @@ Then import it in your Dart code:
 import 'package:flatconfig/flatconfig.dart';
 ```
 
-### Platform Notes
+### The four libraries
 
-`flatconfig` is fully **Web/WASM-safe** – all core parsing and document features
-(`FlatDocument`, accessors, encoding, etc.) work on every platform.
+Pick the one that covers what you need. Each of the other three re-exports the
+core, so you never import two of them.
 
-🖥️ **File & Include APIs (I/O only):**
-`parseFlatFile(...)`, `parseFileWithIncludes(...)`, `File.parseFlat()` etc.
-require `dart:io` and **are not available on Flutter Web or WASM.**
+| Import | What it adds | Web/WASM |
+| --- | --- | --- |
+| `package:flatconfig/flatconfig.dart` | `FlatDocument`, entries, options, encoding, the primitive accessors | ✅ |
+| `package:flatconfig/flatconfig_includes.dart` | following `config-file` directives through a resolver | ✅ |
+| `package:flatconfig/flatconfig_accessors.dart` | `DateTime`, `Duration`, `Uri`, JSON and enum accessors | ✅ |
+| `package:flatconfig/flatconfig_io.dart` | reading and writing files, resolving includes from disk | ❌ needs `dart:io` |
 
-#### Works everywhere
-
-Use the in-memory API for web and WASM environments:
-
-```dart
-const raw = 'theme = dark';
-final doc = FlatDocument.parse(raw);
-print(doc['theme']); // dark
-```
-
-> For includes on Web/WASM, use `MemoryIncludeResolver` with `FlatConfigResolverIncludes.parseStringWithIncludes()`.
-
-#### Works on Dart VM / Flutter Desktop / CLI
-
-File helpers and include processing are available on platforms that support the `dart:io` library:
+Only `flatconfig_io.dart` touches `dart:io`, so a web or WASM program simply
+does not import it — there is no stub that compiles and then throws at runtime.
 
 ```dart
-final doc = await parseFlatFile('config.conf');
-final merged = await parseFileWithIncludes('main.conf');
+// Everywhere, including the browser.
+final doc = FlatDocument.parse('theme = dark');
+
+// Everywhere, with includes coming from wherever the resolver reaches.
+final merged = parseWithIncludesSync(
+  'config-file = theme.conf',
+  resolver: MemoryIncludeResolver({'theme.conf': 'background = 343028'}),
+);
+
+// Dart VM, Flutter desktop, CLI.
+final fromDisk = await File('main.conf').parseWithIncludes();
 ```
 
 ## Quick Start 🚀
@@ -104,29 +103,21 @@ void main() {
 }
 ```
 
-## Optional Sugar (File extensions, I/O only)
+## Files
 
 ```dart
 import 'dart:io';
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 
 Future<void> main() async {
   final doc = await File('config.conf').parseFlat();
-  final inc = await File('main.conf').parseWithIncludes(); // includes + merges recursively
+  final inc = await File('main.conf').parseWithIncludes(); // follows includes
 }
 ```
 
-## Web/WASM usage (in-memory)
-
-```dart
-import 'package:flatconfig/flatconfig.dart';
-
-void main() {
-  const raw = 'theme = dark';
-  final doc = FlatDocument.parse(raw);
-  print(doc['theme']); // dark
-}
-```
+Every file operation hangs off `File`, so a path is spelled the way it is
+everywhere else in Dart. There is no second spelling as a top-level function or
+as a method on the document.
 
 ## Syntax
 
@@ -286,9 +277,9 @@ final doc = FlatDocument.parse(
 
 ```dart
 import 'dart:io';
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 
-final fromFile = await parseFlatFile('config.conf');
+final fromFile = await File('config.conf').parseFlat();
 
 // Sync variant:
 final sync = File('config.conf').parseFlatSync();
@@ -402,7 +393,7 @@ Resolvers are tried in the order provided; the first resolver that returns a non
 
 flatconfig also supports **in-memory include resolution**, allowing you to merge configurations without touching the filesystem.
 
-Use `FlatConfigResolverIncludes.parseStringWithIncludesSync()` together with a
+Use `parseWithIncludesSync()` together with a
 `SyncIncludeResolver`:
 
 ```dart
@@ -411,7 +402,7 @@ final resolver = MemoryIncludeResolver({
   'mem:user.conf': 'theme = mint',
 }, prefix: 'mem:');
 
-final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+final doc = parseWithIncludesSync(
   'config-file = mem:base.conf\nconfig-file = ?mem:user.conf',
   resolver: resolver,
   originId: 'mem:main.conf',
@@ -442,7 +433,7 @@ final class AssetResolver implements IncludeResolver {
   }
 }
 
-final doc = await FlatConfigResolverIncludes.parseStringWithIncludes(
+final doc = await parseWithIncludes(
   await rootBundle.loadString('config/app.conf'),
   resolver: AssetResolver(),
   originId: 'asset:app.conf',
@@ -685,15 +676,13 @@ print(doc.toPrettyString(
 
 ```dart
 import 'dart:io';
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 
 Future<void> main() async {
-  final result = await parseFlatFile('config.conf');
-
-  final doc = result;
+  final doc = await File('config.conf').parseFlat();
   final updated = FlatDocument([
     ...doc.entries,
-    const FlatEntry('note', '  keep whitespace  '),
+    FlatEntry('note', '  keep whitespace  '),
   ]);
 
   await File('out.conf').writeFlat(updated);

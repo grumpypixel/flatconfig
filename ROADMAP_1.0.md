@@ -660,22 +660,39 @@ package:flatconfig/flatconfig_includes.dart   units, resolvers, include options,
 package:flatconfig/flatconfig_accessors.dart  DateTime, Duration, Uri, JSON, enum
 ```
 
-- [ ] This removes the web stub's `extension ... on Object`
+- [x] This removes the web stub's `extension ... on Object`
       (`lib/src/io_stub.dart:71`), which currently makes `'text'.parseFlat()`
       compile cleanly and fail at runtime. On web you simply don't import
       `flatconfig_io.dart`.
-- [ ] Choose **one** canonical file API. Today top-level functions, `File`
+- [x] Choose **one** canonical file API. Today top-level functions, `File`
       extensions, and `FlatDocument.saveToFile()` duplicate the same workflow.
       Proposed: keep only the `File` extensions.
-- [ ] Export every type appearing in a public signature. `FlatConverter` is
+- [x] Export every type appearing in a public signature. `FlatConverter` is
       exported as of 2.6 and `FlatAdvancedConverter` is deleted, so
       `FlatParseException` is what remains.
-- [ ] Decide where `splitRespectingQuotes` / `indexOfUnquoted` belong. Deleting
+- [x] Decide where `splitRespectingQuotes` / `indexOfUnquoted` belong. Deleting
       `getDocument` left them with no caller inside `lib/`, but they are exactly
       what someone writing the replacement converter needs, and SPEC §5 pins
       their behaviour. Export them or delete them; leaving them internal and
       unused is the one option that is wrong.
-- [ ] Delete the placeholder classes `FlatConfigIO {}` / `FlatDocumentIO {}`.
+- [x] Delete the placeholder classes `FlatConfigIO {}` / `FlatDocumentIO {}`.
+
+Both helpers were exported. `lib/src/io_stub.dart`, `lib/src/includes_stub.dart`
+and `lib/src/include_resolver_stub.dart` are deleted, and with them the
+conditional exports — the four barrels are plain libraries now.
+
+Three things done here that the list did not name:
+
+- Each of the three non-core barrels re-exports the core, so a program writes
+  one import rather than two. The Phase 3 "API-surface test per entry point" is
+  already in the tree as `test/barrel_*_test.dart`, one file per barrel,
+  importing nothing else.
+- `FlatConfigResolverIncludes.parseStringWithIncludes(Sync)` became the
+  top-level `parseWithIncludes` / `parseWithIncludesSync`. Static members on an
+  extension are a top-level function wearing a method's name. This is the 2.11
+  item that was deferred to here.
+- `File.parseWithIncludesSync` gained the `includeOptions` parameter the async
+  one already had. Nothing but the duplication was hiding that.
 
 ---
 
@@ -694,8 +711,9 @@ is missing is invariant testing.
 - [ ] **Editing-algebra property tests:** `doc.set(k,v)[k] == v`;
       `doc.remove(k).containsKey(k) == false`; `doc.add(...)` leaves the
       original untouched; `a.concat(b).toMap() == {...a.toMap(), ...b.toMap()}`.
-- [ ] **API-surface test** per entry point: import only that barrel, instantiate
-      every type appearing in a public signature.
+- [x] **API-surface test** per entry point: import only that barrel, instantiate
+      every type appearing in a public signature. Landed with 2.13 as
+      `test/barrel_core_test.dart` and its three siblings.
 - [ ] Regression test for each Phase 1 defect.
 - [ ] Under-exercised paths: strict vs lax stream parsing, BOM + CRLF + CR
       combined, include cycle detection, async resolver failure modes.

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 
 void main() async {
   // Create a temporary directory for our example
@@ -178,8 +178,8 @@ config-file = circular1.conf
     print('   - Parsed ${doc1.length} entries');
 
     // Method 2: Convenience function (preferred)
-    print('2. parseFileWithIncludes(String):');
-    final doc2 = await parseFileWithIncludes(mainFile.path);
+    print('2. File(String).parseWithIncludes():');
+    final doc2 = await File(mainFile.path).parseWithIncludes();
     print('   - Parsed ${doc2.length} entries');
     print('');
 

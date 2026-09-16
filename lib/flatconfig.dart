@@ -1,23 +1,34 @@
-// Main barrel file for the flatconfig package.
-//
-// This entrypoint is Web- and WASM-safe:
-// - Pure parsing APIs (FlatDocument, FlatEntry, etc.) are always available.
-// - File and include APIs are conditionally exported only on dart:io platforms.
+/// Reading, editing and writing the flat configuration format: one
+/// `key = value` per line, no nesting, duplicates kept in order.
+///
+/// ```dart
+/// import 'package:flatconfig/flatconfig.dart';
+///
+/// final doc = FlatDocument.parse('background = 343028\nfont-size = 14');
+/// print(doc.requireInt('font-size')); // 14
+/// ```
+///
+/// Web- and WASM-safe: nothing here touches `dart:io`. The rest of the package
+/// is in three further libraries, each of which re-exports this one:
+///
+/// - `package:flatconfig/flatconfig_io.dart` — reading and writing files. Needs
+///   `dart:io`, so it is the one library a web program cannot import.
+/// - `package:flatconfig/flatconfig_includes.dart` — following `config-file`
+///   directives through a resolver, from memory, a bundle or the network.
+/// - `package:flatconfig/flatconfig_accessors.dart` — accessors for `DateTime`,
+///   `Duration`, `Uri`, JSON and enums.
+library;
+
 export 'src/document.dart'
     show CollapseOrder, FlatConverter, FlatDocument, FlatEntry;
 export 'src/exceptions.dart'
     show
-        CircularIncludeException,
-        ConfigIncludeException,
         EmptyKeyException,
         FlatParseException,
         InvalidKeyException,
-        MaxIncludeDepthExceededException,
         MissingEqualsException,
-        MissingIncludeException,
         TrailingCharactersAfterQuoteException,
         UnterminatedQuoteException;
-// Map/List flattening → FlatDocument.fromMapData + options/hooks/utils
 export 'src/from_map_data.dart'
     show
         CsvItemEncoder,
@@ -29,38 +40,15 @@ export 'src/from_map_data.dart'
         flatDocumentFromMapData,
         rfc4180CsvItemEncoder,
         rfc4180Quote;
-
-/// Include resolver core types and interfaces
-export 'src/include_resolver_core.dart'
-    show
-        CompositeIncludeResolver,
-        IncludeRequest,
-        IncludeResolver,
-        IncludeUnit,
-        MemoryIncludeResolver,
-        Resolvers,
-        SyncCompositeIncludeResolver,
-        SyncIncludeResolver;
-// If we're on the web (dart:html), use the stub; otherwise use the IO version.
-export 'src/include_resolver_io.dart'
-    if (dart.library.html) 'src/include_resolver_stub.dart'
-    show FileIncludeResolver;
-// Conditional export: includes (export the whole file, otherwise the Extensions won't work)
-export 'src/includes_stub.dart' if (dart.library.io) 'src/includes.dart';
-// Conditional export: file I/O (export the whole file)
-export 'src/io_stub.dart' if (dart.library.io) 'src/io.dart';
 export 'src/issue.dart' show FlatIssue, FlatIssueKind, OnIssue;
 export 'src/lookup.dart' show FlatAbsent, FlatLookup, FlatPresent, FlatReset;
 export 'src/options.dart'
     show
         FlatEncodeOptions,
         FlatEnvOptions,
-        FlatIncludeOptions,
         FlatParseOptions,
         FlatStreamReadOptions,
         FlatStreamWriteOptions,
-        IncludeMergePolicy,
         MissingVariablePolicy,
         MultilineValuePolicy;
-// Resolver-based include support (web-safe core + conditional IO resolver)
-export 'src/parse_with_resolver.dart' show FlatConfigResolverIncludes;
+export 'src/parser_utils.dart' show indexOfUnquoted, splitRespectingQuotes;

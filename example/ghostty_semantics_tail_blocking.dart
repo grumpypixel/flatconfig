@@ -1,4 +1,4 @@
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_includes.dart';
 
 void main() {
   final mem = MemoryIncludeResolver({
@@ -11,7 +11,7 @@ key = from-tail     # ignored, cannot override
 new = ok            # allowed
 ''';
 
-  final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+  final doc = parseWithIncludesSync(
     text,
     resolver: mem,
     originId: 'mem:root',

@@ -6,64 +6,71 @@ import 'include_resolver_core.dart';
 import 'include_traversal.dart';
 import 'options.dart';
 
-/// Resolver-based parsing, for sources that are not the local filesystem.
+/// Parses [text] and follows every include it names through [resolver].
 ///
-/// Semantics match the file-based path: includes are followed depth-first,
-/// cycles are detected by canonical unit id, a `?` marks an include optional,
-/// and [FlatIncludeOptions.mergePolicy] decides the resulting order.
-extension FlatConfigResolverIncludes on FlatDocument {
-  /// Parses [text], following includes through [resolver].
-  ///
-  /// Asynchronous, so the resolver may read from the network, a database or a
-  /// Flutter asset bundle. Use [parseStringWithIncludesSync] when every
-  /// resolver involved can answer without awaiting.
-  static Future<FlatDocument> parseStringWithIncludes(
-    String text, {
-    required IncludeResolver resolver,
-    String? originId,
-    FlatParseOptions options = const FlatParseOptions(),
-    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
-    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) {
-    final traversal = IncludeTraversal(
-      options: options,
-      includeOptions: includeOptions,
-      readOptions: readOptions,
-    );
+/// Semantics match the file-based path in
+/// `package:flatconfig/flatconfig_io.dart`: includes are followed depth-first,
+/// cycles are detected by unit id, a `?` marks an include optional, and
+/// [FlatIncludeOptions.mergePolicy] decides the resulting order. [originId]
+/// names [text] itself, so a resolver can tell which unit a directive came
+/// from and a cycle back to the root is caught.
+///
+/// Asynchronous, so the resolver may read from the network, a database or a
+/// Flutter asset bundle. Use [parseWithIncludesSync] when every resolver
+/// involved can answer without awaiting.
+///
+/// ```dart
+/// final doc = await parseWithIncludes(
+///   'config-file = theme.conf',
+///   resolver: MemoryIncludeResolver({'theme.conf': 'background = 343028'}),
+/// );
+/// ```
+///
+/// Throws [CircularIncludeException] on a cycle, [MissingIncludeException] for
+/// a required include the resolver cannot answer, and
+/// [MaxIncludeDepthExceededException] past [FlatIncludeOptions.maxIncludeDepth].
+Future<FlatDocument> parseWithIncludes(
+  String text, {
+  required IncludeResolver resolver,
+  String? originId,
+  FlatParseOptions options = const FlatParseOptions(),
+  FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
+  FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+}) => _resolveUnit(
+  IncludeUnit(id: originId ?? _rootId, content: text),
+  fromUnitId: null,
+  resolver: resolver,
+  traversal: IncludeTraversal(
+    options: options,
+    includeOptions: includeOptions,
+    readOptions: readOptions,
+  ),
+  depth: 0,
+);
 
-    return _resolveUnit(
-      IncludeUnit(id: originId ?? _rootId, content: text),
-      fromUnitId: null,
-      resolver: resolver,
-      traversal: traversal,
-      depth: 0,
-    );
-  }
-
-  /// Parses [text], following includes through a synchronous [resolver].
-  static FlatDocument parseStringWithIncludesSync(
-    String text, {
-    required SyncIncludeResolver resolver,
-    String? originId,
-    FlatParseOptions options = const FlatParseOptions(),
-    FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
-    FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) {
-    final traversal = IncludeTraversal(
-      options: options,
-      includeOptions: includeOptions,
-      readOptions: readOptions,
-    );
-
-    return _resolveUnitSync(
-      IncludeUnit(id: originId ?? _rootId, content: text),
-      fromUnitId: null,
-      resolver: resolver,
-      traversal: traversal,
-      depth: 0,
-    );
-  }
-}
+/// Parses [text] and follows every include it names through a synchronous
+/// [resolver].
+///
+/// The synchronous counterpart to [parseWithIncludes], which every resolver in
+/// the chain must be able to satisfy.
+FlatDocument parseWithIncludesSync(
+  String text, {
+  required SyncIncludeResolver resolver,
+  String? originId,
+  FlatParseOptions options = const FlatParseOptions(),
+  FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
+  FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
+}) => _resolveUnitSync(
+  IncludeUnit(id: originId ?? _rootId, content: text),
+  fromUnitId: null,
+  resolver: resolver,
+  traversal: IncludeTraversal(
+    options: options,
+    includeOptions: includeOptions,
+    readOptions: readOptions,
+  ),
+  depth: 0,
+);
 
 const String _rootId = 'mem:<root>';
 

@@ -1,4 +1,4 @@
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_includes.dart';
 import 'package:test/test.dart';
 
 /// A resolver that can only answer after awaiting.
@@ -34,7 +34,7 @@ void main() {
         'palette.conf': 'background = 343028\n',
       });
 
-      final doc = await FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = await parseWithIncludes(
         'config-file = theme.conf\n',
         resolver: resolver,
         originId: 'net:root',
@@ -50,7 +50,7 @@ void main() {
         'palette.conf': 'background = 343028\n',
       });
 
-      await FlatConfigResolverIncludes.parseStringWithIncludes(
+      await parseWithIncludes(
         'config-file = theme.conf\n',
         resolver: resolver,
         originId: 'net:root',
@@ -66,16 +66,13 @@ void main() {
       final resolver = _AsyncResolver({});
 
       expect(
-        FlatConfigResolverIncludes.parseStringWithIncludes(
-          'config-file = nope.conf\n',
-          resolver: resolver,
-        ),
+        parseWithIncludes('config-file = nope.conf\n', resolver: resolver),
         throwsA(isA<MissingIncludeException>()),
       );
     });
 
     test('a missing optional include is skipped', () async {
-      final doc = await FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = await parseWithIncludes(
         'config-file = ?nope.conf\nk = v\n',
         resolver: _AsyncResolver({}),
       );
@@ -90,10 +87,7 @@ void main() {
       });
 
       expect(
-        FlatConfigResolverIncludes.parseStringWithIncludes(
-          'config-file = a.conf\n',
-          resolver: resolver,
-        ),
+        parseWithIncludes('config-file = a.conf\n', resolver: resolver),
         throwsA(isA<CircularIncludeException>()),
       );
     });
@@ -103,7 +97,7 @@ void main() {
     final units = {'mem:theme.conf': 'background = 343028\n'};
 
     test('through the sync entry point', () {
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         'config-file = theme.conf\n',
         resolver: MemoryIncludeResolver(units, prefix: 'mem:'),
       );
@@ -114,7 +108,7 @@ void main() {
     test('and through the async one, without a wrapper', () async {
       // SyncIncludeResolver derives the async method, so a sync source does
       // not have to be adapted to be used asynchronously.
-      final doc = await FlatConfigResolverIncludes.parseStringWithIncludes(
+      final doc = await parseWithIncludes(
         'config-file = theme.conf\n',
         resolver: MemoryIncludeResolver(units, prefix: 'mem:'),
       );
@@ -131,16 +125,13 @@ void main() {
     const source = 'config-file = theme.conf\nfont-size = 99\n';
 
     test('ghostty: the include wins', () {
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
-        source,
-        resolver: resolver,
-      );
+      final doc = parseWithIncludesSync(source, resolver: resolver);
 
       expect(doc['font-size'], '14');
     });
 
     test('lastWins: the line below wins', () {
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         source,
         resolver: resolver,
         includeOptions: const FlatIncludeOptions(

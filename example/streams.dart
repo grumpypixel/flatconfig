@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert' show LineSplitter, utf8;
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 
 // Reuse the same options everywhere. One handler covers every kind of
 // problem, so nothing here changes when the parser learns to report a new one.

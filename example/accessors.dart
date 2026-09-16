@@ -1,4 +1,3 @@
-import 'package:flatconfig/flatconfig.dart';
 import 'package:flatconfig/flatconfig_accessors.dart';
 
 void main() {

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 import 'package:test/test.dart';
 
 /// Tests for the options classes as value types.
@@ -143,8 +143,7 @@ void main() {
         'source = theme.conf\n',
       );
 
-      final doc = FlatConfigIncludes.parseWithIncludesFromPathSync(
-        '${dir.path}/main.conf',
+      final doc = File('${dir.path}/main.conf').parseWithIncludesSync(
         options: const FlatParseOptions(commentPrefix: ';'),
         includeOptions: const FlatIncludeOptions(includeKey: 'source'),
       );
@@ -201,10 +200,8 @@ void main() {
       }
 
       expect(
-        () => FlatConfigIncludes.parseWithIncludesFromPathSync(
-          'unused.conf',
-          includeOptions: options,
-        ),
+        () =>
+            File('unused.conf').parseWithIncludesSync(includeOptions: options),
         throwsArgumentError,
       );
     });

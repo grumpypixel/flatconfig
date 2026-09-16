@@ -3,10 +3,9 @@ library include_resolver_extras_test;
 
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 import 'package:flatconfig/src/include_resolver_core.dart' as core;
 // Direct import of the web stub to exercise its code path on VM
-import 'package:flatconfig/src/include_resolver_stub.dart' as stub;
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -128,15 +127,9 @@ void main() {
       },
     );
 
-    test('stub FileIncludeResolver returns null (web fallback class)', () {
-      final s = stub.FileIncludeResolver();
-      final unit = s.resolveSync(IncludeRequest('anything'));
-      expect(unit, isNull);
-    });
-
-    test('parseStringWithIncludes: no include leaves entries unchanged', () {
+    test('parseWithIncludes: no include leaves entries unchanged', () {
       final text = ['a = 1', 'b = 2'].join('\n');
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+      final doc = parseWithIncludesSync(
         text,
         resolver: core.MemoryIncludeResolver(const {}),
         originId: 'mem:root',
@@ -145,24 +138,20 @@ void main() {
       expect(doc['b'], '2');
     });
 
-    test('parseStringWithIncludes: the same call twice agrees', () {
+    test('parseWithIncludes: the same call twice agrees', () {
       final mem = core.MemoryIncludeResolver({
         'mem:a': 'x = 1\n',
       }, prefix: 'mem:');
 
       const text = 'config-file = mem:a\n';
       FlatDocument parse() =>
-          FlatConfigResolverIncludes.parseStringWithIncludesSync(
-            text,
-            resolver: mem,
-            originId: 'mem:root',
-          );
+          parseWithIncludesSync(text, resolver: mem, originId: 'mem:root');
 
       expect(parse()['x'], '1');
       expect(parse()['x'], '1');
     });
 
-    test('parseStringWithIncludes: depth limit is enforced', () {
+    test('parseWithIncludes: depth limit is enforced', () {
       final mem = core.MemoryIncludeResolver({
         'mem:root': 'config-file = mem:one\n',
         'mem:one': 'config-file = mem:two\n',
@@ -170,7 +159,7 @@ void main() {
       }, prefix: 'mem:');
 
       expect(
-        () => FlatConfigResolverIncludes.parseStringWithIncludesSync(
+        () => parseWithIncludesSync(
           'config-file = mem:root\n',
           resolver: mem,
           originId: 'mem:start',

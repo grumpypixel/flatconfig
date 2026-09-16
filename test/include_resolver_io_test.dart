@@ -3,7 +3,7 @@ library include_resolver_io_test;
 
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 

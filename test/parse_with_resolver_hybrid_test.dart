@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -26,7 +26,7 @@ void main() {
             'new = ok',
           ].join('\n');
 
-          final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+          final doc = parseWithIncludesSync(
             text,
             resolver: resolver,
             originId: p.join(tempDir.path, 'virtual_main.conf'),
@@ -56,7 +56,7 @@ void main() {
             FileIncludeResolver(),
           ]);
 
-          final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+          final doc = parseWithIncludesSync(
             'config-file = ${base.path}',
             resolver: resolver,
             originId: p.join(tempDir.path, 'main.conf'),
@@ -83,7 +83,7 @@ void main() {
           mem,
           FileIncludeResolver(),
         ]);
-        var doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+        var doc = parseWithIncludesSync(
           'config-file = ${p.relative(cfg.path, from: tempDir.path)}',
           resolver: resolver,
           originId: p.join(tempDir.path, 'root'),
@@ -92,7 +92,7 @@ void main() {
 
         // file before memory => file wins
         resolver = SyncCompositeIncludeResolver([FileIncludeResolver(), mem]);
-        doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+        doc = parseWithIncludesSync(
           'config-file = ${p.relative(cfg.path, from: tempDir.path)}',
           resolver: resolver,
           originId: p.join(tempDir.path, 'root'),
@@ -112,7 +112,7 @@ void main() {
 
         final text = 'config-file = "${cfg.path}"\n';
 
-        final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+        final doc = parseWithIncludesSync(
           text,
           resolver: resolver,
           originId: p.join(tempDir.path, 'root'),
@@ -146,7 +146,7 @@ void main() {
           'config-file = mem:hotfix.conf',
         ].join('\n');
 
-        final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+        final doc = parseWithIncludesSync(
           text,
           resolver: resolver,
           originId: p.join(tempDir.path, 'virtual_main.conf'),
@@ -184,7 +184,7 @@ void main() {
             'config-file = mem:later.conf', // x=from-mem (later include wins)
           ].join('\n');
 
-          final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+          final doc = parseWithIncludesSync(
             text,
             resolver: resolver,
             originId: p.join(temp.path, 'root'),

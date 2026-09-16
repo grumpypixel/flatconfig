@@ -1,4 +1,4 @@
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_includes.dart';
 
 void main() {
   // 1) Define your virtual "files"
@@ -26,7 +26,7 @@ version = 1.2.3
 ''';
 
   // 3) Parse with resolver
-  final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
+  final doc = parseWithIncludesSync(
     mainText,
     resolver: resolver,
     originId: 'mem:main.conf',

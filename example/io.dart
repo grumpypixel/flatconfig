@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_io.dart';
 
 Future<void> main() async {
   // Create a temp working folder for this example
@@ -25,8 +25,8 @@ servers = host=a,port=8080 | host=b,port=9090
   await File(cfgPath).writeAsString(sample, encoding: utf8);
 
   // 2) Parse using the convenience function
-  final docA = await parseFlatFile(cfgPath);
-  print('🔍 Parsed via parseFlatFile:');
+  final docA = await File(cfgPath).parseFlat();
+  print('🔍 Parsed via File.parseFlat:');
   print(docA.toPrettyString(alignColumns: true));
 
   // 3) Parse via File extension with custom parsing options
