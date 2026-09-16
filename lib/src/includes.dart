@@ -7,10 +7,10 @@ import 'document.dart';
 import 'exceptions.dart';
 import 'include_assembly.dart';
 import 'include_path_utils.dart';
+import 'include_traversal.dart';
 import 'options.dart';
 import 'parser.dart';
 import 'path_utils.dart' as path_utils;
-import 'validation.dart';
 
 /// Extensions for parsing configuration files with includes.
 ///
@@ -63,14 +63,13 @@ extension FlatConfigIncludes on FlatDocument {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) async => parseWithIncludesRecursive(
     file,
-    options: options,
-    includeOptions: includeOptions,
-    readOptions: readOptions,
-    visited: <String>{},
-    cache: cache ?? <String, FlatDocument>{},
+    traversal: IncludeTraversal(
+      options: options,
+      includeOptions: includeOptions,
+      readOptions: readOptions,
+    ),
   );
 
   /// Synchronous variant of [parseWithIncludes].
@@ -82,14 +81,13 @@ extension FlatConfigIncludes on FlatDocument {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) => parseWithIncludesRecursiveSync(
     file,
-    options: options,
-    includeOptions: includeOptions,
-    readOptions: readOptions,
-    visited: <String>{},
-    cache: cache ?? <String, FlatDocument>{},
+    traversal: IncludeTraversal(
+      options: options,
+      includeOptions: includeOptions,
+      readOptions: readOptions,
+    ),
   );
 
   /// Parses a configuration file with includes from a file path.
@@ -106,13 +104,11 @@ extension FlatConfigIncludes on FlatDocument {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) async => parseWithIncludes(
     File(path),
     options: options,
     includeOptions: includeOptions,
     readOptions: readOptions,
-    cache: cache,
   );
 
   /// Synchronous variant of [parseWithIncludesFromPath].
@@ -121,13 +117,11 @@ extension FlatConfigIncludes on FlatDocument {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) => parseWithIncludesSync(
     File(path),
     options: options,
     includeOptions: includeOptions,
     readOptions: readOptions,
-    cache: cache,
   );
 
   /// Resolves a canonical path for a file, handling symbolic links.
@@ -176,12 +170,8 @@ extension FlatConfigIncludes on FlatDocument {
   static Future<List<List<FlatEntry>>> processIncludes(
     List<String> includePaths,
     File baseFile,
-    String canonicalPath,
-    FlatParseOptions options,
-    FlatIncludeOptions includeOptions,
-    FlatStreamReadOptions readOptions,
-    Set<String> visited,
-    Map<String, FlatDocument> cache, {
+    String canonicalPath, {
+    required IncludeTraversal traversal,
     int depth = 0,
   }) async {
     final groups = <List<FlatEntry>>[];
@@ -194,20 +184,14 @@ extension FlatConfigIncludes on FlatDocument {
 
       final includedFile = _resolveChild(baseFile.parent, processed.path);
       if (!await includedFile.exists()) {
-        if (!processed.isOptional) {
-          throw MissingIncludeException(canonicalPath, processed.path);
-        }
-        groups.add(const []);
+        groups.add(_missingOrThrow(processed, canonicalPath));
         continue;
       }
 
       final subDoc = await parseWithIncludesRecursive(
         includedFile,
-        options: options,
-        includeOptions: includeOptions,
-        readOptions: readOptions,
-        visited: visited,
-        cache: cache,
+        traversal: traversal,
+        includedFrom: canonicalPath,
         depth: depth + 1,
       );
       groups.add(subDoc.entries);
@@ -217,15 +201,12 @@ extension FlatConfigIncludes on FlatDocument {
   }
 
   /// Synchronous include processing.
+  @visibleForTesting
   static List<List<FlatEntry>> processIncludesSync(
     List<String> includePaths,
     File baseFile,
-    String canonicalPath,
-    FlatParseOptions options,
-    FlatIncludeOptions includeOptions,
-    FlatStreamReadOptions readOptions,
-    Set<String> visited,
-    Map<String, FlatDocument> cache, {
+    String canonicalPath, {
+    required IncludeTraversal traversal,
     int depth = 0,
   }) {
     final groups = <List<FlatEntry>>[];
@@ -238,26 +219,33 @@ extension FlatConfigIncludes on FlatDocument {
 
       final includedFile = _resolveChild(baseFile.parent, processed.path);
       if (!includedFile.existsSync()) {
-        if (!processed.isOptional) {
-          throw MissingIncludeException(canonicalPath, processed.path);
-        }
-        groups.add(const []);
+        groups.add(_missingOrThrow(processed, canonicalPath));
         continue;
       }
 
       final subDoc = parseWithIncludesRecursiveSync(
         includedFile,
-        options: options,
-        includeOptions: includeOptions,
-        readOptions: readOptions,
-        visited: visited,
-        cache: cache,
+        traversal: traversal,
+        includedFrom: canonicalPath,
         depth: depth + 1,
       );
       groups.add(subDoc.entries);
     }
 
     return groups;
+  }
+
+  /// An unresolved include contributes nothing when optional, and throws
+  /// otherwise.
+  static List<FlatEntry> _missingOrThrow(
+    ProcessedIncludePath processed,
+    String includingPath,
+  ) {
+    if (processed.isOptional) {
+      return const [];
+    }
+
+    throw MissingIncludeException(includingPath, processed.path);
   }
 
   /// Internal recursive method for parsing with includes.
@@ -267,135 +255,91 @@ extension FlatConfigIncludes on FlatDocument {
   @visibleForTesting
   static Future<FlatDocument> parseWithIncludesRecursive(
     File file, {
-    required FlatParseOptions options,
-    required FlatIncludeOptions includeOptions,
-    required FlatStreamReadOptions readOptions,
-    required Set<String> visited,
-    required Map<String, FlatDocument> cache,
+    required IncludeTraversal traversal,
+    String? includedFrom,
     int depth = 0,
   }) async {
-    // Enforce maximum include depth
-    checkIncludeDepth(includeOptions.maxIncludeDepth);
-    if (depth > includeOptions.maxIncludeDepth) {
-      throw MaxIncludeDepthExceededException(
-        file.path,
-        depth,
-        includeOptions.maxIncludeDepth,
-      );
-    }
-    // Canonicalize the path for cycle detection
     final canonicalPath = await _canonical(file);
-
-    // Check for circular includes
-    if (!visited.add(canonicalPath)) {
-      throw CircularIncludeException(file.path, canonicalPath);
+    final done = traversal.begin(
+      canonicalPath,
+      reportedAs: file.path,
+      includedFrom: includedFrom,
+      depth: depth,
+    );
+    if (done != null) {
+      return done;
     }
 
-    // Check if file exists
     if (!await file.exists()) {
       throw MissingIncludeException(file.path, file.path);
     }
 
-    // Return cached parse if available
-    final cached = cache[canonicalPath];
-    if (cached != null) {
-      visited.remove(canonicalPath);
-
-      return cached;
-    }
-
-    // Parse the current file
     final doc = await parseByteStream(
       file.openRead(),
-      options: options,
-      readOptions: readOptions,
+      options: traversal.options,
+      readOptions: traversal.readOptions,
     );
 
-    final collected = collectIncludes(doc, includeOptions);
-
     final groups = await processIncludes(
-      collected.includeTargets,
+      collectIncludes(doc, traversal.includeOptions).includeTargets,
       file,
       canonicalPath,
-      options,
-      includeOptions,
-      readOptions,
-      visited,
-      cache,
+      traversal: traversal,
       depth: depth,
     );
 
-    final result = assembleIncludedDocument(doc, includeOptions, groups);
-
-    // Remove the current file from visited set to allow it to be included again
-    // in different contexts (e.g., if it's included from different files)
-    visited.remove(canonicalPath);
-
-    // Cache the parsed document for future use
-    cache[canonicalPath] = result;
-
-    return result;
+    return _assemble(doc, canonicalPath, groups, traversal);
   }
 
   /// Internal synchronous recursive method for parsing with includes.
+  @visibleForTesting
   static FlatDocument parseWithIncludesRecursiveSync(
     File file, {
-    required FlatParseOptions options,
-    required FlatIncludeOptions includeOptions,
-    required FlatStreamReadOptions readOptions,
-    required Set<String> visited,
-    required Map<String, FlatDocument> cache,
+    required IncludeTraversal traversal,
+    String? includedFrom,
     int depth = 0,
   }) {
-    checkIncludeDepth(includeOptions.maxIncludeDepth);
-    if (depth > includeOptions.maxIncludeDepth) {
-      throw MaxIncludeDepthExceededException(
-        file.path,
-        depth,
-        includeOptions.maxIncludeDepth,
-      );
+    final canonicalPath = _canonicalSync(file);
+    final done = traversal.begin(
+      canonicalPath,
+      reportedAs: file.path,
+      includedFrom: includedFrom,
+      depth: depth,
+    );
+    if (done != null) {
+      return done;
     }
 
-    final canonicalPath = _canonicalSync(file);
-    if (!visited.add(canonicalPath)) {
-      throw CircularIncludeException(file.path, canonicalPath);
-    }
     if (!file.existsSync()) {
       throw MissingIncludeException(file.path, file.path);
     }
-    final cached = cache[canonicalPath];
-    if (cached != null) {
-      visited.remove(canonicalPath);
-      return cached;
-    }
 
-    final content = file.readAsStringSync(encoding: readOptions.encoding);
     final doc = FlatDocument.parse(
-      content,
-      options: options,
-      lineSplitter: readOptions.lineSplitter,
+      file.readAsStringSync(encoding: traversal.readOptions.encoding),
+      options: traversal.options,
+      lineSplitter: traversal.readOptions.lineSplitter,
     );
 
-    final collected = collectIncludes(doc, includeOptions);
-
     final groups = processIncludesSync(
-      collected.includeTargets,
+      collectIncludes(doc, traversal.includeOptions).includeTargets,
       file,
       canonicalPath,
-      options,
-      includeOptions,
-      readOptions,
-      visited,
-      cache,
+      traversal: traversal,
       depth: depth,
     );
 
-    final result = assembleIncludedDocument(doc, includeOptions, groups);
-
-    visited.remove(canonicalPath);
-    cache[canonicalPath] = result;
-    return result;
+    return _assemble(doc, canonicalPath, groups, traversal);
   }
+
+  static FlatDocument _assemble(
+    FlatDocument doc,
+    String canonicalPath,
+    List<List<FlatEntry>> groups,
+    IncludeTraversal traversal,
+  ) => traversal.finish(
+    canonicalPath,
+    assembleIncludedDocument(doc, traversal.includeOptions, groups),
+  );
 
   /// Normalizes a canonical path for case-insensitive filesystems.
   ///
@@ -446,12 +390,10 @@ extension FileIncludes on File {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) async => FlatConfigIncludes.parseWithIncludes(
     this,
     options: options,
     includeOptions: includeOptions,
     readOptions: readOptions,
-    cache: cache,
   );
 }

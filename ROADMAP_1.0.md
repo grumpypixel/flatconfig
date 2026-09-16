@@ -631,9 +631,25 @@ Cache keys contain only a canonical path or unit ID, but cached output also
 depends on content, parse options, encoding, include key, and resolver
 behavior. Reuse after any of those change silently returns stale output.
 
-- [ ] Prefer invocation-local caches; drop the public `cache:` parameter.
-- [ ] If a public cache remains, use a typed abstraction whose key includes the
+- [x] Prefer invocation-local caches; drop the public `cache:` parameter.
+- [x] If a public cache remains, use a typed abstraction whose key includes the
       relevant inputs, with explicit invalidation.
+
+Done by taking the first option: no public cache remains, so the second point
+is moot. The invocation-local cache lives in `IncludeTraversal`
+(`lib/src/include_traversal.dart`), which also owns the options, the cycle
+stack and the depth check, and is shared by the file-based and resolver-based
+paths — those had four near-identical copies of enter/finish between them.
+
+Two deviations worth knowing:
+
+- `CircularIncludeException.includingFile` now names the unit that held the
+  directive. The file-based path used to pass the cycling file's own path as
+  the includer, so the message read "included by" itself.
+- The resolver is still consulted once per directive, even for a unit already
+  finished in this traversal. Resolution has to happen first: the cache is
+  keyed by unit id, and only the resolver knows which id a target maps to.
+  Parsing and assembly are skipped, which is the expensive part.
 
 ### 2.13 Split the entry points
 

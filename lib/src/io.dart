@@ -43,13 +43,11 @@ Future<FlatDocument> parseFileWithIncludes(
   FlatParseOptions options = const FlatParseOptions(),
   FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  Map<String, FlatDocument>? cache,
 }) async => FlatConfigIncludes.parseWithIncludesFromPath(
   path,
   options: options,
   includeOptions: includeOptions,
   readOptions: readOptions,
-  cache: cache,
 );
 
 /// Writes a [FlatDocument] to a file asynchronously.
@@ -144,12 +142,10 @@ extension FlatConfigIO on File {
   FlatDocument parseWithIncludesSync({
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) => FlatConfigIncludes.parseWithIncludesSync(
     this,
     options: options,
     readOptions: readOptions,
-    cache: cache,
   );
 
   /// Writes a [FlatDocument] to this file asynchronously.

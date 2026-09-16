@@ -4,6 +4,7 @@ library includes_test;
 import 'dart:io';
 
 import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/src/include_traversal.dart';
 import 'package:flatconfig/src/includes.dart' as inc;
 import 'package:flatconfig/src/parser_utils.dart';
 import 'package:flatconfig/src/path_utils.dart';
@@ -277,7 +278,7 @@ config-file = missing.conf
       );
     });
 
-    test('sync cache avoids re-parsing same files', () async {
+    test('sync two files can include the same file', () async {
       final sharedFile = File('${tempDir.path}/shared.conf');
       await sharedFile.writeAsString('theme = dark\nfont-size = 16\n');
 
@@ -290,27 +291,13 @@ config-file = missing.conf
         'foreground = f3d735\nconfig-file = shared.conf\n',
       );
 
-      final cache = <String, FlatDocument>{};
-      final doc1 = inc.FlatConfigIncludes.parseWithIncludesSync(
-        main1,
-        cache: cache,
-      );
-      final doc2 = inc.FlatConfigIncludes.parseWithIncludesSync(
-        main2,
-        cache: cache,
-      );
+      final doc1 = inc.FlatConfigIncludes.parseWithIncludesSync(main1);
+      final doc2 = inc.FlatConfigIncludes.parseWithIncludesSync(main2);
 
       expect(doc1['background'], equals('343028'));
       expect(doc1['theme'], equals('dark'));
       expect(doc2['foreground'], equals('f3d735'));
       expect(doc2['font-size'], equals('16'));
-
-      final canonical = sharedFile.resolveSymbolicLinksSync();
-      final normalizedCanonical = (Platform.isWindows || Platform.isMacOS)
-          ? canonical.toLowerCase()
-          : canonical;
-      expect(cache.containsKey(normalizedCanonical), isTrue);
-      expect(cache[normalizedCanonical]!['theme'], equals('dark'));
     });
 
     test('sync custom include key', () async {
@@ -341,11 +328,11 @@ include = theme.conf
         ['included.conf'],
         baseFile,
         baseFile.absolute.path,
-        const FlatParseOptions(),
-        const FlatIncludeOptions(),
-        const FlatStreamReadOptions(),
-        <String>{},
-        <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       // One group per directive; this file has a single include.
@@ -363,11 +350,11 @@ include = theme.conf
         ['?missing.conf'],
         baseFile,
         baseFile.absolute.path,
-        const FlatParseOptions(),
-        const FlatIncludeOptions(),
-        const FlatStreamReadOptions(),
-        <String>{},
-        <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       // A missing optional include still gets a group, an empty one, so a
@@ -385,11 +372,11 @@ include = theme.conf
         ['"included.conf"'],
         baseFile,
         baseFile.absolute.path,
-        const FlatParseOptions(),
-        const FlatIncludeOptions(),
-        const FlatStreamReadOptions(),
-        <String>{},
-        <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       expect(entries.expand((group) => group), [FlatEntry('theme', 'light')]);
@@ -403,11 +390,11 @@ include = theme.conf
           ['', '  ', 'valid.conf'],
           baseFile,
           baseFile.absolute.path,
-          const FlatParseOptions(),
-          const FlatIncludeOptions(),
-          const FlatStreamReadOptions(),
-          <String>{},
-          <String, FlatDocument>{},
+          traversal: IncludeTraversal(
+            options: const FlatParseOptions(),
+            includeOptions: const FlatIncludeOptions(),
+            readOptions: const FlatStreamReadOptions(),
+          ),
         ),
         throwsA(isA<MissingIncludeException>()),
       );
@@ -423,11 +410,11 @@ include = theme.conf
 
         final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           testFile,
-          options: const FlatParseOptions(),
-          includeOptions: const FlatIncludeOptions(),
-          readOptions: const FlatStreamReadOptions(),
-          visited: <String>{},
-          cache: <String, FlatDocument>{},
+          traversal: IncludeTraversal(
+            options: const FlatParseOptions(),
+            includeOptions: const FlatIncludeOptions(),
+            readOptions: const FlatStreamReadOptions(),
+          ),
         );
 
         expect(doc.length, equals(2));
@@ -446,11 +433,11 @@ config-file = cycle.conf
       expect(
         () => inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           testFile,
-          options: const FlatParseOptions(),
-          includeOptions: const FlatIncludeOptions(),
-          readOptions: const FlatStreamReadOptions(),
-          visited: <String>{},
-          cache: <String, FlatDocument>{},
+          traversal: IncludeTraversal(
+            options: const FlatParseOptions(),
+            includeOptions: const FlatIncludeOptions(),
+            readOptions: const FlatStreamReadOptions(),
+          ),
         ),
         throwsA(isA<CircularIncludeException>()),
       );
@@ -462,11 +449,11 @@ config-file = cycle.conf
       expect(
         () => inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           testFile,
-          options: const FlatParseOptions(),
-          includeOptions: const FlatIncludeOptions(),
-          readOptions: const FlatStreamReadOptions(),
-          visited: <String>{},
-          cache: <String, FlatDocument>{},
+          traversal: IncludeTraversal(
+            options: const FlatParseOptions(),
+            includeOptions: const FlatIncludeOptions(),
+            readOptions: const FlatStreamReadOptions(),
+          ),
         ),
         throwsA(isA<MissingIncludeException>()),
       );
@@ -490,11 +477,11 @@ font-size = 14
 
         final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           mainFile,
-          options: const FlatParseOptions(),
-          includeOptions: const FlatIncludeOptions(),
-          readOptions: const FlatStreamReadOptions(),
-          visited: <String>{},
-          cache: <String, FlatDocument>{},
+          traversal: IncludeTraversal(
+            options: const FlatParseOptions(),
+            includeOptions: const FlatIncludeOptions(),
+            readOptions: const FlatStreamReadOptions(),
+          ),
         );
 
         expect(doc.length, equals(3));
@@ -516,11 +503,11 @@ include = theme.conf
 
       final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
         mainFile,
-        options: const FlatParseOptions(),
-        includeOptions: const FlatIncludeOptions(includeKey: 'include'),
-        readOptions: const FlatStreamReadOptions(),
-        visited: <String>{},
-        cache: <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(includeKey: 'include'),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       expect(doc.length, equals(2));
@@ -537,11 +524,11 @@ config-file = ?optional.conf
 
       final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
         mainFile,
-        options: const FlatParseOptions(),
-        includeOptions: const FlatIncludeOptions(),
-        readOptions: const FlatStreamReadOptions(),
-        visited: <String>{},
-        cache: <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       expect(doc.length, equals(1));
@@ -565,11 +552,11 @@ foreground = f3d735
 
         final doc = inc.FlatConfigIncludes.parseWithIncludesRecursiveSync(
           mainFile,
-          options: const FlatParseOptions(),
-          includeOptions: const FlatIncludeOptions(),
-          readOptions: const FlatStreamReadOptions(),
-          visited: <String>{},
-          cache: <String, FlatDocument>{},
+          traversal: IncludeTraversal(
+            options: const FlatParseOptions(),
+            includeOptions: const FlatIncludeOptions(),
+            readOptions: const FlatStreamReadOptions(),
+          ),
         );
 
         expect(doc.length, equals(3));
@@ -1339,11 +1326,11 @@ font-size = 16
         ['included.conf'], // relative path
         baseFile,
         baseFile.absolute.path,
-        const FlatParseOptions(),
-        const FlatIncludeOptions(),
-        const FlatStreamReadOptions(),
-        <String>{},
-        <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       // Verify the entries were processed correctly
@@ -1364,11 +1351,11 @@ font-size = 16
         ['?missing.conf'], // optional include
         baseFile,
         baseFile.absolute.path,
-        const FlatParseOptions(),
-        const FlatIncludeOptions(),
-        const FlatStreamReadOptions(),
-        <String>{},
-        <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       // Should return empty list since file doesn't exist
@@ -1392,11 +1379,11 @@ theme = light
         ['"included.conf"'], // quoted path
         baseFile,
         baseFile.absolute.path,
-        const FlatParseOptions(),
-        const FlatIncludeOptions(),
-        const FlatStreamReadOptions(),
-        <String>{},
-        <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       // Verify the entries were processed correctly
@@ -1416,11 +1403,11 @@ foreground = f3d735
         // Test the parseWithIncludesRecursive method directly
         final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
           testFile,
-          options: const FlatParseOptions(),
-          includeOptions: const FlatIncludeOptions(),
-          readOptions: const FlatStreamReadOptions(),
-          visited: <String>{},
-          cache: <String, FlatDocument>{},
+          traversal: IncludeTraversal(
+            options: const FlatParseOptions(),
+            includeOptions: const FlatIncludeOptions(),
+            readOptions: const FlatStreamReadOptions(),
+          ),
         );
 
         // Verify the document was parsed correctly
@@ -1442,11 +1429,11 @@ config-file = cycle.conf
       try {
         await inc.FlatConfigIncludes.parseWithIncludesRecursive(
           testFile,
-          options: const FlatParseOptions(),
-          includeOptions: const FlatIncludeOptions(),
-          readOptions: const FlatStreamReadOptions(),
-          visited: <String>{},
-          cache: <String, FlatDocument>{},
+          traversal: IncludeTraversal(
+            options: const FlatParseOptions(),
+            includeOptions: const FlatIncludeOptions(),
+            readOptions: const FlatStreamReadOptions(),
+          ),
         );
         fail('Expected CircularIncludeException to be thrown');
       } catch (e) {
@@ -1462,11 +1449,11 @@ config-file = cycle.conf
       try {
         await inc.FlatConfigIncludes.parseWithIncludesRecursive(
           testFile,
-          options: const FlatParseOptions(),
-          includeOptions: const FlatIncludeOptions(),
-          readOptions: const FlatStreamReadOptions(),
-          visited: <String>{},
-          cache: <String, FlatDocument>{},
+          traversal: IncludeTraversal(
+            options: const FlatParseOptions(),
+            includeOptions: const FlatIncludeOptions(),
+            readOptions: const FlatStreamReadOptions(),
+          ),
         );
         fail('Expected MissingIncludeException to be thrown');
       } catch (e) {
@@ -1493,11 +1480,11 @@ font-size = 14
       // Test the parseWithIncludesRecursive method directly
       final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
         mainFile,
-        options: const FlatParseOptions(),
-        includeOptions: const FlatIncludeOptions(),
-        readOptions: const FlatStreamReadOptions(),
-        visited: <String>{},
-        cache: <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       // Verify Ghostty semantics: later entries do not override includes
@@ -1527,11 +1514,11 @@ foreground = f3d735
       // Test with custom include key
       final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
         mainFile,
-        options: const FlatParseOptions(),
-        includeOptions: const FlatIncludeOptions(includeKey: 'include'),
-        readOptions: const FlatStreamReadOptions(),
-        visited: <String>{},
-        cache: <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(includeKey: 'include'),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       // Verify the include was processed
@@ -1553,11 +1540,11 @@ config-file = ?optional.conf
       // Test the parseWithIncludesRecursive method directly
       final doc = await inc.FlatConfigIncludes.parseWithIncludesRecursive(
         mainFile,
-        options: const FlatParseOptions(),
-        includeOptions: const FlatIncludeOptions(),
-        readOptions: const FlatStreamReadOptions(),
-        visited: <String>{},
-        cache: <String, FlatDocument>{},
+        traversal: IncludeTraversal(
+          options: const FlatParseOptions(),
+          includeOptions: const FlatIncludeOptions(),
+          readOptions: const FlatStreamReadOptions(),
+        ),
       );
 
       // Verify only main entries are present
@@ -1639,12 +1626,8 @@ foreground = f3d735
 config-file = shared.conf
 ''');
 
-        // Parse both files with the same cache
-        final cache = <String, FlatDocument>{};
-
-        final doc1 = await main1.parseWithIncludes(cache: cache);
-
-        final doc2 = await main2.parseWithIncludes(cache: cache);
+        final doc1 = await main1.parseWithIncludes();
+        final doc2 = await main2.parseWithIncludes();
 
         // Both documents should have the shared entries
         expect(doc1['theme'], equals('dark'));
@@ -1654,18 +1637,10 @@ config-file = shared.conf
         expect(doc2['theme'], equals('dark'));
         expect(doc2['font-size'], equals('16'));
         expect(doc2['foreground'], equals('f3d735'));
-
-        // The cache should contain the shared file
-        final canonicalPath = await sharedFile.resolveSymbolicLinks();
-        final normalizedCanonicalPath = (Platform.isWindows || Platform.isMacOS)
-            ? canonicalPath.toLowerCase()
-            : canonicalPath;
-        expect(cache.containsKey(normalizedCanonicalPath), isTrue);
-        expect(cache[normalizedCanonicalPath]!['theme'], equals('dark'));
       },
     );
 
-    test('parseWithIncludes cache works with nested includes', () async {
+    test('parseWithIncludes follows nested includes to the bottom', () async {
       // Create a deeply nested include structure
       final level3 = File('${tempDir.path}/level3.conf');
       await level3.writeAsString('''
@@ -1690,18 +1665,13 @@ root-setting = value0
 config-file = level1.conf
 ''');
 
-      // Parse with cache
-      final cache = <String, FlatDocument>{};
-      final doc = await main.parseWithIncludes(cache: cache);
+      final doc = await main.parseWithIncludes();
 
       // Verify all settings are present
       expect(doc['root-setting'], equals('value0'));
       expect(doc['top-setting'], equals('value1'));
       expect(doc['mid-setting'], equals('value2'));
       expect(doc['deep-setting'], equals('value3'));
-
-      // Verify all files are cached
-      expect(cache.length, equals(4)); // main, level1, level2, level3
     });
 
     test('parseWithIncludes handles empty include values gracefully', () async {

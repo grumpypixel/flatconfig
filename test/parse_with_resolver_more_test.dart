@@ -118,22 +118,6 @@ void main() {
       );
     });
 
-    test('explicit cache hit returns cached document and skips parsing', () {
-      final cache = <String, FlatDocument>{
-        'mem:root': FlatDocument([FlatEntry('cached', 'yes')]),
-      };
-
-      final doc = FlatConfigResolverIncludes.parseStringWithIncludesSync(
-        'a = 1\n',
-        resolver: MemoryIncludeResolver(const {}),
-        originId: 'mem:root',
-        cache: cache,
-      );
-
-      expect(doc['cached'], 'yes');
-      expect(doc['a'], isNull);
-    });
-
     test('quoted include path with quotes is properly unquoted', () {
       final mem = MemoryIncludeResolver({
         'mem:quoted path.conf': 'k = v\n',

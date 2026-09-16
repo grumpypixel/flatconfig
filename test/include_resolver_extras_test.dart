@@ -145,29 +145,21 @@ void main() {
       expect(doc['b'], '2');
     });
 
-    test('parseStringWithIncludes: cache is used on second pass', () {
+    test('parseStringWithIncludes: the same call twice agrees', () {
       final mem = core.MemoryIncludeResolver({
         'mem:a': 'x = 1\n',
       }, prefix: 'mem:');
-      final cache = <String, FlatDocument>{};
 
-      final text = 'config-file = mem:a\n';
-      final doc1 = FlatConfigResolverIncludes.parseStringWithIncludesSync(
-        text,
-        resolver: mem,
-        originId: 'mem:root',
-        cache: cache,
-      );
-      final doc2 = FlatConfigResolverIncludes.parseStringWithIncludesSync(
-        text,
-        resolver: mem,
-        originId: 'mem:root',
-        cache: cache,
-      );
+      const text = 'config-file = mem:a\n';
+      FlatDocument parse() =>
+          FlatConfigResolverIncludes.parseStringWithIncludesSync(
+            text,
+            resolver: mem,
+            originId: 'mem:root',
+          );
 
-      expect(doc1['x'], '1');
-      expect(doc2['x'], '1');
-      expect(cache.containsKey('mem:root'), isTrue);
+      expect(parse()['x'], '1');
+      expect(parse()['x'], '1');
     });
 
     test('parseStringWithIncludes: depth limit is enforced', () {

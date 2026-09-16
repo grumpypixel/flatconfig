@@ -183,23 +183,17 @@ config-file = circular1.conf
     print('   - Parsed ${doc2.length} entries');
     print('');
 
-    // Demonstrate caching for performance
-    print('⚡ Performance optimization with caching:');
+    // A file reached twice within one call is read once. Nothing is kept
+    // between calls, so an edit on disk always shows up in the next parse.
+    print('⚡ Work shared within a single parse:');
     print('');
 
-    // Create a shared cache for multiple parse operations
-    final cache = <String, FlatDocument>{};
-
-    // Parse multiple files that share common includes
     final startTime = DateTime.now();
-    final docCached1 = await mainFile.parseWithIncludes(cache: cache);
-    final docCached2 = await mainFile.parseWithIncludes(cache: cache);
+    final diamond = await mainFile.parseWithIncludes();
     final endTime = DateTime.now();
 
-    print('5. Cached parsing (shared cache):');
-    print('   - First parse: ${docCached1.length} entries');
-    print('   - Second parse: ${docCached2.length} entries (uses cache)');
-    print('   - Cache contains ${cache.length} files');
+    print('3. A shared include is read once per call:');
+    print('   - Parsed ${diamond.length} entries');
     print('   - Parse time: ${endTime.difference(startTime).inMicroseconds}μs');
     print('');
 

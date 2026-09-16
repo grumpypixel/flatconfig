@@ -3,8 +3,8 @@ import 'exceptions.dart';
 import 'include_assembly.dart';
 import 'include_path_utils.dart';
 import 'include_resolver_core.dart';
+import 'include_traversal.dart';
 import 'options.dart';
-import 'validation.dart';
 
 /// Resolver-based parsing, for sources that are not the local filesystem.
 ///
@@ -24,20 +24,18 @@ extension FlatConfigResolverIncludes on FlatDocument {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) {
-    final state = _ResolveState(
+    final traversal = IncludeTraversal(
       options: options,
       includeOptions: includeOptions,
       readOptions: readOptions,
-      cache: cache ?? <String, FlatDocument>{},
     );
 
     return _resolveUnit(
       IncludeUnit(id: originId ?? _rootId, content: text),
       fromUnitId: null,
       resolver: resolver,
-      state: state,
+      traversal: traversal,
       depth: 0,
     );
   }
@@ -50,20 +48,18 @@ extension FlatConfigResolverIncludes on FlatDocument {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) {
-    final state = _ResolveState(
+    final traversal = IncludeTraversal(
       options: options,
       includeOptions: includeOptions,
       readOptions: readOptions,
-      cache: cache ?? <String, FlatDocument>{},
     );
 
     return _resolveUnitSync(
       IncludeUnit(id: originId ?? _rootId, content: text),
       fromUnitId: null,
       resolver: resolver,
-      state: state,
+      traversal: traversal,
       depth: 0,
     );
   }
@@ -71,41 +67,25 @@ extension FlatConfigResolverIncludes on FlatDocument {
 
 const String _rootId = 'mem:<root>';
 
-/// Everything a recursion carries that does not change between units.
-final class _ResolveState {
-  _ResolveState({
-    required this.options,
-    required this.includeOptions,
-    required this.readOptions,
-    required this.cache,
-  });
-
-  final FlatParseOptions options;
-  final FlatIncludeOptions includeOptions;
-  final FlatStreamReadOptions readOptions;
-  final Map<String, FlatDocument> cache;
-  final Set<String> visited = <String>{};
-}
-
 Future<FlatDocument> _resolveUnit(
   IncludeUnit unit, {
   required String? fromUnitId,
   required IncludeResolver resolver,
-  required _ResolveState state,
+  required IncludeTraversal traversal,
   required int depth,
 }) async {
-  final cached = _enter(
-    unit,
-    fromUnitId: fromUnitId,
-    state: state,
+  final done = traversal.begin(
+    unit.id,
+    reportedAs: unit.id,
+    includedFrom: fromUnitId,
     depth: depth,
   );
-  if (cached != null) {
-    return cached;
+  if (done != null) {
+    return done;
   }
 
-  final doc = _parseUnit(unit, state);
-  final collected = collectIncludes(doc, state.includeOptions);
+  final doc = _parseUnit(unit, traversal);
+  final collected = collectIncludes(doc, traversal.includeOptions);
   final groups = <List<FlatEntry>>[];
 
   for (final target in collected.includeTargets) {
@@ -127,34 +107,34 @@ Future<FlatDocument> _resolveUnit(
       included,
       fromUnitId: unit.id,
       resolver: resolver,
-      state: state,
+      traversal: traversal,
       depth: depth + 1,
     );
     groups.add(subDoc.entries);
   }
 
-  return _finish(doc, unit.id, groups, state);
+  return _assemble(doc, unit.id, groups, traversal);
 }
 
 FlatDocument _resolveUnitSync(
   IncludeUnit unit, {
   required String? fromUnitId,
   required SyncIncludeResolver resolver,
-  required _ResolveState state,
+  required IncludeTraversal traversal,
   required int depth,
 }) {
-  final cached = _enter(
-    unit,
-    fromUnitId: fromUnitId,
-    state: state,
+  final done = traversal.begin(
+    unit.id,
+    reportedAs: unit.id,
+    includedFrom: fromUnitId,
     depth: depth,
   );
-  if (cached != null) {
-    return cached;
+  if (done != null) {
+    return done;
   }
 
-  final doc = _parseUnit(unit, state);
-  final collected = collectIncludes(doc, state.includeOptions);
+  final doc = _parseUnit(unit, traversal);
+  final collected = collectIncludes(doc, traversal.includeOptions);
   final groups = <List<FlatEntry>>[];
 
   for (final target in collected.includeTargets) {
@@ -176,63 +156,31 @@ FlatDocument _resolveUnitSync(
       included,
       fromUnitId: unit.id,
       resolver: resolver,
-      state: state,
+      traversal: traversal,
       depth: depth + 1,
     );
     groups.add(subDoc.entries);
   }
 
-  return _finish(doc, unit.id, groups, state);
+  return _assemble(doc, unit.id, groups, traversal);
 }
 
-/// Checks depth and cycles, and returns a cached result if there is one.
-///
-/// Returning non-null means the caller is done with this unit.
-FlatDocument? _enter(
-  IncludeUnit unit, {
-  required String? fromUnitId,
-  required _ResolveState state,
-  required int depth,
-}) {
-  final maxDepth = state.includeOptions.maxIncludeDepth;
-  checkIncludeDepth(maxDepth);
-  if (depth > maxDepth) {
-    throw MaxIncludeDepthExceededException(unit.id, depth, maxDepth);
-  }
-
-  if (!state.visited.add(unit.id)) {
-    throw CircularIncludeException(fromUnitId ?? unit.id, unit.id);
-  }
-
-  final cached = state.cache[unit.id];
-  if (cached != null) {
-    state.visited.remove(unit.id);
-  }
-
-  return cached;
-}
-
-FlatDocument _parseUnit(IncludeUnit unit, _ResolveState state) =>
+FlatDocument _parseUnit(IncludeUnit unit, IncludeTraversal traversal) =>
     FlatDocument.parse(
       unit.content,
-      options: state.options,
-      lineSplitter: state.readOptions.lineSplitter,
+      options: traversal.options,
+      lineSplitter: traversal.readOptions.lineSplitter,
     );
 
-/// Builds the result, then releases the unit so it can be included elsewhere.
-FlatDocument _finish(
+FlatDocument _assemble(
   FlatDocument doc,
   String unitId,
   List<List<FlatEntry>> groups,
-  _ResolveState state,
-) {
-  final result = assembleIncludedDocument(doc, state.includeOptions, groups);
-
-  state.visited.remove(unitId);
-  state.cache[unitId] = result;
-
-  return result;
-}
+  IncludeTraversal traversal,
+) => traversal.finish(
+  unitId,
+  assembleIncludedDocument(doc, traversal.includeOptions, groups),
+);
 
 /// An unresolved include contributes nothing when optional, and throws
 /// otherwise.

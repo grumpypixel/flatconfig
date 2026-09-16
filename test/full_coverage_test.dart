@@ -9,6 +9,7 @@ import 'package:flatconfig/src/include_path_utils.dart';
 import 'package:flatconfig/src/include_resolver_core.dart';
 import 'package:flatconfig/src/include_resolver_io.dart';
 import 'package:flatconfig/src/include_resolver_stub.dart';
+import 'package:flatconfig/src/include_traversal.dart';
 import 'package:flatconfig/src/includes.dart';
 import 'package:flatconfig/src/includes_stub.dart';
 import 'package:flatconfig/src/io.dart';

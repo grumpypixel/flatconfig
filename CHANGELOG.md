@@ -75,6 +75,17 @@ Changed:
 
 Fixed:
 
+- **The include cache no longer serves a document built from other inputs.**
+  The `cache:` parameter on every include entry point is gone; each call now
+  keeps its own cache for the length of the traversal. The key was a canonical
+  path or unit id, but the result behind it also depended on the parse options,
+  the encoding, the include key, the merge policy and what the resolver
+  answered. Handing the same map to a second call with any of those changed
+  returned the earlier document: parsing with `decodeEscapesInQuoted: false`
+  after a default parse gave back the decoded value, and reusing an `originId`
+  for different text gave back the earlier text. A file reached twice within one
+  call is still read once, and an include edited between two calls is now seen
+  by the second one.
 - **The options classes behave like values.** All five now implement `==`,
   `hashCode` and `toString`, so two option sets built the same way compare equal
   and a failing test prints what it was configured with. `copyWith` can clear a

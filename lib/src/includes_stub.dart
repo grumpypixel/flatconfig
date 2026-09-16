@@ -17,7 +17,6 @@ extension FlatConfigIncludes on FlatDocument {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) async => _unsupported('FlatConfigIncludes.parseWithIncludes');
 
   /// Synchronous variant of [parseWithIncludes].
@@ -28,7 +27,6 @@ extension FlatConfigIncludes on FlatDocument {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) => _unsupported('FlatConfigIncludes.parseWithIncludesSync');
 
   /// Parses a configuration file from a path with include support.
@@ -39,7 +37,6 @@ extension FlatConfigIncludes on FlatDocument {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) async => _unsupported('FlatConfigIncludes.parseWithIncludesFromPath');
 
   /// Synchronous variant of [parseWithIncludesFromPath].
@@ -50,7 +47,6 @@ extension FlatConfigIncludes on FlatDocument {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) => _unsupported('FlatConfigIncludes.parseWithIncludesFromPathSync');
 }
 
@@ -78,6 +74,5 @@ extension FileIncludesStub on Object {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) async => _unsupported('File.parseWithIncludes');
 }

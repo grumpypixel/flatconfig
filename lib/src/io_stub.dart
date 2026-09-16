@@ -40,7 +40,6 @@ Future<FlatDocument> parseFileWithIncludes(
   FlatParseOptions options = const FlatParseOptions(),
   FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
   FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  Map<String, FlatDocument>? cache,
 }) async => _unsupported('parseFileWithIncludes');
 
 /// Writes a FlatDocument to a file (async).
@@ -87,7 +86,6 @@ extension FlatConfigIOStub on Object {
   FlatDocument parseWithIncludesSync({
     FlatParseOptions options = const FlatParseOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-    Map<String, FlatDocument>? cache,
   }) => _unsupported('File.parseWithIncludesSync');
 
   /// Writes a FlatDocument to a file asynchronously.

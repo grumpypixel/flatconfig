@@ -262,30 +262,11 @@ feature-b = off
 
   _printStats(
     await _measureAsync(
-      label: 'parseWithIncludes (cold)',
+      label: 'parseWithIncludes',
       iterations: iterations,
       repeats: repeats,
       body: () async {
-        final d = await FlatConfigIncludes.parseWithIncludes(
-          mainInc,
-          cache: <String, FlatDocument>{},
-        );
-        _sink ^= d.length;
-      },
-    ),
-  );
-
-  final includesCache = <String, FlatDocument>{};
-  _printStats(
-    await _measureAsync(
-      label: 'parseWithIncludes (warm cache)',
-      iterations: iterations,
-      repeats: repeats,
-      body: () async {
-        final d = await FlatConfigIncludes.parseWithIncludes(
-          mainInc,
-          cache: includesCache,
-        );
+        final d = await FlatConfigIncludes.parseWithIncludes(mainInc);
         _sink ^= d.length;
       },
     ),
