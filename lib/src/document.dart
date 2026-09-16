@@ -139,26 +139,6 @@ class FlatDocument extends Iterable<FlatEntry> {
     return FlatDocument(strict ? list : _keepValidEntries(list));
   }
 
-  /// Merges multiple [FlatDocument] instances into a single document.
-  ///
-  /// Entries are concatenated in order, preserving duplicates. Later
-  /// documents in [docs] override earlier ones when viewed through
-  /// [toMap] or the `[]` operator (i.e. last value wins).
-  ///
-  /// When [strict] is `true` (default), empty or whitespace-only keys
-  /// cause a [FormatException]. When `false`, such entries are skipped.
-  factory FlatDocument.merge(
-    Iterable<FlatDocument> docs, {
-    bool strict = true,
-  }) {
-    final all = <FlatEntry>[];
-    for (final d in docs) {
-      all.addAll(d.entries);
-    }
-
-    return FlatDocument(strict ? all : _keepValidEntries(all));
-  }
-
   /// Creates a [FlatDocument] containing exactly one [FlatEntry].
   ///
   /// When [strict] is `true` (default), the [key] is validated and

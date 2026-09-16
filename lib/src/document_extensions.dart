@@ -231,37 +231,28 @@ extension FlatDocumentExtensions on FlatDocument {
     return writeOptions.encoding.encode(normalized);
   }
 
-  /// Merges another document into this one.
+  /// Appends every entry of [other] after this document's entries.
   ///
-  /// This method combines the entries from [other] with the entries from this
-  /// document. The [override] parameter controls how duplicate keys are handled.
+  /// In a last-write-wins model this is already the resolved merge:
+  /// `a.concat(b).toMap()` equals `{...a.toMap(), ...b.toMap()}`. To let this
+  /// document win instead, concatenate the other way round: `b.concat(a)`.
   ///
-  /// Parameters:
-  /// - [other]: the document to merge into this one
-  /// - [override]: if true, existing entries are overridden by the new ones;
-  ///   if false, existing entries take precedence
+  /// Duplicates are kept, so [collapse] is what reduces the result to one
+  /// entry per key.
   ///
   /// Example:
   /// ```dart
-  /// final doc1 = FlatConfig.fromMap({'background': '343028', 'title': 'App'});
-  /// final doc2 = FlatConfig.fromMap({'background': 'ffaa00', 'debug': 'true'});
-  /// final merged = doc1.merge(doc2);
-  /// print(merged['background']); // ffaa00 (overridden)
-  /// print(merged['title']); // App (preserved)
-  /// print(merged['debug']); // true (added)
+  /// final defaults = FlatDocument.fromMap({'background': '343028', 'title': 'App'});
+  /// final user = FlatDocument.fromMap({'background': 'ffaa00', 'debug': 'true'});
+  /// final combined = defaults.concat(user);
+  /// print(combined['background']); // ffaa00
+  /// print(combined['title']); // App
   /// ```
-  FlatDocument merge(FlatDocument other, {bool override = true}) {
-    final combined = <FlatEntry>[...entries];
-    final seen = {...keys};
-    for (final e in other) {
-      if (override || !seen.contains(e.key)) {
-        combined.add(e);
-        seen.add(e.key);
-      }
-    }
+  FlatDocument concat(FlatDocument other) =>
+      FlatDocument([...entries, ...other.entries]);
 
-    return FlatDocument(combined);
-  }
+  /// Alias for [concat], so documents can be combined with `+`.
+  FlatDocument operator +(FlatDocument other) => concat(other);
 
   /// Creates a human-friendly dump of entries in insertion order.
   ///

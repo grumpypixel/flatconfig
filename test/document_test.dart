@@ -627,7 +627,7 @@ void main() {
   });
 
   group('FlatDocument.merge', () {
-    test('should merge multiple documents and preserve all entries', () {
+    test('should concatenate documents and preserve all entries', () {
       final doc1 = FlatDocument(const [
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
@@ -636,7 +636,7 @@ void main() {
         FlatEntry('c', '3'),
         FlatEntry('d', '4'),
       ]);
-      final merged = FlatDocument.merge([doc1, doc2]);
+      final merged = doc1.concat(doc2);
 
       expect(merged.length, 4);
       expect(merged['a'], '1');
@@ -654,7 +654,7 @@ void main() {
         FlatEntry('a', '3'),
         FlatEntry('c', '4'),
       ]);
-      final merged = FlatDocument.merge([doc1, doc2]);
+      final merged = doc1 + doc2;
 
       expect(merged.entries.map((e) => e.key).toList(), ['a', 'b', 'a', 'c']);
       expect(merged.entries.map((e) => e.value).toList(), ['1', '2', '3', '4']);
@@ -669,7 +669,7 @@ void main() {
         FlatEntry('a', '3'),
         FlatEntry('b', '4'),
       ]);
-      final merged = FlatDocument.merge([doc1, doc2]);
+      final merged = doc1.concat(doc2);
 
       expect(merged['a'], '3');
       expect(merged['b'], '4');
@@ -689,15 +689,22 @@ void main() {
       );
     });
 
-    test('should handle empty list of documents', () {
-      final merged = FlatDocument.merge([]);
-      expect(merged.isEmpty, isTrue);
+    test('folds a list of documents into one', () {
+      // What the static FlatDocument.merge used to do.
+      final docs = [
+        FlatDocument(const [FlatEntry('a', '1')]),
+        FlatDocument(const [FlatEntry('b', '2')]),
+      ];
+      final merged = docs.reduce((a, b) => a.concat(b));
+
+      expect(merged.toMap(), {'a': '1', 'b': '2'});
     });
 
-    test('should handle single document', () {
+    test('concatenating with an empty document changes nothing', () {
       final doc = FlatDocument(const [FlatEntry('a', '1')]);
-      final merged = FlatDocument.merge([doc]);
-      expect(merged, doc);
+
+      expect(doc.concat(FlatDocument.empty()), doc);
+      expect(FlatDocument.empty().concat(doc), doc);
     });
   });
 

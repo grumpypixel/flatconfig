@@ -83,8 +83,8 @@ servers = host=a,port=8080 | host=b,port=9090
 
   print('💾 Wrote collapsed config (UTF-8, CRLF, always quoted): $outWinPath');
 
-  // 6) Merge with a new document and write back
-  final merged = collapsed.merge(
+  // 6) Append a new document and write back
+  final merged = collapsed.concat(
     FlatConfig.fromMap({
       'generated.by': 'example/io.dart',
       'generated.when': DateTime.now().toUtc().toIso8601String(),

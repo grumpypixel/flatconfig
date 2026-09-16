@@ -256,8 +256,31 @@ void main() {
         expect(collapsed['a'], '4');
       });
     });
-    group('merge', () {
-      test('basic merge with override=true (default)', () {
+    group('concat', () {
+      test('concat is the resolved merge', () {
+        // The claim that let the whole merge family go: in a last-write-wins
+        // model, appending entries already produces the merged map.
+        final a = FlatDocument(const [
+          FlatEntry('shared', 'a'),
+          FlatEntry('onlyA', '1'),
+        ]);
+        final b = FlatDocument(const [
+          FlatEntry('shared', 'b'),
+          FlatEntry('onlyB', '2'),
+        ]);
+
+        expect(a.concat(b).toMap(), {...a.toMap(), ...b.toMap()});
+        expect(b.concat(a).toMap(), {...b.toMap(), ...a.toMap()});
+      });
+
+      test('operator + is concat', () {
+        final a = FlatDocument(const [FlatEntry('a', '1')]);
+        final b = FlatDocument(const [FlatEntry('b', '2')]);
+
+        expect((a + b).entries, a.concat(b).entries);
+      });
+
+      test('basic concat appends every entry', () {
         final doc1 = FlatDocument(const [
           FlatEntry('a', '1'),
           FlatEntry('b', '2'),
@@ -268,7 +291,7 @@ void main() {
           FlatEntry('c', '4'),
         ]);
 
-        final merged = doc1.merge(doc2);
+        final merged = doc1.concat(doc2);
 
         expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
           'a:1',
@@ -278,7 +301,7 @@ void main() {
         ]);
       });
 
-      test('merge with override=false preserves existing entries', () {
+      test('concatenating the other way round preserves existing entries', () {
         final doc1 = FlatDocument(const [
           FlatEntry('a', '1'),
           FlatEntry('b', '2'),
@@ -289,24 +312,25 @@ void main() {
           FlatEntry('c', '4'),
         ]);
 
-        final merged = doc1.merge(doc2, override: false);
+        // Letting doc1 win is concatenating the other way round.
+        final merged = doc2.concat(doc1);
 
-        expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
-          'a:1',
-          'b:2', // preserved from doc1, not overridden
-          'c:4', // new entry from doc2
-        ]);
+        expect(merged.toMap(), {
+          'b': '2', // doc1 wins
+          'c': '4', // only in doc2
+          'a': '1',
+        });
       });
 
-      test('merge empty document with non-empty', () {
+      test('concat empty document with non-empty', () {
         final empty = FlatDocument.empty();
         final doc = FlatDocument(const [
           FlatEntry('a', '1'),
           FlatEntry('b', '2'),
         ]);
 
-        final merged1 = empty.merge(doc);
-        final merged2 = doc.merge(empty);
+        final merged1 = empty.concat(doc);
+        final merged2 = doc.concat(empty);
 
         expect(merged1.entries.map((e) => '${e.key}:${e.value}').toList(), [
           'a:1',
@@ -319,17 +343,17 @@ void main() {
         ]);
       });
 
-      test('merge two empty documents', () {
+      test('concat two empty documents', () {
         final empty1 = FlatDocument.empty();
         final empty2 = FlatDocument.empty();
 
-        final merged = empty1.merge(empty2);
+        final merged = empty1.concat(empty2);
 
         expect(merged.entries, isEmpty);
         expect(merged.isEmpty, isTrue);
       });
 
-      test('merge preserves order of entries', () {
+      test('concat preserves order of entries', () {
         final doc1 = FlatDocument(const [
           FlatEntry('a', '1'),
           FlatEntry('b', '2'),
@@ -342,7 +366,7 @@ void main() {
           FlatEntry('e', '6'),
         ]);
 
-        final merged = doc1.merge(doc2);
+        final merged = doc1.concat(doc2);
 
         expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
           'a:1',
@@ -354,7 +378,7 @@ void main() {
         ]);
       });
 
-      test('merge handles null values correctly', () {
+      test('concat handles null values correctly', () {
         final doc1 = FlatDocument(const [
           FlatEntry('a', '1'),
           FlatEntry('b', null),
@@ -365,7 +389,7 @@ void main() {
           FlatEntry('c', null),
         ]);
 
-        final merged = doc1.merge(doc2);
+        final merged = doc1.concat(doc2);
 
         expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
           'a:1',
@@ -375,7 +399,7 @@ void main() {
         ]);
       });
 
-      test('merge with override=false and null values', () {
+      test('concatenating the other way round with null values', () {
         final doc1 = FlatDocument(const [
           FlatEntry('a', '1'),
           FlatEntry('b', null),
@@ -386,16 +410,16 @@ void main() {
           FlatEntry('c', null),
         ]);
 
-        final merged = doc1.merge(doc2, override: false);
+        final merged = doc2.concat(doc1);
 
-        expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
-          'a:1',
-          'b:null', // preserved from doc1
-          'c:null', // new entry from doc2
-        ]);
+        expect(merged.toMap(), {
+          'b': null, // doc1 wins, and its value is a reset
+          'c': null,
+          'a': '1',
+        });
       });
 
-      test('merge with multiple duplicate keys', () {
+      test('concat with multiple duplicate keys', () {
         final doc1 = FlatDocument(const [
           FlatEntry('a', '1'),
           FlatEntry('a', '2'),
@@ -408,7 +432,7 @@ void main() {
           FlatEntry('c', '6'),
         ]);
 
-        final merged = doc1.merge(doc2);
+        final merged = doc1.concat(doc2);
 
         expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
           'a:1',
@@ -420,7 +444,7 @@ void main() {
         ]);
       });
 
-      test('merge with override=false and multiple duplicate keys', () {
+      test('concat with override=false and multiple duplicate keys', () {
         final doc1 = FlatDocument(const [
           FlatEntry('a', '1'),
           FlatEntry('a', '2'),
@@ -433,22 +457,21 @@ void main() {
           FlatEntry('c', '6'),
         ]);
 
-        final merged = doc1.merge(doc2, override: false);
+        final merged = doc2.concat(doc1);
 
-        expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
-          'a:1',
-          'a:2',
-          'b:3',
-          'c:6', // only new keys are added
-        ]);
+        expect(merged.toMap(), {
+          'a': '2', // doc1's last value wins over doc2's
+          'c': '6',
+          'b': '3',
+        });
       });
 
-      test('merge returns new document without mutating originals', () {
+      test('concat returns new document without mutating originals', () {
         final doc1 = FlatDocument(const [FlatEntry('a', '1')]);
 
         final doc2 = FlatDocument(const [FlatEntry('b', '2')]);
 
-        final merged = doc1.merge(doc2);
+        final merged = doc1.concat(doc2);
 
         // Original documents should be unchanged
         expect(doc1.entries.map((e) => '${e.key}:${e.value}').toList(), [
@@ -469,7 +492,7 @@ void main() {
         expect(identical(merged, doc2), isFalse);
       });
 
-      test('merge with complex scenarios', () {
+      test('concat with complex scenarios', () {
         final doc1 = FlatDocument(const [
           FlatEntry('database.host', 'localhost'),
           FlatEntry('database.port', '5432'),
@@ -484,7 +507,7 @@ void main() {
           FlatEntry('cache.enabled', 'true'),
         ]);
 
-        final merged = doc1.merge(doc2);
+        final merged = doc1.concat(doc2);
 
         expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
           'database.host:localhost',
@@ -498,7 +521,7 @@ void main() {
         ]);
       });
 
-      test('merge with override=false and complex scenarios', () {
+      test('concat with override=false and complex scenarios', () {
         final doc1 = FlatDocument(const [
           FlatEntry('database.host', 'localhost'),
           FlatEntry('database.port', '5432'),
@@ -512,18 +535,18 @@ void main() {
           FlatEntry('cache.enabled', 'true'),
         ]);
 
-        final merged = doc1.merge(doc2, override: false);
+        final merged = doc2.concat(doc1);
 
-        expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
-          'database.host:localhost',
-          'database.port:5432', // preserved from doc1
-          'app.debug:false', // preserved from doc1
-          'app.name:MyApp', // new from doc2
-          'cache.enabled:true', // new from doc2
-        ]);
+        expect(merged.toMap(), {
+          'database.port': '5432', // doc1 wins
+          'app.name': 'MyApp', // only in doc2
+          'app.debug': 'false', // doc1 wins
+          'cache.enabled': 'true',
+          'database.host': 'localhost',
+        });
       });
 
-      test('merge preserves entry order within each document', () {
+      test('concat preserves entry order within each document', () {
         final doc1 = FlatDocument(const [
           FlatEntry('z', '1'),
           FlatEntry('a', '2'),
@@ -536,7 +559,7 @@ void main() {
           FlatEntry('y', '6'),
         ]);
 
-        final merged = doc1.merge(doc2);
+        final merged = doc1.concat(doc2);
 
         expect(merged.entries.map((e) => '${e.key}:${e.value}').toList(), [
           'z:1',

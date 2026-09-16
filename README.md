@@ -199,7 +199,6 @@ All factory constructors respect `strict`:
 
 - `FlatDocument.fromMap(...)`  
 - `FlatDocument.fromEntries(...)`  
-- `FlatDocument.merge([...])`  
 - `FlatDocument.single('key', value: 'x')`  
 
 > **Note:**
@@ -741,8 +740,8 @@ final entries = FlatDocument.fromEntries([
   FlatEntry('accent', 'mint'),
 ]);
 
-// Merge multiple documents
-final merged = FlatDocument.merge([shallow, entries]);
+// Combine documents: last write wins, so appending is the merge
+final merged = shallow.concat(entries);
 
 // Single key/value pair
 final single = FlatDocument.single('theme', value: 'dark');

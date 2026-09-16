@@ -391,8 +391,9 @@ two orthogonal operations that were already there:
 - `concat(other)` — append raw entries
 - `collapse()` — one entry per key
 
-- [ ] Delete both `merge` methods and the `override:` boolean.
+- [x] Delete both `merge` methods and the `override:` boolean.
 - [ ] Document the `concat` + `collapse` idiom in the migration guide.
+      (Phase 4; `concat`'s dartdoc carries it for now.)
 
 ### 2.5 Model lookup explicitly
 

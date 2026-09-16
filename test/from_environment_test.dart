@@ -414,13 +414,13 @@ void main() {
         expect(collapsed['KEY2'], equals('value2'));
       });
 
-      test('works with merge()', () {
+      test('works with concat()', () {
         final env1 = {'HOST': 'localhost'};
         final env2 = {'PORT': '8080'};
 
         final doc1 = FlatConfig.fromEnvironment(env1);
         final doc2 = FlatConfig.fromEnvironment(env2);
-        final merged = doc1.merge(doc2);
+        final merged = doc1.concat(doc2);
 
         expect(merged.toMap(), equals({'HOST': 'localhost', 'PORT': '8080'}));
       });
@@ -599,7 +599,7 @@ void main() {
         final doc2 = FlatConfig.fromEnvironment(dotEnv);
         final doc3 = FlatConfig.fromEnvironment(testOverrides);
 
-        final combined = doc1.merge(doc2).merge(doc3);
+        final combined = doc1.concat(doc2).concat(doc3);
 
         expect(combined['HOME'], equals('/home/user'));
         expect(combined['SHELL'], equals('/bin/bash'));

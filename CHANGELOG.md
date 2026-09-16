@@ -32,6 +32,11 @@ Fixed:
 - **`toMap()` and `valuesOf()` are unmodifiable after `cache()`.** Pre-caching
   handed out a writable view of a document documented as immutable, so
   `doc.cache(); doc.toMap()['a'] = 'x';` changed the document.
+- **The three merge APIs collapse into `concat`.** In a last-write-wins model
+  appending already is the merge: `a.concat(b).toMap()` equals
+  `{...a.toMap(), ...b.toMap()}`, and `merge(b, override: false)` is `b.concat(a)`
+  read from the other end. Static `FlatDocument.merge`, instance `merge` and the
+  `override:` flag are gone; `operator +` is an alias for `concat`.
 - **`FlatDocument.lookup(key)` tells the three states apart.** `doc['k'] == null`
   cannot distinguish a key that was never mentioned from one explicitly cleared
   with `k =`, and the difference decides whether a default still applies. The
