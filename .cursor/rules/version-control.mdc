@@ -16,8 +16,8 @@ only — never use them to create commits, branches, or rewrite history.
 | Inspect working copy | `jj status` | `git status` |
 | History | `jj log` | `git log` |
 | Diff | `jj diff` | `git diff` |
-| Describe current change | `jj describe -m "..."` | `git commit -m` |
-| Start a new change | `jj new` | `git checkout -b` |
+| Finish the current change | `jj commit -m "..."` | `git commit -m` |
+| Reword without finishing | `jj describe -m "..."` | `git commit --amend` |
 | Move a bookmark | `jj bookmark set <name> -r @-` | `git branch -f` |
 | Push | `jj git push` | `git push` |
 | Fetch | `jj git fetch` | `git pull` |
@@ -26,10 +26,16 @@ only — never use them to create commits, branches, or rewrite history.
 
 - There is no staging area. Edits land in the working-copy commit (`@`)
   immediately, so **do not look for or suggest `jj add`**.
-- The normal flow is: edit → `jj describe -m "..."` → `jj new` for the next
-  change. Describing does not "create" a commit; `@` already is one.
-- Branches are **bookmarks** and do not advance automatically. After describing
-  a change, move the bookmark explicitly before pushing.
+- The normal flow is: edit → `jj commit -m "..."`. That describes `@` and
+  opens a fresh change in one step, which is what you want almost every time.
+- **Use `jj commit`, not `jj describe`, to finish a change.** `jj describe`
+  leaves `@` open, so the next edits land in the same commit and the next
+  `jj describe` silently overwrites the message you just wrote. That has
+  happened twice in this repo and cost a `jj split` each time to undo.
+  Reach for `jj describe` only to reword a change you are still working on.
+- After `jj commit`, the finished change is `@-`, not `@`.
+- Branches are **bookmarks** and do not advance automatically. Move the
+  bookmark explicitly before pushing.
 - Prefer `jj` revsets (`@`, `@-`, `main..@`) over git refspecs when selecting
   revisions.
 - Commit message style in this repo follows Conventional Commits
@@ -48,10 +54,10 @@ Bookmarks do not advance on their own. After describing a change, move the
 bookmark explicitly before pushing:
 
 ```
-jj bookmark set v1 -r @-   # or -r @ when the working copy holds the change
+jj commit -m "..."          # @- is now the finished change
+jj bookmark set v1 -r @-
 jj git push --bookmark v1
 ```
 
-If `@` is an empty working copy on top of the real work, use `@-`. Check with
-`jj log -r 'main::@'` that the bookmark sits where you think it does — a
-bookmark left behind is the failure mode here, and it is silent.
+Check with `jj log -r 'main::@'` that the bookmark sits where you think it
+does — a bookmark left behind is the failure mode here, and it is silent.
