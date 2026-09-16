@@ -172,4 +172,113 @@ void main() {
       expect(composite.resolveSync(const IncludeRequest('c')), isNull);
     });
   });
+
+  group('when a resolver goes wrong', () {
+    test('a thrown error reaches the caller unwrapped', () {
+      expect(
+        () => parseWithIncludes(
+          'config-file = boom\n',
+          resolver: _FailingResolver(StateError('the network is down')),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('a rejected future reaches the caller too', () {
+      expect(
+        () => parseWithIncludes(
+          'config-file = boom\n',
+          resolver: _FailingResolver(const FormatException('bad payload')),
+          originId: 'net:root',
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('an optional include does not excuse a thrown error', () {
+      // `?` says the unit may be absent, not that the resolver may fail: a
+      // resolver signals absence by returning null.
+      expect(
+        () => parseWithIncludes(
+          'config-file = ?boom\n',
+          resolver: _FailingResolver(StateError('the network is down')),
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('content the parser rejects is reported against that unit', () {
+      expect(
+        () => parseWithIncludes(
+          'config-file = broken.conf\n',
+          resolver: _AsyncResolver({'broken.conf': 'no-equals-here\n'}),
+          options: const FlatParseOptions(strict: true),
+        ),
+        throwsA(isA<MissingEqualsException>()),
+      );
+    });
+
+    test('a unit answered under a different id is tracked under that id', () {
+      // A resolver may redirect, and the id it returns is the one that counts
+      // for cycle detection. Here the redirect target names the root again.
+      expect(
+        () => parseWithIncludes(
+          'config-file = alias\n',
+          resolver: _RedirectingResolver(),
+          originId: 'net:root',
+        ),
+        throwsA(isA<CircularIncludeException>()),
+      );
+    });
+
+    test('depth is enforced on the async path as well', () {
+      expect(
+        () => parseWithIncludes(
+          'config-file = a.conf\n',
+          resolver: _AsyncResolver({
+            'a.conf': 'config-file = b.conf\n',
+            'b.conf': 'config-file = c.conf\n',
+            'c.conf': 'k = v\n',
+          }),
+          includeOptions: const FlatIncludeOptions(maxIncludeDepth: 2),
+        ),
+        throwsA(isA<MaxIncludeDepthExceededException>()),
+      );
+    });
+
+    test('one failing resolver in a composite does not fall through', () {
+      // A composite asks the next resolver when one returns null, not when one
+      // throws: swallowing the error would silently serve stale content.
+      final composite = CompositeIncludeResolver([
+        _FailingResolver(StateError('down')),
+        MemoryIncludeResolver(const {'theme.conf': 'k = fallback'}),
+      ]);
+
+      expect(
+        () => parseWithIncludes(
+          'config-file = theme.conf\n',
+          resolver: composite,
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+  });
+}
+
+/// A resolver that always fails with [error].
+final class _FailingResolver implements IncludeResolver {
+  _FailingResolver(this.error);
+
+  final Object error;
+
+  @override
+  Future<IncludeUnit?> resolve(IncludeRequest request) async => throw error;
+}
+
+/// A resolver that answers every request with the root's id, as a redirect
+/// back to the document that asked.
+final class _RedirectingResolver implements IncludeResolver {
+  @override
+  Future<IncludeUnit?> resolve(IncludeRequest request) async =>
+      const IncludeUnit(id: 'net:root', content: 'k = v\n');
 }

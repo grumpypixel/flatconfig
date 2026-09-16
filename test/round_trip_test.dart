@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/src/parser.dart';
 import 'package:test/test.dart';
 
 /// Round-trip property: for every document a user can legally build,
@@ -109,6 +111,48 @@ void main() {
     });
   });
 
+  group('round-trip, through the shapes a file actually takes', () {
+    /// One entry per value, so a failure names the value that broke.
+    final everyValue = FlatDocument([
+      for (var i = 0; i < _values.length; i++) FlatEntry('k$i', _values[i]),
+    ]);
+
+    test('quoting everything changes the bytes but not the document', () {
+      final encoded = everyValue.encode(
+        options: const FlatEncodeOptions(alwaysQuote: true),
+      );
+
+      expect(encoded, isNot(everyValue.encode()));
+      expect(FlatDocument.parse(encoded), everyValue);
+    });
+
+    for (final terminator in const ['\n', '\r\n', '\r']) {
+      test('line terminator ${_visible(terminator)} survives', () {
+        final bytes = everyValue.encodeToBytesWithWriteOptions(
+          writeOptions: FlatStreamWriteOptions(lineTerminator: terminator),
+        );
+
+        expect(FlatDocument.parse(utf8.decode(bytes)), everyValue);
+      });
+    }
+
+    test('a UTF-8 BOM in front of the first line is not data', () {
+      final withBom = '\uFEFF${everyValue.encode()}';
+
+      expect(FlatDocument.parse(withBom), everyValue);
+    });
+
+    test('the byte-stream reader agrees with the string reader', () async {
+      // Reached through src/ because the stream readers are internal: a file
+      // or a socket goes through them, and nothing else should have to.
+      final bytes = everyValue.encodeToBytesWithWriteOptions(
+        writeOptions: const FlatStreamWriteOptions(lineTerminator: '\r\n'),
+      );
+
+      expect(await parseByteStream(Stream.value(bytes)), everyValue);
+    });
+  });
+
   group('round-trip, generated', () {
     test('200 random documents', () {
       final rnd = Random(20260916); // fixed seed: failures are reproducible
@@ -126,7 +170,7 @@ void main() {
         final original = FlatDocument(entries);
         final encoded = original.encode();
         final actual = FlatDocument.parse(encoded);
-        if (actual.entries.toString() != original.entries.toString()) {
+        if (actual != original) {
           failures.add(
             '  ${_visible(encoded)}\n'
             '    expected ${original.entries}\n'

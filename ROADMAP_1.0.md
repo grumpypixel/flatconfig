@@ -704,19 +704,53 @@ The existing 100% line coverage is real but proves less than it appears:
 `test/full_coverage_test.dart` is an import-only file with no assertions. What
 is missing is invariant testing.
 
-- [ ] **Round-trip property test:** `parse(doc.encode()) == doc` over generated
+- [x] **Round-trip property test:** `parse(doc.encode()) == doc` over generated
       documents containing empty strings, quotes, backslashes, `=`, unicode,
       duplicate keys, and resets. This single test would have caught three
-      Phase 1 defects.
-- [ ] **Editing-algebra property tests:** `doc.set(k,v)[k] == v`;
-      `doc.remove(k).containsKey(k) == false`; `doc.add(...)` leaves the
-      original untouched; `a.concat(b).toMap() == {...a.toMap(), ...b.toMap()}`.
+      Phase 1 defects. Landed in Phase 1 as `test/round_trip_test.dart`; Phase 3
+      switched the generated case from comparing `toString()` to comparing
+      documents, and added the shapes a file actually takes: `alwaysQuote`, all
+      three line terminators, a BOM, and the byte-stream reader.
+- [x] **Editing-algebra property tests:** in `test/editing_algebra_test.dart`,
+      over 200 generated documents each.
+
+      The operations this names did not exist — a document was immutable with
+      no way to edit it short of rebuilding its entry list. They were added as
+      `withValue` / `without` / `withEntry` rather than `set` / `remove` /
+      `add`, since all three return a new document and the shorter names read
+      as mutation. Evidence that the gap was real: the library comment in
+      `flatconfig_io.dart` called `doc.set(...)`, written without noticing the
+      method was missing, because doc comments are not compiled.
+
+      `withValue` leaves exactly one entry for the key — appending instead
+      would grow a file without bound under repeated edits — and keeps the
+      place of the first occurrence. `withEntry` is the appending form.
 - [x] **API-surface test** per entry point: import only that barrel, instantiate
       every type appearing in a public signature. Landed with 2.13 as
       `test/barrel_core_test.dart` and its three siblings.
-- [ ] Regression test for each Phase 1 defect.
-- [ ] Under-exercised paths: strict vs lax stream parsing, BOM + CRLF + CR
-      combined, include cycle detection, async resolver failure modes.
+- [x] Regression test for each Phase 1 defect. Most were already pinned where
+      they belong topically: quoting and backslashes in
+      `spec_conformance_test.dart`, the empty string in `round_trip_test.dart`,
+      cached views in `document_test.dart`, prefix guards in
+      `document_strip_prefix_test.dart`, include path folding in
+      `includes_test.dart`. The two that nothing covered — non-finite numbers
+      through the core accessors, and the guards that used to be assertions —
+      are now in `test/regressions_test.dart`, which also records where the
+      others live.
+- [x] Under-exercised paths. `test/stream_reading_test.dart` covers the byte
+      stream: the same document cut into 1-, 2-, 3-, 5-, 7- and 16-byte chunks,
+      a BOM with CRLF, LF and CR mixed in one document, strict against lax with
+      issue line numbers, and the string reader agreeing with the byte reader.
+      `test/async_resolver_test.dart` gained the failure modes: a resolver that
+      throws, one that throws behind an optional `?` include, content the
+      parser rejects, a redirect whose returned id closes a cycle, depth on the
+      async path, and a composite that does not fall through past a throw.
+
+      Two findings, neither a defect. A BOM is stripped at the start of every
+      line, not only the first, which costs nothing because a key beginning
+      with one is already rejected as leading whitespace. And the unit id a
+      resolver returns, not the one requested, is what cycle detection uses,
+      so a redirect back to the root is caught.
 - [ ] Replace or document `full_coverage_test.dart`; measure branch coverage.
 - [ ] CI matrix: minimum SDK + stable · `dart compile js` + `wasm` · browser
       tests · assertions-disabled run · `dart format --set-exit-if-changed` ·
