@@ -10,17 +10,15 @@ folded in below, with reproductions.
 
 ## Where this stands
 
-Last updated after Phase 1.3. Verify with `dart test` (expect 763 passing) and
+Last updated after Phase 1.6. Verify with `dart test` (expect 770 passing) and
 `sed -n '/^### Open/,$p' SPEC.md` for the remaining format deviations.
 
-**Done:** Phase 0 in full; Phase 1.2, 1.3, 1.4 and 1.5.
+**Done:** Phase 0 in full; Phase 1.1, 1.2 (mostly), 1.3, 1.4, 1.5 and 1.6.
 
 **Open in Phase 1, in the order I would take them:**
 
 | Item | Reproduction, verified on this tree | Why it is still here |
 |---|---|---|
-| 1.1 | `d.cache(); d.toMap()['a'] = 'HACKED';` succeeds and changes `d['a']`. Without `cache()` it correctly throws. | `cache()` stores a plain map |
-| 1.6 | `getDoubleInRange('p', min: 0, max: 1)` returns `NaN` for `p = NaN` | every comparison with NaN is false, so the guard is skipped |
 | 1.2 rest | `FlatEntry('a', 'x\ny')` encodes to two physical lines and re-parses as `a` → `"x` | values are not checked for newlines |
 | 1.2 rest | `ensureTrailingNewline: false` cannot remove the trailing newline | the flag is a no-op |
 | 1.7–1.9 | path canonicalization, assertions on public input, SDK floor | not started |
@@ -90,11 +88,16 @@ were not previously known and are folded into Phase 1.2 below.
 
 **Effort:** 2–3 days. Each item needs a regression test.
 
-### 1.1 Restore immutability
+### 1.1 Restore immutability — **done**
 
-- [ ] `cache()` must store `Map.unmodifiable(_buildLatest())`
-      (`lib/src/document.dart:256`). Same for the `valuesOf` cache.
-- [ ] Test: `toMap()` is unwritable both with and without explicit pre-caching.
+- [x] The builders return unmodifiable structures, so no caller can forget to
+      wrap. Leaving that to `toMap()` while `cache()` stored a raw map is what
+      created the hole.
+- [x] Test: `toMap()` and `valuesOf()` are unwritable both with and without
+      explicit pre-caching.
+
+`valuesOf()` no longer copies on every call, since the inner lists are frozen
+once at build time.
 
 **Reproduction:** `doc.cache(); doc.toMap()['a'] = 'HACKED';` succeeds and
 changes `doc['a']`. Without `cache()` it correctly throws `UnsupportedError`.
@@ -178,7 +181,10 @@ parser can never read back.
 
 Landed together with the escaping half of 1.2 — see the note there.
 
-### 1.6 Reject non-finite numbers
+### 1.6 Reject non-finite numbers — **done**
+
+- [x] One `tryParseFinite` helper replaces ten independent `double.tryParse`
+      call sites, none of which rejected `NaN` or the infinities.
 
 **Reproduction:** `getDoubleInRange('p', min: 0, max: 1)` returns `NaN`. All
 comparisons with NaN are false, so every range guard is bypassed.

@@ -29,6 +29,13 @@ Fixed:
   `win=C:\temp\x` into `win → C:tempx`.
 - **`stripPrefix` no longer produces an unreadable line** when a key equals the
   prefix; the entry is dropped instead.
+- **`toMap()` and `valuesOf()` are unmodifiable after `cache()`.** Pre-caching
+  handed out a writable view of a document documented as immutable, so
+  `doc.cache(); doc.toMap()['a'] = 'x';` changed the document.
+- **Non-finite numbers are rejected.** `NaN` passed every range guard, because
+  all comparisons with it are false: `getDoubleInRange('p', min: 0, max: 1)`
+  returned `NaN`. `NaN`, `Infinity` and `-Infinity` are now treated as invalid
+  by every numeric accessor.
 
 Changed (breaking):
 

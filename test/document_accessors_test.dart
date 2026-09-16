@@ -1729,4 +1729,37 @@ void main() {
       expect(doc.getString('missing'), doc['missing']);
     });
   });
+
+  group('non-finite numbers are not numbers', () {
+    // double.tryParse accepts these. NaN defeats a range guard silently:
+    // every comparison with it is false, so min/max never apply.
+    final doc = FlatConfig.parse(
+      'nan = NaN\ninf = Infinity\nneg = -Infinity\nok = 0.5',
+    );
+
+    test('a range guard rejects them instead of passing them through', () {
+      expect(doc.getDoubleInRange('nan', min: 0, max: 1), isNull);
+      expect(doc.getDoubleInRange('inf', min: 0, max: 1), isNull);
+      expect(doc.getDoubleInRange('neg', min: 0, max: 1), isNull);
+      expect(doc.getDoubleInRange('ok', min: 0, max: 1), 0.5);
+    });
+
+    test('requireDoubleInRange throws rather than returning NaN', () {
+      expect(
+        () => doc.requireDoubleInRange('nan', min: 0, max: 1),
+        throwsFormatException,
+      );
+    });
+
+    test('a default wins over them', () {
+      expect(doc.getDoubleOr('nan', 0.25), 0.25);
+      expect(doc.getDoubleOr('inf', 0.25), 0.25);
+      expect(doc.getDoubleOr('ok', 0.25), 0.5);
+    });
+
+    test('the derived accessors reject them too', () {
+      expect(doc.getRatio('nan'), isNull);
+      expect(doc.getRatio('inf'), isNull);
+    });
+  });
 }

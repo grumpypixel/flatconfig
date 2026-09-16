@@ -183,6 +183,23 @@ bool isUnescapedQuoteAt(String s, int i) {
   return (backslashCount % 2) == 0;
 }
 
+/// Parses [s] as a double, rejecting NaN and the infinities.
+///
+/// `double.tryParse` accepts `NaN`, `Infinity` and `-Infinity`. NaN in
+/// particular defeats every range guard silently: all comparisons with it are
+/// false, so `min`/`max` do not reject the value, they simply never apply.
+/// A configuration file has no legitimate use for either, so they are not
+/// numbers as far as this package is concerned.
+double? tryParseFinite(String? s) {
+  if (s == null) {
+    return null;
+  }
+
+  final d = double.tryParse(s);
+
+  return (d == null || !d.isFinite) ? null : d;
+}
+
 /// Returns the index of the first unescaped quote at or after [from].
 ///
 /// A quoted value closes at its *first* valid closer (SPEC.md 5.1). Closing at

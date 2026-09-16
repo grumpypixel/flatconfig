@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import 'key.dart';
+import 'parser_utils.dart';
 
 /// A single configuration entry representing a `key = value` pair.
 ///
@@ -222,20 +223,22 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// The map contains only the most recent value for each key, with null values
   /// for keys whose last assignment was empty (like `key =`). This is useful
   /// for simple key-value lookups when you don't need to preserve duplicate keys.
-  Map<String, String?> toMap() =>
-      _latestExpando[this] ??= Map.unmodifiable(_buildLatest());
+  Map<String, String?> toMap() => _latestExpando[this] ??= _buildLatest();
 
   // Cache map stored externally to keep this class const-friendly.
   static final Expando<Map<String, String?>> _latestExpando =
       Expando<Map<String, String?>>('flatconf_latest_cache');
 
+  /// Returns an unmodifiable map, so that every caller is safe by
+  /// construction. Leaving the wrapping to the callers is what let [cache]
+  /// hand out a writable view of a document documented as immutable.
   Map<String, String?> _buildLatest() {
     final map = <String, String?>{};
     for (final e in entries) {
       map[e.key] = e.value;
     }
 
-    return map;
+    return Map.unmodifiable(map);
   }
 
   /// Caches the latest and valuesOf maps.
@@ -271,24 +274,25 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// ```
   List<String?> valuesOf(String key) {
     final map = _valuesOfExpando[this] ??= _buildValuesOf();
-    final list = map[key];
-    if (list == null) {
-      return const [];
-    }
-
-    return List.unmodifiable(list);
+    return map[key] ?? const [];
   }
 
   static final Expando<Map<String, List<String?>>> _valuesOfExpando =
       Expando<Map<String, List<String?>>>('flatconf_valuesOf_cache');
 
+  /// Unmodifiable all the way down, for the reason given on [_buildLatest].
+  /// The inner lists are frozen here so [valuesOf] can hand them out directly
+  /// instead of copying on every call.
   Map<String, List<String?>> _buildValuesOf() {
     final map = <String, List<String?>>{};
     for (final e in entries) {
       map.putIfAbsent(e.key, () => []).add(e.value);
     }
 
-    return map;
+    return Map.unmodifiable({
+      for (final entry in map.entries)
+        entry.key: List<String?>.unmodifiable(entry.value),
+    });
   }
 
   /// Convenience operator for accessing the latest value of a key.
@@ -342,7 +346,7 @@ class FlatDocument extends Iterable<FlatEntry> {
       return null;
     }
 
-    return double.tryParse(v);
+    return tryParseFinite(v);
   }
 
   /// Returns all entries whose key matches [key].

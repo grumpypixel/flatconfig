@@ -870,4 +870,29 @@ void main() {
       expect(e2.toString(), contains('null'));
     });
   });
+
+  group('immutability holds with and without cache()', () {
+    // cache() used to store a plain map while toMap() wrapped its own copy, so
+    // pre-caching quietly handed out a writable view of an @immutable type.
+    test('toMap() is unwritable without pre-caching', () {
+      final doc = FlatConfig.parse('a = 1');
+      expect(() => doc.toMap()['a'] = 'HACKED', throwsUnsupportedError);
+      expect(doc['a'], '1');
+    });
+
+    test('toMap() is unwritable after pre-caching', () {
+      final doc = FlatConfig.parse('a = 1')..cache();
+      expect(() => doc.toMap()['a'] = 'HACKED', throwsUnsupportedError);
+      expect(doc['a'], '1');
+    });
+
+    test('valuesOf() is unwritable either way', () {
+      final plain = FlatConfig.parse('a = 1\na = 2');
+      expect(() => plain.valuesOf('a').add('3'), throwsUnsupportedError);
+
+      final cached = FlatConfig.parse('a = 1\na = 2')..cache(toValuesOf: true);
+      expect(() => cached.valuesOf('a').add('3'), throwsUnsupportedError);
+      expect(cached.valuesOf('a'), ['1', '2']);
+    });
+  });
 }

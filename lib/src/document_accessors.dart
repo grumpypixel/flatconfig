@@ -154,7 +154,7 @@ extension FlatDocumentAccessors on FlatDocument {
   /// Returns [defaultValue] if absent or invalid.
   double getDoubleOr(String key, double defaultValue) {
     final v = this[key];
-    final d = double.tryParse(v ?? '');
+    final d = tryParseFinite(v);
 
     return d ?? defaultValue;
   }
@@ -162,7 +162,7 @@ extension FlatDocumentAccessors on FlatDocument {
   /// Require a double; throws [FormatException] if missing/invalid.
   double requireDouble(String key) {
     final raw = this[key];
-    final parsed = double.tryParse(raw ?? '');
+    final parsed = tryParseFinite(raw);
     if (parsed == null) {
       throw const FormatException('Expected double').explain(
         key: key,
@@ -219,7 +219,7 @@ extension FlatDocumentAccessors on FlatDocument {
 
     final numStr = match.group(1)!;
     final unit = match.group(2) ?? 'ms';
-    final value = double.tryParse(numStr);
+    final value = tryParseFinite(numStr);
     if (value == null) {
       return null;
     }
@@ -272,7 +272,7 @@ extension FlatDocumentAccessors on FlatDocument {
 
     final numStr = match.group(1)!;
     final unit = match.group(2) ?? 'b';
-    final value = double.tryParse(numStr);
+    final value = tryParseFinite(numStr);
     if (value == null) {
       return null;
     }
@@ -590,7 +590,7 @@ extension FlatDocumentAccessors on FlatDocument {
   /// Returns null if absent/invalid/out of range.
   double? getDoubleInRange(String key, {double? min, double? max}) {
     final v = this[key];
-    final d = double.tryParse(v ?? '');
+    final d = tryParseFinite(v);
     if (d == null) {
       return null;
     }
@@ -804,7 +804,7 @@ extension FlatDocumentAccessors on FlatDocument {
       return i;
     }
 
-    return double.tryParse(v);
+    return tryParseFinite(v);
   }
 
   /// Require num; throws [FormatException] if missing/invalid.
@@ -831,8 +831,8 @@ extension FlatDocumentAccessors on FlatDocument {
       return null;
     }
 
-    final left = double.tryParse(t.substring(0, idx).trim());
-    final right = double.tryParse(t.substring(idx + 1).trim());
+    final left = tryParseFinite(t.substring(0, idx).trim());
+    final right = tryParseFinite(t.substring(idx + 1).trim());
     if (left == null || right == null || right == 0) {
       return null;
     }
@@ -877,7 +877,7 @@ extension FlatDocumentAccessors on FlatDocument {
       hadPercent = true;
     }
 
-    final x = double.tryParse(s);
+    final x = tryParseFinite(s);
     if (x == null) {
       return null;
     }
