@@ -73,6 +73,31 @@ class EmptyKeyException extends FlatParseException {
   }) : super(errorEmptyKey, lineNumber, rawLine, column: column);
 }
 
+/// Thrown when a key breaks one of the rules in SPEC.md 3.
+///
+/// Distinct from [EmptyKeyException], which covers the one case a reader is
+/// most likely to hit. This covers the rest: a key that would not survive
+/// being written out and read back, such as one containing a double quote or
+/// beginning with `#`.
+///
+/// Example of an invalid line: `"a b" = v` (the key would keep its quotes)
+class InvalidKeyException extends FlatParseException {
+  /// Creates a new [InvalidKeyException] for [key], which [reason] describes.
+  InvalidKeyException(
+    this.key,
+    this.reason,
+    int lineNumber,
+    String rawLine, {
+    super.column,
+  }) : super('Key "$key" $reason', lineNumber, rawLine);
+
+  /// The offending key, exactly as it appeared.
+  final String key;
+
+  /// The rule that was broken, phrased to follow the key.
+  final String reason;
+}
+
 /// Thrown when a quoted value is not properly closed.
 ///
 /// This exception is thrown when a line contains a quoted value that doesn't

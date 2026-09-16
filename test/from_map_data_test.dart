@@ -357,14 +357,14 @@ void main() {
       );
     });
 
-    test('empty root key allowed when strict=false', () {
+    test('empty root key dropped when strict=false', () {
       final doc = FlatConfig.fromMapData(
         {
           '': 1,
         },
         options: const FlatMapDataOptions(strict: false),
       );
-      expect(doc[''], '1');
+      expect(doc, isEmpty);
     });
 
     test('empty root with nested map flattens to child key', () {
@@ -389,8 +389,7 @@ void main() {
   });
 
   group('fromMapData – edge cases (extras)', () {
-    test(
-        'empty root key with null: strict=true throws; strict=false keeps reset',
+    test('empty root key with null: strict=true throws; strict=false drops it',
         () {
       expect(
         () => FlatConfig.fromMapData(
@@ -404,8 +403,7 @@ void main() {
         {'': null},
         options: const FlatMapDataOptions(strict: false),
       );
-      expect(doc.valuesOf(''), [null]);
-      expect(doc[''], isNull);
+      expect(doc, isEmpty);
     });
 
     test('custom separator and keyEscaper work together', () {

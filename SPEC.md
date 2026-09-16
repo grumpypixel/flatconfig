@@ -161,19 +161,27 @@ between `null` and `""`.
 Each entry is written as `key`, space, `=`, space, value, then the line
 terminator. Entries are written in order; duplicates are preserved.
 
-The value is written as:
+A value is quoted when, and only when, leaving it bare would change how it
+parses back:
 
-| Value | Written as |
-|---|---|
-| `null` | nothing — the line is `key = ` |
-| `""` | `""` |
-| contains leading or trailing whitespace | quoted |
-| contains `"` or `\` | quoted, with `"` → `\"` and `\` → `\\` |
-| begins with `"` | quoted |
-| otherwise | verbatim, unquoted |
+| Value | Quoted | Why |
+|---|---|---|
+| `null` | no — the line is `key = ` | that *is* the wire form of a reset |
+| `""` | yes | a bare `key = ` would read back as `null` |
+| leading or trailing whitespace | yes | §5 trims the bare form |
+| contains `"` | yes | §5 would take a leading quote as an opener |
+| contains `=` | yes | defensive; the first `=` is already the separator |
+| begins with the comment prefix | yes | §2 would take the line for a comment |
+| anything else | no | the bare form already round-trips |
 
-Escaping is **on by default**. Producing output that a conforming parser would
-misread MUST NOT be the default behaviour.
+Whenever a value is quoted, `\` MUST be written as `\\` and `"` as `\"`.
+Escaping is **on by default**: producing output that a conforming parser would
+misread MUST NOT be the default behaviour. A trailing backslash makes this
+load-bearing rather than cosmetic — unescaped, `"C:\"` has no closer at all,
+because the closing quote reads as escaped.
+
+Backslashes in an *unquoted* value need no escaping, since §5 applies no escape
+processing outside quotes.
 
 Values containing `\n` or `\r` cannot be represented; they are rejected at
 construction (§3 for keys, here for values) and therefore cannot reach the
@@ -232,17 +240,32 @@ Every report carries the 1-based line number, a 1-based column, and the raw line
 
 Measured against 0.5.0, not inferred from the source. Each row is a Phase 1 task.
 
+### Fixed
+
+| § | Rule | What 0.5.0 did |
+|---|---|---|
+| 5.1 | first closer wins | Searched for the **last** unescaped quote, so `a = "one" junk "two"` was accepted even in strict mode, yielding `one" junk "two`. |
+| 5.2 | decoding on by default | `decodeEscapesInQuoted` defaulted to `false`. |
+| 6 | `""` survives a round trip | Encoded to `key = `, which re-parsed as `null`. |
+| 7 | escaping on by default | `escapeQuoted` defaulted to `false`. |
+
+| 3 | keys validated at construction | Only emptiness was checked, and only while parsing. `FlatEntry('#x', 'v')` encoded to `#x = v` and re-parsed to **zero entries**; `FlatEntry(' a ', 'v')` lost its padding; `"a b" = v` kept its quotes in the key. |
+
+These four had to move together. Unescaped output was only readable back
+*because* the parser closed at the last quote; switching §5.1 on its own would
+have broken inputs that previously worked. The round-trip property test and
+`test/spec_conformance_test.dart` pin the result.
+
+`FlatEntry` stays a `const` pair, because a `const` constructor may only assert
+compile-time constant expressions and `key.contains('=')` is not one. The check
+therefore sits on every path that builds a `FlatDocument`, which is the only way
+to reach the encoder. `strict: false` on the document factories now drops
+invalid entries, as its documentation always claimed.
+
+### Open
+
 | § | Rule | 0.5.0 actually does | Severity |
 |---|---|---|---|
-| 3 | keys may not contain `=` | `a=b = v` parses as key `a`, value `b = v` | corrupts |
-| 3 | keys may not contain `"` | `"a b" = v` yields the key `"a b"`, quotes included | confusing |
-| 3 | no leading/trailing key whitespace | `FlatEntry(' a ', 'v')` encodes to ` a  = v`, re-parses as key `a` | lossy |
-| 3 | keys may not begin with `#` | `FlatEntry('#x', 'v')` encodes to `#x = v`, re-parses to **zero entries** | silent loss |
-| 3 | keys validated at construction | only emptiness is checked, and only while parsing | — |
-| 5.1 | first closer wins | searches for the **last** unescaped quote, so `a = "one" junk "two"` is accepted even in strict mode, yielding `one" junk "two` | silent corruption |
-| 5.2 | decoding on by default | `decodeEscapesInQuoted` defaults to `false` | mismatch with §7 |
-| 6 | `""` survives a round trip | encodes to `key = `, which re-parses as `null` | type change |
-| 7 | escaping on by default | `escapeQuoted` defaults to `false` | unsafe default |
 | 7 | newlines rejected | `FlatEntry('a', 'x\ny')` is accepted and encodes to two physical lines; re-parsing yields `a` → `"x` | corrupts |
 | 7 | no trailing-newline option | `ensureTrailingNewline` exists but is a no-op, since output already ends with `\n` | dead option |
 | 5 | backslashes preserved | `parseValue` preserves them, but `splitRespectingQuotes` drops every one, so `getDocument` turns `win=C:\temp\x` into `win → C:tempx`. `getList` and `getMap` do not use that helper and are unaffected. | corrupts |

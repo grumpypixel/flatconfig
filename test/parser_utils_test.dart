@@ -63,14 +63,18 @@ void main() {
       expect(isUnescapedQuoteAt('', 0), isFalse);
     });
 
-    test('lastUnescapedQuote finds the last unescaped quote', () {
-      expect(lastUnescapedQuote('"hello"'), 6);
-      expect(lastUnescapedQuote(r'\"hello\"'), -1); // all quotes are escaped
-      expect(lastUnescapedQuote(r'\\"hello"'), 8);
-      expect(lastUnescapedQuote('no quotes'), -1);
-      expect(lastUnescapedQuote(r'\"'), -1);
-      expect(lastUnescapedQuote(''), -1);
-      expect(lastUnescapedQuote('"'), 0);
+    test('firstUnescapedQuote finds the first unescaped quote at or after from',
+        () {
+      expect(firstUnescapedQuote('"hello"', 1), 6);
+      expect(firstUnescapedQuote(r'\"hello\"', 0), -1); // all quotes escaped
+      expect(
+          firstUnescapedQuote(r'\\"hello"', 0), 2); // the backslash is escaped
+      expect(firstUnescapedQuote('no quotes', 0), -1);
+      expect(firstUnescapedQuote(r'\"', 0), -1);
+      expect(firstUnescapedQuote('', 0), -1);
+      expect(firstUnescapedQuote('"', 0), 0);
+      // The closer is the first one, not the last (SPEC.md 5.1).
+      expect(firstUnescapedQuote('"one" junk "two"', 1), 4);
     });
 
     test('normalizeLineEndings handles various line ending scenarios', () {

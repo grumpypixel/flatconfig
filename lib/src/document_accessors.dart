@@ -1,7 +1,9 @@
 import 'dart:convert' as convert;
+
 import 'constants.dart';
 import 'document.dart';
 import 'exceptions.dart';
+import 'key.dart';
 import 'parser_utils.dart';
 
 /// Converter function that transforms a non-null string into a typed value `T`.
@@ -1449,7 +1451,7 @@ List<FlatEntry> _parseInlineEntries(
     if (trimKey) {
       key = key.trimRight();
     }
-    if (key.isEmpty) {
+    if (invalidKeyReason(key) != null) {
       continue;
     }
 

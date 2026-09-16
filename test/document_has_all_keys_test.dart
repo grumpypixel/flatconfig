@@ -160,16 +160,15 @@ b =
       expect(doc.hasAllKeys(['a', 'a', 'a']), isTrue);
     });
 
-    test('empty string key: present vs. missing', () {
-      final withEmpty = FlatDocument(const [
-        FlatEntry('', 'x'),
-      ]);
-      expect(withEmpty.hasAllKeys(['']), isTrue);
+    test('an empty string is never a present key', () {
+      // No document can hold one, so the query can only ever be false.
+      expect(
+        () => FlatDocument(const [FlatEntry('', 'x')]),
+        throwsFormatException,
+      );
 
-      final withoutEmpty = FlatDocument(const [
-        FlatEntry('a', '1'),
-      ]);
-      expect(withoutEmpty.hasAllKeys(['']), isFalse);
+      final doc = FlatDocument(const [FlatEntry('a', '1')]);
+      expect(doc.hasAllKeys(['']), isFalse);
     });
 
     test(

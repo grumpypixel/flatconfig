@@ -64,7 +64,7 @@ String? parseValue(
     // Search for last unescaped-Quote in the *trimmed* range.
     // We call your existing lastUnescapedQuote, but only on the slicing.
     final slice = raw.substring(start, end); // starts with '"'
-    final endIdxInSlice = lastUnescapedQuote(slice);
+    final endIdxInSlice = firstUnescapedQuote(slice, 1);
 
     if (endIdxInSlice <= 0) {
       // No closing quote in the slice
@@ -183,12 +183,15 @@ bool isUnescapedQuoteAt(String s, int i) {
   return (backslashCount % 2) == 0;
 }
 
-/// Returns the index of the last unescaped quote in the string.
+/// Returns the index of the first unescaped quote at or after [from].
 ///
-/// This function searches backwards through the string to find the last quote
-/// that is not escaped by backslashes. Returns -1 if no unescaped quote is found.
-int lastUnescapedQuote(String s) {
-  for (var i = s.length - 1; i >= 0; i--) {
+/// A quoted value closes at its *first* valid closer (SPEC.md 5.1). Closing at
+/// the last one instead would silently accept `"one" junk "two"` as the single
+/// value `one" junk "two`.
+///
+/// Returns -1 if no unescaped quote is found.
+int firstUnescapedQuote(String s, int from) {
+  for (var i = from; i < s.length; i++) {
     if (s.codeUnitAt(i) == Constants.quoteCharCode &&
         isUnescapedQuoteAt(s, i)) {
       return i;

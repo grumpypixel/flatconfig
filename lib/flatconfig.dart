@@ -12,6 +12,7 @@ export 'src/exceptions.dart'
         CircularIncludeException,
         ConfigIncludeException,
         EmptyKeyException,
+        InvalidKeyException,
         MaxIncludeDepthExceededException,
         MissingEqualsException,
         MissingIncludeException,

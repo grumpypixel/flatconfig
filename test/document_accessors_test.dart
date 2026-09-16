@@ -907,7 +907,10 @@ void main() {
       ]);
     });
 
-    test('getDocument trim options false preserve whitespace in keys', () {
+    test('getDocument with trimKey false drops keys it cannot represent', () {
+      // A padded key is invalid (SPEC.md 3), so trimKey: false can only ever
+      // discard entries now — it never preserves one. The option is inert and
+      // goes away with these accessors in Phase 2.6.
       final d = docOf({'pairs': ' a = 1 , b = " 2 " '});
       final sub = d.getDocument(
         'pairs',
@@ -915,10 +918,7 @@ void main() {
         trimKey: false,
         decodeEscapesInQuoted: true,
       );
-      expect(sub.entries, [
-        const FlatEntry(' a ', '1'),
-        const FlatEntry(' b ', ' 2 '),
-      ]);
+      expect(sub, isEmpty);
     });
 
     test('getDocument returns empty for missing and empty', () {

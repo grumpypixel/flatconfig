@@ -6,6 +6,7 @@ import 'constants.dart';
 import 'document.dart';
 import 'exceptions.dart';
 import 'from_map_data.dart';
+import 'key.dart';
 import 'options.dart';
 import 'parser_utils.dart';
 
@@ -510,6 +511,16 @@ class FlatConfig {
         throw EmptyKeyException(ln, raw, column: idx + 1);
       }
       onEmptyKey?.call(ln, raw);
+
+      return null;
+    }
+
+    // A key the encoder could not write back out is not a key (SPEC.md 3).
+    final keyProblem = invalidKeyReason(trimmedKey);
+    if (keyProblem != null) {
+      if (strict) {
+        throw InvalidKeyException(trimmedKey, keyProblem, ln, raw);
+      }
 
       return null;
     }

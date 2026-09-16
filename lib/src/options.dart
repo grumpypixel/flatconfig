@@ -19,7 +19,7 @@ class FlatParseOptions {
   /// configuration file parsing.
   const FlatParseOptions({
     this.commentPrefix = Constants.commentPrefix,
-    this.decodeEscapesInQuoted = false,
+    this.decodeEscapesInQuoted = true,
     this.strict = false,
     this.includeKey = Constants.includeKey,
     this.maxIncludeDepth = 64,
@@ -36,7 +36,11 @@ class FlatParseOptions {
   /// Whether to decode escape sequences inside quoted values.
   ///
   /// When true, `\"` is decoded to `"` and `\\` is decoded to `\` inside
-  /// quoted values. Defaults to false for compatibility.
+  /// quoted values. Every other backslash stays literal.
+  ///
+  /// Defaults to true, matching [FlatEncodeOptions.escapeQuoted]. The two must
+  /// agree: a document written by the encoder has to be readable by the parser
+  /// without the caller configuring anything (SPEC.md 5.2).
   final bool decodeEscapesInQuoted;
 
   /// Whether invalid lines should throw exceptions instead of being ignored.
@@ -194,7 +198,7 @@ class FlatStreamWriteOptions {
 class FlatEncodeOptions {
   /// Creates encode options with the specified configuration.
   const FlatEncodeOptions({
-    this.escapeQuoted = false,
+    this.escapeQuoted = true,
     this.quoteIfWhitespace = true,
     this.alwaysQuote = false,
     this.commentPrefix = Constants.commentPrefix,
@@ -203,7 +207,11 @@ class FlatEncodeOptions {
   /// Whether to escape quotes and backslashes in quoted values.
   ///
   /// When true, `"` becomes `\"` and `\` becomes `\\` inside quoted values.
-  /// Defaults to false for compatibility.
+  ///
+  /// Defaults to true. Unescaped output is only readable back because the
+  /// parser used to close quoted values at the last quote rather than the
+  /// first; producing output a conforming parser would misread must not be the
+  /// default (SPEC.md 7).
   final bool escapeQuoted;
 
   /// Whether to quote values that have leading or trailing whitespace.

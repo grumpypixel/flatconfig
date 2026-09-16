@@ -86,15 +86,15 @@ void main() {
         expect(twice.entries, once.entries);
       });
 
-      test('handles empty key and unicode/quoted semantics unchanged', () {
+      test('handles unicode/quoted semantics unchanged', () {
         final doc = FlatDocument(const [
-          FlatEntry('', 'value'),
           FlatEntry('greeting', 'Hey ya! 👋'),
-          FlatEntry('', 'later'),
+          FlatEntry('ünïcödé', 'value'),
+          FlatEntry('greeting', 'later 👋'),
         ]);
         final collapsed = doc.collapse();
-        expect(collapsed[''], 'later');
-        expect(collapsed['greeting'], 'Hey ya! 👋');
+        expect(collapsed['greeting'], 'later 👋');
+        expect(collapsed['ünïcödé'], 'value');
       });
 
       test('parity: collapse().toMap equals toMap when dropNulls=false', () {

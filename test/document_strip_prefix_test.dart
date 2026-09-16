@@ -76,14 +76,16 @@ window.size = large
       expect(clean.toMap(), equals({'mode': 'b', 'size': 'large'}));
     });
 
-    test('strip_prefix_allows_empty_key_when_key_equals_prefix', () {
+    test('strip_prefix_drops_an_entry_whose_key_equals_the_prefix', () {
       final doc = FlatConfig.parse('''
 window. = value
 window.width = 800
 ''');
 
+      // Stripping leaves an empty key, which no document can hold, so the
+      // entry goes rather than the whole operation failing.
       final clean = doc.stripPrefix('window.');
-      expect(clean.toMap(), equals({'': 'value', 'width': '800'}));
+      expect(clean.toMap(), equals({'width': '800'}));
     });
 
     test('strip_prefix_preserves_resets', () {

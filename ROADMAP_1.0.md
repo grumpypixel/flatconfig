@@ -86,15 +86,26 @@ earlier reviews:
 | key `#x` | `#x = v` | **nothing** — the line reads back as a comment |
 | key `' a '` | ` a  = v` | `FlatEntry(a, v)` — key whitespace gone |
 
-- [ ] Encode an empty string as `""`, never as a bare `key =`.
-- [ ] Validate keys at construction so `=`, quotes, newlines, empty keys, edge
+- [x] Encode an empty string as `""`, never as a bare `key =`.
+- [x] Validate keys at construction so `=`, quotes, newlines, empty keys, edge
       whitespace, and a leading `#` can never reach the encoder (`SPEC.md` §3).
-- [ ] Encoder throws when a key begins with a non-default comment prefix — key
+- [x] Encoder throws when a key begins with a non-default comment prefix — key
       validity must not depend on parse options.
 - [ ] Reject newline-containing values (decision 2) at construction and encode.
-- [ ] Make safe escaping the default; unescaped output becomes opt-in.
+- [x] Make safe escaping the default; unescaped output becomes opt-in.
 - [ ] `encode()` always writes a trailing newline, so
       `ensureTrailingNewline: false` cannot remove one. Make the flag honest.
+
+`FlatEntry` keeps its `const` constructor: a `const` constructor may only
+assert compile-time constant expressions, and `key.contains('=')` is not one.
+The check sits on every path that builds a `FlatDocument` instead, which is the
+only route to the encoder. `strict: false` now drops invalid entries rather than
+keeping them, which is what its documentation always said.
+
+The escaping flip could not ship alone. Unescaped output was only readable back
+because the parser closed quoted values at the *last* quote, so 1.5 and the two
+option defaults had to change in one commit; `test/round_trip_test.dart` is the
+gate that caught it. Remaining here: key validation and newline rejection.
 
 ### 1.3 Stop eating backslashes
 
@@ -118,14 +129,17 @@ backslash as an escape marker without copying it, regardless of
 `[FlatEntry(, x), FlatEntry(.host, y)]`, which encodes to `" = x"` — a line the
 parser can never read back.
 
-### 1.5 Define and enforce the quoted grammar
+### 1.5 Define and enforce the quoted grammar — **done**
 
-**Reproduction:** `parse('a = "one" junk "two"', strict: true)` is accepted,
-yielding `one" junk "two`, because `parseValue` searches for the *last*
-unescaped quote.
+`parseValue` searched for the *last* unescaped quote, so
+`parse('a = "one" junk "two"', strict: true)` was accepted and yielded
+`one" junk "two`.
 
-- [ ] Implement the Phase 0 grammar (first valid closer).
-- [ ] Reject trailing non-whitespace in strict mode.
+- [x] `firstUnescapedQuote` replaces `lastUnescapedQuote`; the first valid
+      closer wins.
+- [x] Trailing non-whitespace is rejected in strict mode, literal in lax.
+
+Landed together with the escaping half of 1.2 — see the note there.
 
 ### 1.6 Reject non-finite numbers
 
@@ -345,6 +359,9 @@ downstream inconsistencies.
 - [ ] `valuesOf` → `allValues` (pairs with `allAs`).
 
 ### 2.6 Collapse the accessor catalog
+
+`getDocument`'s `trimKey: false` is already inert: every key it would
+preserve padding on is invalid under §3, so it can only drop entries.
 
 `document_accessors.dart` is 1,460 lines and 66 methods. The blowup comes from
 crossing {type} × {lenient, default, strict, trimmed, ranged, clamped, empty}.

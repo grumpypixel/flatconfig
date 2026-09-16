@@ -398,39 +398,44 @@ void main() {
   });
 
   group('FlatEntry.validated', () {
-    test('should create an entry with a trimmed key and given value', () {
-      final entry = FlatEntry.validated(' theme ', 'dark');
+    test('should keep a valid key exactly as given', () {
+      final entry = FlatEntry.validated('theme', 'dark');
       expect(entry.key, 'theme');
       expect(entry.value, 'dark');
     });
 
-    test('should throw ArgumentError when key is empty or whitespace only', () {
+    test('should reject edge whitespace rather than trim it away', () {
+      // Trimming would hand back an entry the caller never asked for.
       expect(
-        () => FlatEntry.validated(''),
+        () => FlatEntry.validated(' theme ', 'dark'),
         throwsA(isA<ArgumentError>().having(
           (e) => e.message,
           'message',
-          contains('must not be empty or whitespace'),
+          contains('must not have leading or trailing whitespace'),
         )),
       );
+    });
 
-      expect(
-        () => FlatEntry.validated('   '),
-        throwsA(isA<ArgumentError>().having(
-          (e) => e.message,
-          'message',
-          contains('must not be empty or whitespace'),
-        )),
-      );
+    test('should name the rule a key breaks', () {
+      void expectRejected(String key, String reason) {
+        expect(
+          () => FlatEntry.validated(key),
+          throwsA(isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains(reason),
+          )),
+          reason: 'key "$key" should be rejected',
+        );
+      }
 
-      expect(
-        () => FlatEntry.validated('\t\n'),
-        throwsA(isA<ArgumentError>().having(
-          (e) => e.message,
-          'message',
-          contains('must not be empty or whitespace'),
-        )),
-      );
+      expectRejected('', 'must not be empty');
+      expectRejected('   ', 'must not have leading or trailing whitespace');
+      expectRejected('\t\n', 'must not have leading or trailing whitespace');
+      expectRejected('a=b', "must not contain '='");
+      expectRejected('a"b', 'must not contain a double quote');
+      expectRejected('a\nb', 'must not contain a line break');
+      expectRejected('#x', "must not begin with '#'");
     });
 
     test('should preserve value correctly, including null', () {
@@ -488,7 +493,7 @@ void main() {
         throwsA(isA<FormatException>().having(
           (e) => e.message,
           'message',
-          contains('Empty key in fromMap input'),
+          contains('must not be empty'),
         )),
       );
 
@@ -497,7 +502,7 @@ void main() {
         throwsA(isA<FormatException>().having(
           (e) => e.message,
           'message',
-          contains('Empty key in fromMap input'),
+          contains('must not have leading or trailing whitespace'),
         )),
       );
     });
@@ -568,23 +573,22 @@ void main() {
         throwsA(isA<FormatException>().having(
           (e) => e.message,
           'message',
-          contains('Empty key found in FlatEntry'),
+          contains('must not be empty'),
         )),
       );
     });
 
-    test('should not skip invalid entries when strict: false (validation only)',
-        () {
+    test('should drop invalid entries when strict: false', () {
       final entries = [
         const FlatEntry('valid', 'value'),
         const FlatEntry('', 'invalid'),
         const FlatEntry('   ', 'also invalid'),
       ];
       final doc = FlatDocument.fromEntries(entries, strict: false);
-      expect(doc.length, 3);
+      expect(doc.length, 1);
       expect(doc['valid'], 'value');
-      expect(doc[''], 'invalid');
-      expect(doc['   '], 'also invalid');
+      expect(doc[''], isNull);
+      expect(doc['   '], isNull);
     });
 
     test('should behave identically to fromMap for equivalent input', () {
@@ -658,29 +662,16 @@ void main() {
       expect(merged['b'], '4');
     });
 
-    test('should throw FormatException for invalid keys in strict mode', () {
-      final doc1 = FlatDocument(const [FlatEntry('valid', 'value')]);
-      final doc2 = FlatDocument(const [FlatEntry('', 'invalid')]);
-
+    test('cannot be handed an invalid key, because no document holds one', () {
+      // The guard sits at document construction, so merge never has to check.
       expect(
-        () => FlatDocument.merge([doc1, doc2]),
+        () => FlatDocument(const [FlatEntry('', 'invalid')]),
         throwsA(isA<FormatException>().having(
           (e) => e.message,
           'message',
-          contains('Empty key found in FlatEntry'),
+          contains('must not be empty'),
         )),
       );
-    });
-
-    test('should not skip invalid entries when strict: false (validation only)',
-        () {
-      final doc1 = FlatDocument(const [FlatEntry('valid', 'value')]);
-      final doc2 = FlatDocument(const [FlatEntry('', 'invalid')]);
-      final merged = FlatDocument.merge([doc1, doc2], strict: false);
-
-      expect(merged.length, 2);
-      expect(merged['valid'], 'value');
-      expect(merged[''], 'invalid');
     });
 
     test('should handle empty list of documents', () {
@@ -710,7 +701,7 @@ void main() {
         throwsA(isA<ArgumentError>().having(
           (e) => e.message,
           'message',
-          contains('must not be empty or whitespace'),
+          contains('must not be empty'),
         )),
       );
 
@@ -719,15 +710,14 @@ void main() {
         throwsA(isA<ArgumentError>().having(
           (e) => e.message,
           'message',
-          contains('must not be empty or whitespace'),
+          contains('must not have leading or trailing whitespace'),
         )),
       );
     });
 
-    test('should accept invalid key when strict: false', () {
+    test('should drop an invalid key when strict: false', () {
       final doc = FlatDocument.single('', value: 'value', strict: false);
-      expect(doc.length, 1);
-      expect(doc[''], 'value');
+      expect(doc, isEmpty);
     });
 
     test('should correctly expose entry via doc[key]', () {
@@ -742,10 +732,11 @@ void main() {
       expect(doc['key'], isNull);
     });
 
-    test('should trim key when strict: true', () {
-      final doc = FlatDocument.single('  key  ', value: 'value');
-      expect(doc['key'], 'value');
-      expect(doc.entries.first.key, 'key');
+    test('should reject a padded key rather than trim it', () {
+      expect(
+        () => FlatDocument.single('  key  ', value: 'value'),
+        throwsA(isA<ArgumentError>()),
+      );
     });
   });
 
@@ -763,7 +754,7 @@ void main() {
         throwsA(isA<FormatException>().having(
           (e) => e.message,
           'message',
-          contains('Empty key found in FlatEntry'),
+          contains('must not be empty'),
         )),
       );
     });
@@ -805,7 +796,7 @@ void main() {
         throwsA(isA<FormatException>().having(
           (e) => e.message,
           'message',
-          contains('Empty key found in FlatEntry'),
+          contains('must not have leading or trailing whitespace'),
         )),
       );
     });

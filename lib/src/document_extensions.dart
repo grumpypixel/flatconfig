@@ -1,5 +1,6 @@
 import 'constants.dart';
 import 'document.dart';
+import 'key.dart';
 import 'options.dart';
 import 'parser_utils.dart';
 
@@ -167,7 +168,11 @@ extension FlatDocumentExtensions on FlatDocument {
       final containsNewline =
           v.contains(Constants.newline) || v.contains(Constants.carriageReturn);
 
-      final needsQuoting = options.alwaysQuote ||
+      // An empty string must be quoted: a bare `key = ` is the wire form of an
+      // explicit reset, so emitting it here would turn '' into null on the way
+      // back (SPEC.md 6).
+      final needsQuoting = v.isEmpty ||
+          options.alwaysQuote ||
           (options.quoteIfWhitespace && hasLeadingOrTrailingWhitespace) ||
           containsSeparator ||
           startsWithComment ||
@@ -410,7 +415,10 @@ extension FlatDocumentExtensions on FlatDocument {
     final pLen = prefix.length;
     for (final k in toMap().keys) {
       if (!k.startsWith(prefix)) continue;
+      // Stripping can leave nothing behind, as for key == prefix. There is no
+      // entry to keep then, so drop it rather than build an unwritable one.
       final newKey = k.substring(pLen);
+      if (invalidKeyReason(newKey) != null) continue;
       out.add(FlatEntry(newKey, this[k]));
     }
 

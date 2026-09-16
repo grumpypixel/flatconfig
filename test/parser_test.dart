@@ -340,6 +340,7 @@ mode = c
       const src = r'k = "He said: \"hi\" \\ o/"';
       final doc = FlatConfig.parse(
         src,
+        options: const FlatParseOptions(decodeEscapesInQuoted: false),
       );
       expect(doc['k'], r'He said: \"hi\" \\ o/');
     });
@@ -455,7 +456,9 @@ mode = c
 
   group('FlatConf parse value escapes', () {
     test(r'decodeEscapesInQuoted unescapes \" and \\', () {
-      const src = r'k = "He said: "hi" \\ o/"';
+      // Inner quotes must be escaped: a quoted value closes at its first
+      // unescaped quote, so the previous unescaped source is malformed now.
+      const src = r'k = "He said: \"hi\" \\ o/"';
       final doc = FlatConfig.parse(
         src,
         options: const FlatParseOptions(decodeEscapesInQuoted: true),
@@ -820,7 +823,7 @@ shader = vignette=soft
         FlatEntry('k', 'say "hi"'),
       ]);
       final out = doc.encode();
-      expect(out.contains('"say "hi""') || out.contains('"say "hi""'), isTrue);
+      expect(out.contains(r'"say \"hi\""'), isTrue);
       final reparsed = FlatConfig.parse(out);
       expect(reparsed['k'], 'say "hi"');
     });

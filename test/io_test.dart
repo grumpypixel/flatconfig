@@ -130,16 +130,18 @@ included_key = included_value
       final file = File('test/tmp_io_comment.conf');
       addTearDown(() => file.existsSync() ? file.deleteSync() : null);
 
-      // With commentPrefix=';', a line starting with '#' is not a comment.
-      // Make it a valid assignment so it is parsed, not ignored.
+      // With commentPrefix=';', a line starting with '#' is not a comment
+      // here. The key is still rejected: key validity must not depend on the
+      // options of whoever happens to parse the file, or a document written
+      // with one prefix would lose entries when read with another (SPEC.md 3).
       file.writeAsStringSync('#key = zero\n; real comment\nx = 1\n');
 
       final doc = await file.parseFlat(
         options: const FlatParseOptions(commentPrefix: ';'),
       );
       expect(doc['x'], '1');
-      expect(doc['#key'], 'zero');
-      expect(doc.keys.length, 2);
+      expect(doc['#key'], isNull);
+      expect(doc.keys.length, 1);
     });
 
     test('callbacks collect issues on invalid lines', () async {
