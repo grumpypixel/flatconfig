@@ -36,3 +36,26 @@ jobs:
 
       - name: Run tests
         run: dart test
+
+  # Asserts vanish in release builds, so a guard written as an assert protects
+  # nothing where it matters. Compiling to an executable turns them off, which
+  # is the only way to notice.
+  release_semantics:
+    runs-on: ubuntu-latest
+
+    name: Test without assertions
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Run tests with assertions disabled
+        run: dart test --compiler exe

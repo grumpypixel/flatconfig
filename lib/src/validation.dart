@@ -85,6 +85,38 @@ String? invalidEntryReason(FlatEntry entry) {
   return null;
 }
 
+/// Throws an [ArgumentError] unless [value] is exactly one character.
+///
+/// Separators are compared by code unit, so anything longer would silently
+/// match nothing.
+void checkSingleCharacter(String value, String name) {
+  if (value.length != 1) {
+    throw ArgumentError.value(value, name, 'Must be a single character');
+  }
+}
+
+/// Throws an [ArgumentError] unless [value] can serve as a line terminator.
+void checkLineTerminator(String value) {
+  if (value.isEmpty) {
+    throw ArgumentError.value(value, 'lineTerminator', 'Must not be empty');
+  }
+}
+
+/// Throws an [ArgumentError] unless [prefix] can mark a comment line.
+///
+/// An empty prefix is allowed and disables comments. A prefix spanning a line
+/// break is not, since no single line could ever match it.
+void checkCommentPrefix(String prefix) {
+  if (prefix.contains(Constants.newline) ||
+      prefix.contains(Constants.carriageReturn)) {
+    throw ArgumentError.value(
+      prefix,
+      'commentPrefix',
+      'Must not contain a line break',
+    );
+  }
+}
+
 /// Throws an [ArgumentError] unless [key] is valid.
 ///
 /// Used at every boundary where a key enters a document from outside. The

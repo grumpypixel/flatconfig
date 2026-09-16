@@ -32,6 +32,10 @@ Fixed:
 - **`toMap()` and `valuesOf()` are unmodifiable after `cache()`.** Pre-caching
   handed out a writable view of a document documented as immutable, so
   `doc.cache(); doc.toMap()['a'] = 'x';` changed the document.
+- **Guards on public input throw instead of asserting.** A `commentPrefix`
+  containing a line break, a multi-character separator, and an empty line
+  terminator now raise `ArgumentError` in release builds, where `assert` does
+  nothing. CI runs the suite with assertions disabled to keep it that way.
 - **The minimum SDK is 3.8.0**, raised from a declared 3.0.0 that could never
   resolve: `path` needs 3.4, `meta` needs 3.5, `lints` needs 3.8. CI now builds
   on the floor as well as on stable.

@@ -397,6 +397,35 @@ mode = c
   });
 
   group('FlatConfig.parseLines commentPrefixes edge cases', () {
+    test('a commentPrefix spanning a line break is rejected', () {
+      // No single line could ever match it. This has to hold in release
+      // builds too, which is why it is a check and not an assert.
+      const options = FlatParseOptions(commentPrefix: '#\n');
+
+      expect(
+        () => FlatConfig.parse('k = v', options: options),
+        throwsArgumentError,
+      );
+      expect(
+        () => FlatConfig.parseLines(const ['k = v'], options: options),
+        throwsArgumentError,
+      );
+      expect(
+        () => FlatConfig.parseFromStringStream(
+          Stream.value('k = v'),
+          options: options,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => FlatConfig.parseEntriesFromStringStream(
+          Stream.value('k = v'),
+          options: options,
+        ).toList(),
+        throwsArgumentError,
+      );
+    });
+
     test('empty commentPrefix does not treat # as comment', () {
       final lines = ['# comment', 'k = v'];
 

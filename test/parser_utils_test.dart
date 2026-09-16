@@ -149,7 +149,7 @@ void main() {
           lineTerminator: '',
           ensureTrailingNewline: false,
         ),
-        throwsA(isA<AssertionError>()),
+        throwsA(isA<ArgumentError>()),
       );
     });
 
@@ -201,10 +201,10 @@ void main() {
         expect(result, ['a', 'b', 'c']);
       });
 
-      test('throws assertion error for multi-character separator', () {
+      test('throws for a multi-character separator', () {
         expect(
           () => splitRespectingQuotes('a,b,c', '::'),
-          throwsA(isA<AssertionError>()),
+          throwsA(isA<ArgumentError>()),
         );
       });
     });
@@ -250,10 +250,10 @@ void main() {
         expect(result, 1);
       });
 
-      test('throws assertion error for multi-character search', () {
+      test('throws for a multi-character search string', () {
         expect(
           () => indexOfUnquoted('abc', '::'),
-          throwsA(isA<AssertionError>()),
+          throwsA(isA<ArgumentError>()),
         );
       });
     });

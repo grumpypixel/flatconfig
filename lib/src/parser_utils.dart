@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'constants.dart';
 import 'exceptions.dart';
+import 'validation.dart';
 
 /// Parses a value token from a configuration line.
 ///
@@ -236,7 +237,7 @@ String normalizeLineEndings(
   required String lineTerminator,
   bool ensureTrailingNewline = false,
 }) {
-  assert(lineTerminator.isNotEmpty);
+  checkLineTerminator(lineTerminator);
 
   // If the original had a trailing newline
   final hadTrailingNewline =
@@ -278,7 +279,7 @@ String normalizeLineEndings(
 /// - [s]: the string to split
 /// - [sep]: the single-character separator (must be exactly one character)
 List<String> splitRespectingQuotes(String s, String sep) {
-  assert(sep.length == 1, 'sep must be a single character');
+  checkSingleCharacter(sep, 'sep');
 
   final out = <String>[];
   final sepC = sep.codeUnitAt(0);
@@ -321,7 +322,7 @@ List<String> splitRespectingQuotes(String s, String sep) {
 /// - [s]: the string to search in
 /// - [ch]: the single character to search for (must be exactly one character)
 int indexOfUnquoted(String s, String ch) {
-  assert(ch.length == 1, 'ch must be a single character');
+  checkSingleCharacter(ch, 'ch');
 
   final target = ch.codeUnitAt(0);
   var inQuotes = false;

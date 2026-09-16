@@ -13,14 +13,14 @@ folded in below, with reproductions.
 Last updated after Phase 1.2. Verify with `dart test` (expect 774 passing) and
 `sed -n '/^### Open/,$p' SPEC.md` for the remaining format deviations.
 
-**Done:** Phase 0 in full; Phase 1.1 through 1.6. `SPEC.md` Appendix A is
+**Done:** Phase 0 in full; Phase 1.1 through 1.6, plus 1.8 and 1.9. `SPEC.md` Appendix A is
 empty — every listed deviation is fixed and pinned by a test.
 
 **Open in Phase 1, in the order I would take them:**
 
 | Item | Reproduction, verified on this tree | Why it is still here |
 |---|---|---|
-| 1.7–1.9 | path canonicalization, assertions on public input, SDK floor | not started |
+| 1.7 | path canonicalization | not started |
 
 **How the work is organised.** Every fix carries a regression test.
 `test/round_trip_test.dart` is the property gate for the format and must stay
@@ -206,8 +206,14 @@ producing false include cycles and wrong cache hits.
 `sep.length == 1` (`parser_utils.dart:253`), `ch.length == 1`
 (`parser_utils.dart:306`), `lineTerminator.isNotEmpty` (`parser_utils.dart:215`).
 
-- [ ] Validate in public constructors, throw `ArgumentError`.
-- [ ] CI job that runs the suite with assertions disabled.
+- [x] Validate at the public boundary, throw `ArgumentError`. `FlatParseOptions`
+      is `const`, so its constructor cannot throw; the check runs at the four
+      parse entry points instead, from one shared guard in `validation.dart`.
+- [x] CI job that runs the suite with assertions disabled, via
+      `dart test --compiler exe`.
+
+An empty `commentPrefix` turned out to be a documented feature that disables
+comments, so only a prefix spanning a line break is rejected.
 
 ### 1.9 Fix the SDK floor
 
