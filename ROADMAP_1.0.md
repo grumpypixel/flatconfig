@@ -30,27 +30,30 @@ folded in below, with reproductions.
 
 ---
 
-## Phase 0 — Freeze the format spec
+## Phase 0 — Freeze the format spec — **done**
 
-**Output:** `SPEC.md`, versioned as *flatconfig format v1*.
-**Effort:** ~½ day. **Blocks everything else.**
+**Output:** `SPEC.md`, *flatconfig format v1*.
 
-Without this, "correct" is undefined and the current ambiguities reappear in new
-code. Each item needs exactly one stated answer:
+Every question below now has exactly one stated answer, and each was settled
+against measured 0.5.0 behaviour rather than against the source:
 
-- [ ] Valid key charset. May a key contain `=`, whitespace, quotes, newlines, or
-      be empty? (Proposed: no to all.)
-- [ ] Quoted-value grammar. Where does a quoted value legally end — first valid
-      closer or last? What may follow it? (Proposed: first closer; only
-      whitespace may follow; anything else errors in strict mode.)
-- [ ] Escape rules inside quoted values, and whether decoding is on by default.
-- [ ] The three states: missing key, explicit reset (`key =`), empty string
-      (`key = ""`). Exact encode and parse behavior for each.
-- [ ] Duplicate keys: preserved in order; resolved view is last-write-wins.
-- [ ] Newlines in values: forbidden. Which error type, thrown where.
-- [ ] Comment rules. The prefix is configurable; the `=` separator is **not**
-      (README currently claims otherwise).
-- [ ] Trailing-newline behavior of `encode()`.
+- [x] Valid key charset — non-empty; no `=`, `"`, `\n`, `\r`; no leading or
+      trailing whitespace; no leading `#`. Validated at construction.
+- [x] Quoted-value grammar — **first** valid closer wins, only whitespace may
+      follow, anything else is malformed.
+- [x] Escape rules — only `\"` and `\\`; every other backslash is literal.
+      Decoding on by default, to match the encoder.
+- [x] The three states — absent, reset (`key =` → `null`), empty string
+      (`key = ""` → `""`), with exact encode behaviour for each.
+- [x] Duplicate keys — preserved in order; resolved view is last-write-wins.
+- [x] Newlines in values — forbidden, rejected at construction.
+- [x] Comment rules — full-line only, no inline comments; prefix configurable,
+      `=` separator fixed.
+- [x] Trailing newline — `encode()` always terminates the last line, so the
+      option is removed rather than fixed.
+
+`SPEC.md` Appendix A lists the twelve places where 0.5.0 deviates. Two of them
+were not previously known and are folded into Phase 1.2 below.
 
 ---
 
@@ -75,9 +78,19 @@ changes `doc['a']`. Without `cache()` it correctly throws `UnsupportedError`.
 | `"line1\nline2"` | `a = "line1⏎line2"` | `FlatEntry(a, "line1)` — truncated |
 | key `a=b` | `a=b = v` | `FlatEntry(a, b = v)` — key corrupted |
 
+Two further round-trip losses, found by the Phase 0 probe and not listed in the
+earlier reviews:
+
+| Entry | Encoded | Parsed back |
+|---|---|---|
+| key `#x` | `#x = v` | **nothing** — the line reads back as a comment |
+| key `' a '` | ` a  = v` | `FlatEntry(a, v)` — key whitespace gone |
+
 - [ ] Encode an empty string as `""`, never as a bare `key =`.
-- [ ] Validate keys at construction so `=`, newlines, and empty keys can never
-      reach the encoder.
+- [ ] Validate keys at construction so `=`, quotes, newlines, empty keys, edge
+      whitespace, and a leading `#` can never reach the encoder (`SPEC.md` §3).
+- [ ] Encoder throws when a key begins with a non-default comment prefix — key
+      validity must not depend on parse options.
 - [ ] Reject newline-containing values (decision 2) at construction and encode.
 - [ ] Make safe escaping the default; unescaped output becomes opt-in.
 - [ ] `encode()` always writes a trailing newline, so
@@ -601,7 +614,7 @@ customizable separators.
 
 | Phase | Content | Days | Gate to proceed |
 |-------|---------|------|-----------------|
-| 0 | `SPEC.md` | 0.5 | Every ambiguity has one stated answer |
+| 0 | `SPEC.md` | done | Every ambiguity has one stated answer |
 | 1 | Correctness | 2–3 | Round-trip property test passes |
 | 2 | 1.0 API | 6–8 | All four entry points compile for JS and WASM |
 | 3 | Testing | 2 | Full CI matrix green |
