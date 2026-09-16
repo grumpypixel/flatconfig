@@ -1,3 +1,6 @@
+@TestOn('vm')
+library options_value_test;
+
 import 'dart:convert';
 import 'dart:io';
 

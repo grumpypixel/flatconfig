@@ -1,3 +1,6 @@
+@TestOn('vm')
+library parse_with_resolver_hybrid_test;
+
 import 'dart:io';
 
 import 'package:flatconfig/flatconfig_io.dart';
