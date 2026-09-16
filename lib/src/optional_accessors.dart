@@ -2,7 +2,6 @@ import 'dart:convert' as convert;
 
 import 'constants.dart';
 import 'document.dart';
-import 'document_accessors.dart';
 import 'exceptions.dart';
 import 'parser_utils.dart';
 

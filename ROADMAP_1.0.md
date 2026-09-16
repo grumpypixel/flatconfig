@@ -485,9 +485,16 @@ Members are currently spread across `FlatDocument` plus four extensions
 web `Object` stubs). Extensions can't be overridden, don't appear under the
 class in dartdoc, and break if the wrong barrel is imported.
 
-- [ ] Everything that is always available goes on `FlatDocument` itself.
-- [ ] Use an extension only where a separate entry point requires it
+- [x] Everything that is always available goes on `FlatDocument` itself.
+- [x] Use an extension only where a separate entry point requires it
       (`flatconfig_accessors.dart`, `flatconfig_io.dart`).
+
+Done. `FlatDocumentAccessors` and `FlatDocumentExtensions` are members of the
+class; `document_accessors.dart` and `document_extensions.dart` held one
+declaration each afterwards and are deleted, with `FlatConverter` and
+`CollapseOrder` moving to `document.dart`. What is left is an extension on a
+foreign type (`File`, `FormatException`), or belongs to an entry point 2.11 and
+2.13 still have to split out.
 
 ### 2.8 One error-reporting mechanism
 

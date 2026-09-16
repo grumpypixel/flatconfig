@@ -2,12 +2,38 @@ import 'dart:convert';
 
 import 'package:meta/meta.dart';
 
+import 'constants.dart';
+import 'exceptions.dart';
 import 'from_map_data.dart';
 import 'lookup.dart';
 import 'options.dart';
 import 'parser.dart';
 import 'parser_utils.dart';
 import 'validation.dart';
+
+/// Converter function that turns a non-null string into a typed value `T`.
+///
+/// Contract:
+/// - Throw on invalid input; do not return `null`.
+/// - The input has already been trimmed unless the caller opted out.
+///
+/// An [Exception] means the value is wrong; an [Error] means the converter is,
+/// and is never caught on your behalf.
+///
+/// Example:
+/// ```dart
+/// final port = doc.getAs('port', int.parse);
+/// ```
+typedef FlatConverter<T> = T Function(String value);
+
+/// Ordering strategy for collapsing duplicate keys in a [FlatDocument].
+enum CollapseOrder {
+  /// Keep the position of the first occurrence of a key.
+  firstOccurrence,
+
+  /// Keep the position of the last write (last occurrence) of a key.
+  lastWrite,
+}
 
 /// A single configuration entry representing a `key = value` pair.
 ///
@@ -393,6 +419,685 @@ class FlatDocument {
   /// This is equivalent to `this[key]` and returns the most recent value
   /// for the key, or null if the key is not found or has an empty value.
   String? getString(String key) => this[key];
+
+  // ── typed accessors ──────────────────────────────────────────────────
+  //
+  // Every type offers exactly three shapes: getX (nullable),
+  // getXOr(key, fallback) and requireX (throws). getAs extends the same
+  // three to any type a converter can produce.
+
+  // ── String ───────────────────────────────────────────────────────────────
+
+  /// Returns the latest value for [key], or [defaultValue] when absent.
+  String getStringOr(String key, String defaultValue) =>
+      this[key] ?? defaultValue;
+
+  /// Returns the latest value for [key].
+  ///
+  /// Throws a [FormatException] when the key is absent or was reset.
+  String requireString(String key) {
+    final v = this[key];
+    if (v == null) {
+      throw const FormatException('Missing string').explain(key: key);
+    }
+
+    return v;
+  }
+
+  // ── int ──────────────────────────────────────────────────────────────────
+
+  /// Parses the latest value for [key] as an integer, or returns [defaultValue].
+  int getIntOr(String key, int defaultValue) =>
+      int.tryParse(this[key] ?? '') ?? defaultValue;
+
+  /// Parses the latest value for [key] as an integer.
+  ///
+  /// Throws a [FormatException] when the value is absent or not an integer.
+  int requireInt(String key) {
+    final raw = this[key];
+    final parsed = int.tryParse(raw ?? '');
+    if (parsed == null) {
+      throw const FormatException(
+        'Expected integer',
+      ).explain(key: key, got: raw);
+    }
+
+    return parsed;
+  }
+
+  // ── double ───────────────────────────────────────────────────────────────
+
+  /// Parses the latest value for [key] as a double, or returns [defaultValue].
+  ///
+  /// `NaN` and the infinities are rejected: they pass every range check by
+  /// being unordered, which makes them worse than a parse failure.
+  double getDoubleOr(String key, double defaultValue) =>
+      tryParseFinite(this[key]) ?? defaultValue;
+
+  /// Parses the latest value for [key] as a finite double.
+  ///
+  /// Throws a [FormatException] when the value is absent, unparseable, or one
+  /// of `NaN`, `Infinity`, `-Infinity`.
+  double requireDouble(String key) {
+    final raw = this[key];
+    final parsed = tryParseFinite(raw);
+    if (parsed == null) {
+      throw const FormatException(
+        'Expected double',
+      ).explain(key: key, got: raw);
+    }
+
+    return parsed;
+  }
+
+  // ── bool ─────────────────────────────────────────────────────────────────
+
+  /// Parses the latest value for [key] as a boolean, or returns [defaultValue].
+  ///
+  /// See [FlatDocument.getBool] for the accepted spellings.
+  bool getBoolOr(String key, bool defaultValue) => getBool(key) ?? defaultValue;
+
+  /// Parses the latest value for [key] as a boolean.
+  ///
+  /// Throws a [FormatException] when the value is absent or not a recognised
+  /// boolean spelling.
+  bool requireBool(String key) {
+    final raw = this[key];
+    final parsed = getBool(key);
+    if (parsed == null) {
+      throw const FormatException('Expected bool').explain(key: key, got: raw);
+    }
+
+    return parsed;
+  }
+
+  // ── List<String> ─────────────────────────────────────────────────────────
+
+  /// Splits the latest value for [key] on [separator].
+  ///
+  /// Returns `null` when the key is absent or was reset. An explicitly empty
+  /// value yields an empty list, not `null`.
+  List<String>? getList(
+    String key, {
+    String separator = ',',
+    bool trimItems = true,
+    bool skipEmpty = true,
+  }) {
+    final v = this[key];
+    if (v == null) {
+      return null;
+    }
+
+    final out = <String>[];
+    for (var part in v.split(separator)) {
+      if (trimItems) {
+        part = part.trim();
+      }
+      if (skipEmpty && part.isEmpty) {
+        continue;
+      }
+      out.add(part);
+    }
+
+    return out;
+  }
+
+  /// Splits the latest value for [key], or returns [defaultValue] when absent.
+  List<String> getListOr(
+    String key,
+    List<String> defaultValue, {
+    String separator = ',',
+    bool trimItems = true,
+    bool skipEmpty = true,
+  }) =>
+      getList(
+        key,
+        separator: separator,
+        trimItems: trimItems,
+        skipEmpty: skipEmpty,
+      ) ??
+      defaultValue;
+
+  /// Splits the latest value for [key].
+  ///
+  /// Throws a [FormatException] when the key is absent or was reset.
+  List<String> requireList(
+    String key, {
+    String separator = ',',
+    bool trimItems = true,
+    bool skipEmpty = true,
+  }) {
+    final list = getList(
+      key,
+      separator: separator,
+      trimItems: trimItems,
+      skipEmpty: skipEmpty,
+    );
+    if (list == null) {
+      throw const FormatException('Missing list').explain(key: key);
+    }
+
+    return list;
+  }
+
+  // ── any type ─────────────────────────────────────────────────────────────
+
+  /// Converts the latest value for [key] using [convert].
+  ///
+  /// Returns `null` when the key is absent, the value is empty (unless
+  /// [ignoreEmpty] is false), or [convert] throws an [Exception].
+  ///
+  /// An [Error] from [convert] propagates: a `TypeError` or `ArgumentError`
+  /// says the converter is wrong, not that the config is.
+  T? getAs<T>(
+    String key,
+    FlatConverter<T> convert, {
+    bool trim = true,
+    bool ignoreEmpty = true,
+  }) {
+    final s = _prepare(key, trim: trim, ignoreEmpty: ignoreEmpty);
+    if (s == null) {
+      return null;
+    }
+
+    try {
+      return convert(s);
+    } on Exception {
+      return null;
+    }
+  }
+
+  /// Converts the latest value for [key], or returns [defaultValue].
+  ///
+  /// Substitutes [defaultValue] in every case where [getAs] returns `null`.
+  T getAsOr<T>(
+    String key,
+    FlatConverter<T> convert,
+    T defaultValue, {
+    bool trim = true,
+    bool ignoreEmpty = true,
+  }) =>
+      getAs<T>(key, convert, trim: trim, ignoreEmpty: ignoreEmpty) ??
+      defaultValue;
+
+  /// Converts the latest value for [key] using [convert].
+  ///
+  /// Throws a [FormatException] when the key is absent, the value is empty
+  /// (unless [ignoreEmpty] is false), or [convert] rejects it.
+  T requireAs<T>(
+    String key,
+    FlatConverter<T> convert, {
+    bool trim = true,
+    bool ignoreEmpty = true,
+  }) {
+    final raw = this[key];
+    final s = _prepare(key, trim: trim, ignoreEmpty: ignoreEmpty);
+    if (s == null) {
+      throw FormatException(
+        raw == null ? 'Missing value' : 'Empty value',
+      ).explain(key: key, got: raw);
+    }
+
+    try {
+      return convert(s);
+    } on Exception catch (e) {
+      throw const FormatException(
+        'Conversion failed',
+      ).explain(key: key, got: raw, cause: e);
+    }
+  }
+
+  /// Converts every value recorded for [key], in file order.
+  ///
+  /// Returns `null` when the key never appears, which an empty list cannot
+  /// express: a key mentioned only as a reset (`key =`) legitimately carries no
+  /// values. Reset entries are skipped rather than converted.
+  ///
+  /// Throws a [FormatException] on the first value [convert] rejects. Dropping
+  /// the bad items instead would turn a typo into a silently shorter list; if
+  /// that is what you want, filter `allValues(key)` yourself.
+  List<T>? allAs<T>(
+    String key,
+    FlatConverter<T> convert, {
+    bool trim = true,
+    bool ignoreEmpty = true,
+  }) {
+    if (!containsKey(key)) {
+      return null;
+    }
+
+    final out = <T>[];
+    for (final raw in allValues(key)) {
+      if (raw == null) {
+        continue;
+      }
+
+      final s = trim ? raw.trim() : raw;
+      if (ignoreEmpty && s.isEmpty) {
+        continue;
+      }
+
+      try {
+        out.add(convert(s));
+      } on Exception catch (e) {
+        throw const FormatException(
+          'Conversion failed',
+        ).explain(key: key, got: raw, cause: e);
+      }
+    }
+
+    return out;
+  }
+
+  /// Returns the value for [key] ready for conversion, or `null` when there is
+  /// nothing worth handing to a converter.
+  String? _prepare(
+    String key, {
+    required bool trim,
+    required bool ignoreEmpty,
+  }) {
+    final raw = this[key];
+    if (raw == null) {
+      return null;
+    }
+
+    final s = trim ? raw.trim() : raw;
+
+    return ignoreEmpty && s.isEmpty ? null : s;
+  }
+
+  // ── manipulation, encoding, formatting ───────────────────────────────
+
+  /// Returns a new document where duplicate keys are collapsed into at most
+  /// one entry per key (latest value wins). Multi-value keys can be preserved.
+  ///
+  /// This method is useful for converting a document with duplicate keys into
+  /// a more traditional key-value structure where each key appears only once.
+  ///
+  /// Parameters:
+  /// - [order]: choose whether the collapsed entry stays at the first or last
+  ///   occurrence position
+  /// - [dropNulls]: if true, omit keys whose final collapsed value is `null`
+  ///   (i.e., explicit resets are removed)
+  /// - [multiValueKeys]: keys that must not be collapsed; all their entries are
+  ///   preserved in-place
+  /// - [isMultiValueKey]: optional predicate to dynamically mark keys as
+  ///   multi-value in addition to [multiValueKeys]
+  /// - [ignoreResets]: if true, ignore reset entries (key =) when collapsing
+  ///
+  /// Example:
+  /// ```dart
+  /// const config = '''
+  /// background = 343028
+  /// background = ffaa00
+  /// title = My App
+  /// ''';
+  ///
+  /// final doc = FlatConfig.parse(config);
+  /// final collapsed = doc.collapse();
+  /// print(collapsed['background']); // ffaa00
+  /// ```
+  FlatDocument collapse({
+    CollapseOrder order = CollapseOrder.firstOccurrence,
+    bool dropNulls = false,
+    Iterable<String> multiValueKeys = const [],
+    bool Function(String key)? isMultiValueKey,
+    bool ignoreResets = false,
+  }) {
+    final multiSet = multiValueKeys is Set<String>
+        ? multiValueKeys
+        : multiValueKeys.toSet();
+
+    bool isMulti(String k) =>
+        multiSet.contains(k) || (isMultiValueKey?.call(k) ?? false);
+
+    // Pre-pass: track last value and anchor/last indices for single-value keys.
+    final lastVal = <String, String?>{};
+    final anchorIndex = <String, int>{};
+    final lastIndex = <String, int>{};
+
+    for (var i = 0; i < entries.length; i++) {
+      final e = entries[i];
+
+      if (isMulti(e.key)) {
+        // Multi-value keys will be preserved in the second pass.
+        continue;
+      }
+
+      if (ignoreResets && e.value == null) {
+        // If ignoreResets is active and the entry is a "Reset" (key =),
+        // then the previous value is retained and no update to null is performed.
+        // Nevertheless, the position (lastIndex) is updated, so that subsequent values can correctly
+        // overwrite the anchor.
+        anchorIndex.putIfAbsent(e.key, () => i);
+        lastIndex[e.key] = i;
+        continue;
+      }
+
+      // Normal case: value (also null) is accepted.
+      lastVal[e.key] = e.value;
+
+      // Set the anchor position for the first occurrence (or keep it).
+      anchorIndex.putIfAbsent(e.key, () => i);
+
+      // Update the last occurrence.
+      lastIndex[e.key] = i;
+    }
+
+    if (order == CollapseOrder.lastWrite) {
+      // overwrite anchors with last occurrence indices
+      for (final k in lastIndex.keys) {
+        anchorIndex[k] = lastIndex[k]!;
+      }
+    }
+
+    // Emit-Pass
+    final out = <FlatEntry>[];
+    final emitted = <String>{};
+
+    for (var i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      if (isMulti(e.key)) {
+        // Preserve multi-value entries exactly in original order/location.
+        out.add(e);
+        continue;
+      }
+
+      final anchor = anchorIndex[e.key];
+      if (anchor == null || emitted.contains(e.key)) {
+        continue;
+      }
+
+      if (i == anchor) {
+        final v = lastVal[e.key];
+        if (dropNulls && v == null) {
+          // skip explicit reset if requested
+        } else {
+          out.add(FlatEntry(e.key, v));
+        }
+        emitted.add(e.key);
+      }
+    }
+
+    return FlatDocument(out);
+  }
+
+  /// Encodes this document into a textual configuration string.
+  ///
+  /// This method converts the document back to the flat configuration format,
+  /// with each entry becoming a line in the format `key = value`. The encoding
+  /// behavior can be customized using [options].
+  ///
+  /// Note: Line endings are normalized in the I/O layer, not in this method.
+  ///
+  /// Example:
+  /// ```dart
+  /// final doc = FlatConfig.fromMap({'background': '343028', 'title': 'My App'});
+  /// final text = doc.encode();
+  /// print(text);
+  /// // background = 343028
+  /// // title = My App
+  /// ```
+  String encode({FlatEncodeOptions options = const FlatEncodeOptions()}) {
+    String quoteIfNeeded(String v) {
+      final hasLeadingOrTrailingWhitespace = v != v.trim();
+      final containsSeparator = v.contains(Constants.pairSeparator);
+      final startsWithComment =
+          options.commentPrefix.isNotEmpty &&
+          v.trimLeft().startsWith(options.commentPrefix);
+      final containsDoubleQuote = v.contains(Constants.quote);
+      final containsNewline =
+          v.contains(Constants.newline) || v.contains(Constants.carriageReturn);
+
+      // An empty string must be quoted: a bare `key = ` is the wire form of an
+      // explicit reset, so emitting it here would turn '' into null on the way
+      // back (SPEC.md 6).
+      final needsQuoting =
+          v.isEmpty ||
+          options.alwaysQuote ||
+          (options.quoteIfWhitespace && hasLeadingOrTrailingWhitespace) ||
+          containsSeparator ||
+          startsWithComment ||
+          containsDoubleQuote ||
+          containsNewline;
+
+      if (!needsQuoting) {
+        return v;
+      }
+
+      if (options.escapeQuoted) {
+        final escaped = v
+            .replaceAll(Constants.backslash, r'\\')
+            .replaceAll(Constants.quote, r'\"');
+
+        return '"$escaped"';
+      }
+
+      return '"$v"';
+    }
+
+    final buf = StringBuffer();
+    for (final e in entries) {
+      final v = e.value;
+      buf.writeln(v == null ? '${e.key} = ' : '${e.key} = ${quoteIfNeeded(v)}');
+    }
+
+    return buf.toString();
+  }
+
+  /// Encodes this document and returns the result as bytes.
+  ///
+  /// This method first encodes the document to text using [options], then
+  /// converts the text to bytes using the encoding specified in [writeOptions].
+  /// Line endings are normalized according to [writeOptions.lineTerminator].
+  ///
+  /// Example:
+  /// ```dart
+  /// final doc = FlatConfig.fromMap({'background': '343028'});
+  /// final bytes = doc.encodeToBytesWithWriteOptions();
+  /// await File('config.flat').writeAsBytes(bytes);
+  /// ```
+  List<int> encodeToBytesWithWriteOptions({
+    FlatEncodeOptions options = const FlatEncodeOptions(),
+    FlatStreamWriteOptions writeOptions = const FlatStreamWriteOptions(),
+  }) {
+    final text = encode(options: options);
+    // encode() always terminates the last line (SPEC.md 7), so there is never
+    // a missing newline to add here.
+    final normalized = normalizeLineEndings(
+      text,
+      lineTerminator: writeOptions.lineTerminator,
+    );
+
+    return writeOptions.encoding.encode(normalized);
+  }
+
+  /// Appends every entry of [other] after this document's entries.
+  ///
+  /// In a last-write-wins model this is already the resolved merge:
+  /// `a.concat(b).toMap()` equals `{...a.toMap(), ...b.toMap()}`. To let this
+  /// document win instead, concatenate the other way round: `b.concat(a)`.
+  ///
+  /// Duplicates are kept, so [collapse] is what reduces the result to one
+  /// entry per key.
+  ///
+  /// Example:
+  /// ```dart
+  /// final defaults = FlatDocument.fromMap({'background': '343028', 'title': 'App'});
+  /// final user = FlatDocument.fromMap({'background': 'ffaa00', 'debug': 'true'});
+  /// final combined = defaults.concat(user);
+  /// print(combined['background']); // ffaa00
+  /// print(combined['title']); // App
+  /// ```
+  FlatDocument concat(FlatDocument other) =>
+      FlatDocument([...entries, ...other.entries]);
+
+  /// Alias for [concat], so documents can be combined with `+`.
+  FlatDocument operator +(FlatDocument other) => concat(other);
+
+  /// Creates a human-friendly dump of entries in insertion order.
+  ///
+  /// This method is useful for debugging and understanding the structure of
+  /// a configuration document. It shows each entry with its index and value.
+  ///
+  /// Parameters:
+  /// - [includeIndexes]: if true, each line is prefixed with its index in brackets
+  ///
+  /// Example output (includeIndexes=true):
+  /// ```
+  /// [0] background = 343028
+  /// [1] title = My App
+  /// [2] debug = null
+  /// ```
+  ///
+  /// When [includeIndexes] is false, the index prefix is omitted.
+  String debugDump({bool includeIndexes = true}) {
+    final buf = StringBuffer();
+    for (var i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      if (includeIndexes) {
+        buf.write('[');
+        buf.write(i);
+        buf.write('] ');
+      }
+      buf
+        ..write(e.key)
+        ..write(' = ')
+        ..write(e.value ?? 'null');
+      if (i + 1 < entries.length) {
+        buf.writeln();
+      }
+    }
+
+    return buf.toString();
+  }
+
+  /// Pretty printer with optional sorting and column alignment.
+  ///
+  /// This method formats the document for human-readable output with various
+  /// formatting options to improve readability.
+  ///
+  /// Parameters:
+  /// - [includeIndexes]: if true, lines are prefixed with "[i] " showing their index
+  /// - [sortByKey]: if true, lines are ordered by key (stable sort on index)
+  /// - [alignColumns]: if true, keys are padded so the '=' signs align in columns
+  ///
+  /// Example output (sortByKey=true, alignColumns=true):
+  /// ```
+  /// [0] background = 343028
+  /// [1] debug      = true
+  /// [2] title      = My App
+  /// ```
+  String toPrettyString({
+    bool includeIndexes = true,
+    bool sortByKey = false,
+    bool alignColumns = false,
+  }) {
+    final items = <(int, String, String?)>[];
+    for (var i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      items.add((i, e.key, e.value));
+    }
+
+    if (sortByKey) {
+      items.sort((a, b) {
+        final c = a.$2.compareTo(b.$2);
+        if (c != 0) {
+          return c;
+        }
+
+        return a.$1.compareTo(b.$1);
+      });
+    }
+
+    var maxKeyLen = 0;
+    if (alignColumns) {
+      for (final it in items) {
+        if (it.$2.length > maxKeyLen) {
+          maxKeyLen = it.$2.length;
+        }
+      }
+    }
+
+    final buf = StringBuffer();
+    for (var idx = 0; idx < items.length; idx++) {
+      final (i, key, value) = items[idx];
+      if (includeIndexes) {
+        buf
+          ..write('[')
+          ..write(i)
+          ..write('] ');
+      }
+      if (alignColumns) {
+        buf
+          ..write(key)
+          ..write(' ' * (maxKeyLen - key.length))
+          ..write(' = ');
+      } else {
+        buf
+          ..write(key)
+          ..write(' = ');
+      }
+      buf.write(value ?? 'null');
+      if (idx + 1 < items.length) {
+        buf.writeln();
+      }
+    }
+
+    return buf.toString();
+  }
+
+  /// Returns a new document containing only entries whose keys start with [prefix].
+  ///
+  /// Operates on the resolved/latest view (unique keys; last value wins),
+  /// preserving the first-occurrence key order.
+  ///
+  /// When [prefix] is empty, this returns a clone of the current document,
+  /// including duplicates.
+  FlatDocument slice(String prefix) {
+    if (prefix.isEmpty) {
+      // Clone original entries, including duplicates and order.
+      return FlatDocument(List<FlatEntry>.of(entries));
+    }
+
+    // Resolved/latest view: unique keys with last value, in first-occurrence order.
+    final out = <FlatEntry>[];
+    for (final k in toMap().keys) {
+      if (k.startsWith(prefix)) {
+        out.add(FlatEntry(k, this[k]));
+      }
+    }
+
+    return FlatDocument(out);
+  }
+
+  /// Returns a new document with keys starting with [prefix], but with [prefix]
+  /// removed from the beginning of each key.
+  ///
+  /// Operates on the resolved/latest view (unique keys; last value wins),
+  /// preserving the first-occurrence key order.
+  ///
+  /// When [prefix] is empty, this returns a clone of the current document
+  /// (including duplicates) without rewriting.
+  FlatDocument stripPrefix(String prefix) {
+    if (prefix.isEmpty) {
+      // Clone original entries unchanged.
+      return FlatDocument(List<FlatEntry>.of(entries));
+    }
+
+    final out = <FlatEntry>[];
+    final pLen = prefix.length;
+    for (final k in toMap().keys) {
+      if (!k.startsWith(prefix)) continue;
+      // Stripping can leave nothing behind, as for key == prefix. There is no
+      // entry to keep then, so drop it rather than build an unwritable one.
+      final newKey = k.substring(pLen);
+      if (invalidKeyReason(newKey) != null) continue;
+      out.add(FlatEntry(newKey, this[k]));
+    }
+
+    return FlatDocument(out);
+  }
 
   @override
   String toString() => 'FlatDocument(${entries.length} entries)';

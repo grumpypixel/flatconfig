@@ -3,8 +3,6 @@ import 'package:flatconfig/flatconfig.dart';
 import 'package:flatconfig/flatconfig_accessors.dart';
 import 'package:flatconfig/src/constants.dart';
 import 'package:flatconfig/src/document.dart';
-import 'package:flatconfig/src/document_accessors.dart';
-import 'package:flatconfig/src/document_extensions.dart';
 import 'package:flatconfig/src/exceptions.dart';
 import 'package:flatconfig/src/from_map_data.dart';
 import 'package:flatconfig/src/ghostty_semantics.dart';

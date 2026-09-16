@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'document.dart';
-import 'document_extensions.dart';
 import 'includes.dart';
 import 'options.dart';
 import 'parser.dart';

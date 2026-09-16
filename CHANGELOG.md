@@ -24,6 +24,16 @@ Added:
 
 Fixed:
 
+- **The accessors and document helpers are members of `FlatDocument`, not
+  extensions.** An extension cannot be overridden, does not appear under the
+  class in dartdoc, and silently vanishes when the wrong barrel is imported —
+  none of which is worth it for members that are always available anyway.
+  `FlatDocumentAccessors` and `FlatDocumentExtensions` are gone as names; their
+  members are unchanged and reachable exactly as before. `CollapseOrder` and
+  `FlatConverter` moved to `document.dart` with them. Extensions remain only
+  where they earn it: on foreign types such as `File`, and for the optional
+  entry points.
+
 - **The accessor catalog collapses from 66 methods to 19 in core.** It had grown
   by crossing {type} × {lenient, default, strict, trimmed, ranged, clamped,
   empty}, so finding the right method meant reading a 1,460-line file. There is
