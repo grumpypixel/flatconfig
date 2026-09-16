@@ -37,6 +37,28 @@ jobs:
       - name: Run tests
         run: dart test
 
+  # Formatting is checked once rather than per SDK: the formatter's output
+  # changes between versions, and the version that decides is the current one.
+  format:
+    runs-on: ubuntu-latest
+
+    name: Format
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Check formatting
+        run: dart format --set-exit-if-changed .
+
   # Asserts vanish in release builds, so a guard written as an assert protects
   # nothing where it matters. Compiling to an executable turns them off, which
   # is the only way to notice.
@@ -59,3 +81,81 @@ jobs:
 
       - name: Run tests with assertions disabled
         run: dart test --compiler exe
+
+  # Three of the four libraries promise to work without dart:io. Compiling them
+  # is what turns that promise into something that can fail.
+  web:
+    runs-on: ubuntu-latest
+
+    name: Web and WASM
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Compile the web-safe barrels to JavaScript
+        run: dart compile js -o "$RUNNER_TEMP/web.js" tool/web_entrypoint.dart
+
+      - name: Compile the web-safe barrels to WASM
+        run: dart compile wasm -o "$RUNNER_TEMP/web.wasm" tool/web_entrypoint.dart
+
+      - name: Run the browser tests
+        run: dart test -p chrome
+
+  # The published archive is what users get, and its contents are decided by
+  # .pubignore rather than by what is in the repository.
+  publish_dry_run:
+    runs-on: ubuntu-latest
+
+    name: Publish dry run
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Dry run
+        run: dart pub publish --dry-run
+
+  # The Flutter example is the only consumer in the repository that imports the
+  # package the way a user would.
+  flutter_example:
+    runs-on: ubuntu-latest
+
+    name: Flutter example
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: example/flatconfig_flutter
+
+      - name: Analyze
+        run: flutter analyze
+        working-directory: example/flatconfig_flutter
+
+      - name: Test
+        run: flutter test
+        working-directory: example/flatconfig_flutter

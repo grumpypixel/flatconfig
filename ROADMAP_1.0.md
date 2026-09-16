@@ -778,10 +778,26 @@ is missing is invariant testing.
       check that a debug build's assert reaches first (the assertions-disabled
       CI job covers it), and one is the `FileSystemException` arm of the
       filesystem case probe.
-- [ ] CI matrix: minimum SDK + stable · `dart compile js` + `wasm` · browser
-      tests · assertions-disabled run · `dart format --set-exit-if-changed` ·
-      `dart pub publish --dry-run` · `flutter analyze` + `flutter test` in the
-      example.
+- [x] CI matrix, in six jobs: the SDK matrix (3.8 and stable) with analyze and
+      test, formatting, the assertions-disabled run, web (JavaScript, WASM and
+      browser tests), the publish dry run, and the Flutter example.
+
+      Adding the last three found work that had rotted unwatched. The Flutter
+      example did not compile: it called `getHexColor`, removed in the accessor
+      collapse. Its only test was the untouched `flutter create` counter
+      template, testing a counter that does not exist. Both are replaced — the
+      colour now goes through a `getAs` converter, which is the migration the
+      changelog recommends, so the example demonstrates it.
+
+      `dart test -p chrome` also turned up three test files that import
+      `dart:io` without declaring `@TestOn('vm')`. With that fixed the browser
+      job runs 561 of the 836 tests rather than the 3 in `web_test.dart`, so
+      the core is now exercised on the web platform rather than merely
+      compiled for it.
+
+      `dart compile js` needs an entry point that imports the web-safe barrels;
+      `tool/web_entrypoint.dart` is it, and it touches each library so tree
+      shaking cannot drop one and hide a `dart:io` import in what was removed.
 
 ---
 
