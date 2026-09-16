@@ -824,14 +824,30 @@ Currently shipped to pub.dev: `PACKAGE_REVIEW.md` (39 KB), `improvements.md`
 - [x] `key =` documented as yielding `""`. It yields `null`, and the parsing
       section already said so correctly.
 - [x] `FlatDocument.fromDynamicMap` in an example. It lives on `FlatConfig`.
-- [ ] The "Round-Trip Example" only demonstrates cases that happen to work.
+- [x] The "Round-Trip Example" only demonstrates cases that happen to work.
       Deferred: it can only be made honest once Phase 1.2 lands.
+
+      The example in `doc/building.md` is now the awkward cases — the empty
+      string against a reset, outer whitespace, an embedded quote, a comment
+      prefix, an `=` in the value, and a Windows path — each one verified to
+      come back equal, with the encoded form shown next to it.
 
 ### 4.3 Restructure the docs
 
-- [ ] Split the 907-line README into ~200 lines plus `doc/`: `behavior.md`,
+- [x] Split the 907-line README into ~200 lines plus `doc/`: `behavior.md`,
       `parsing.md`, `document-model.md`, `accessors.md`, `includes.md`,
       `environment.md`, `platform-io.md`, `migration.md`, `development.md`.
+
+      README is 194 lines and indexes seven pages. `behavior.md` and
+      `environment.md` did not earn their own files: behaviour is the spec's
+      job and the rest belongs next to the API it describes, so the
+      environment options sit in `building.md` with the other factories.
+
+      Writing the pages against a running probe rather than from memory caught
+      three things the prose would otherwise have shipped: `parseBytes` and
+      `streamEntries` threw on a `Stream<Uint8List>`, the old README's
+      non-blocking-reset example contradicted its own tail rule, and
+      `whereKey`/`whereValue` match a value rather than taking a predicate.
 
 ### 4.4 Fix the Flutter example
 

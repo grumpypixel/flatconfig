@@ -27,34 +27,22 @@ doit:
 
 dothecoverage:
 	dart pub global activate coverage
-	dart pub global activate full_coverage
-	just coverage-full
+	just coverage
 	just coverage-html
 	open coverage/html/index.html
 
-# Generate coverage (lcov)
+# Generate line coverage (lcov)
 coverage:
 	#!/usr/bin/env bash
 	set -euo pipefail
 
-	ROOT_DIR="$(pwd)"
-	OUT_DIR="$ROOT_DIR/coverage"
-	LCOV_FILE="$OUT_DIR/lcov.info"
+	# Every file under lib/ is reachable from a real test since the package was
+	# split into four barrels, so there is nothing for full_coverage to pad with.
+	# --branch-coverage is deliberately absent: this SDK accepts it and then
+	# emits no BRF records, so it would only look like it was measuring something.
+	dart run coverage:test_with_coverage -- --reporter=failures-only
 
-	mkdir -p "$OUT_DIR"
-
-	echo "Running tests with coverage..."
-	dart run test --coverage="$OUT_DIR"
-
-	echo "Converting coverage to lcov..."
-	dart run coverage:format_coverage \
-	  --packages="$ROOT_DIR/.dart_tool/package_config.json" \
-	  --report-on="$ROOT_DIR/lib" \
-	  --lcov \
-	  --in="$OUT_DIR" \
-	  --out="$LCOV_FILE"
-
-	echo "Wrote $LCOV_FILE"
+	echo "Wrote coverage/lcov.info"
 
 # Generate HTML report from lcov (requires genhtml)
 coverage-html:
@@ -73,32 +61,6 @@ coverage-html:
 	mkdir -p "$HTML_DIR"
 	genhtml "$LCOV_FILE" -o "$HTML_DIR"
 	echo "HTML report: $HTML_DIR/index.html"
-
-# Generate full coverage incl. untested files (requires: dart pub global activate full_coverage)
-coverage-full:
-	#!/usr/bin/env bash
-	set -euo pipefail
-
-	ROOT_DIR="$(pwd)"
-	OUT_DIR="$ROOT_DIR/coverage"
-	LCOV_FILE="$OUT_DIR/lcov.info"
-
-	mkdir -p "$OUT_DIR"
-
-	# Include files with zero coverage via full_coverage
-	dart pub global run full_coverage --ignore '*}.dart'
-
-	# Run tests with VM coverage
-	dart run test --coverage="$OUT_DIR"
-
-	# Convert to lcov; -c for absolute paths and proper function names
-	dart pub global run coverage:format_coverage --lcov --in="$OUT_DIR" --out="$LCOV_FILE" -c --report-on="$ROOT_DIR/lib"
-
-	# Clean transient coverage artifacts
-	rm -rf "$OUT_DIR/test" || true
-	rm -f "$OUT_DIR/coverage.json" || true
-
-	echo "Wrote $LCOV_FILE"
 
 # Run micro-benchmark (optional arg: iterations)
 bench ITERATIONS="1000" ENTRIES="2000":

@@ -8,6 +8,11 @@ is still outstanding.
 
 Added:
 
+- **A documentation set under `doc/`** — `parsing.md`, `document-model.md`,
+  `accessors.md`, `includes.md`, `building.md`, `platform-io.md` and
+  `development.md`. The README drops from 932 lines to 194 and indexes them.
+  Every example was written against a running probe rather than from memory,
+  which is how the two defects above were found.
 - **`doc/migration.md`** — the complete 0.5.x table of what to type instead,
   derived from the public API delta against the `v0.5.0` tag rather than from
   memory. Its last section lists the changes that compile and behave
@@ -116,6 +121,19 @@ Changed:
 
 Fixed:
 
+- **`FlatDocument.parseBytes` and `streamEntries` accept a
+  `Stream<Uint8List>`.** Both transformed the stream with a decoder, which is a
+  `StreamTransformer<List<int>, String>` and throws when bound to a stream of
+  the subtype — the stream `utf8.encode`, a socket and an HTTP body all hand
+  out. Every test passed its stream straight to the parameter, where inference
+  made it a `Stream<List<int>>` and hid the crash from the suite; naming the
+  stream in a variable first was enough to hit it.
+- **The README no longer contradicts itself about resets.** It stated that a
+  tail entry cannot override a key an include set, and then showed a
+  non-blocking reset example doing exactly that. A reset is a value like any
+  other: it loses to a later include and, under the default Ghostty policy,
+  still owns the key against a line written below the includes.
+  `doc/includes.md` now documents what the code does, verified against it.
 - **The dartdoc examples compile again.** Twenty-one of them still called
   `FlatConfig`, deleted earlier in this cycle, so the documentation for the
   parser, the options and the document itself demonstrated an API that no
