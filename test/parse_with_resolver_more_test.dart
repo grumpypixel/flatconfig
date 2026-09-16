@@ -83,7 +83,7 @@ void main() {
         originId: 'mem:root',
       );
 
-      expect(doc.valuesOf('k'), ['before', 'from-include']);
+      expect(doc.allValues('k'), ['before', 'from-include']);
       expect(doc['k'], 'from-include');
     });
 

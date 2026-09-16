@@ -19,9 +19,8 @@ void main(List<String> args) async {
     d.whereKeys(['k0', 'k1', 'k2']).toList();
     d.whereValue('v0').toList();
     d.keys.toList();
-    d.has('k0');
-    d.firstValueOf('k0');
-    d.valuesOf('k0');
+    d.containsKey('k0');
+    d.allValues('k0');
     d.getInt('k0');
     d.getBool('k0');
     d.getDouble('k0');
@@ -157,7 +156,7 @@ void main(List<String> args) async {
       iterations: iterations,
       repeats: repeats,
       body: () {
-        final b = doc.has('k0');
+        final b = doc.containsKey('k0');
         _sink ^= b ? 1 : 0;
       },
     ).minus(baseline),
@@ -169,7 +168,7 @@ void main(List<String> args) async {
       iterations: iterations,
       repeats: repeats,
       body: () {
-        final s = doc.firstValueOf('k0');
+        final s = doc.allValues('k0').first;
         _sink ^= (s?.length ?? 0);
       },
     ).minus(baseline),
@@ -181,7 +180,7 @@ void main(List<String> args) async {
       iterations: iterations,
       repeats: repeats,
       body: () {
-        final l = doc.valuesOf('k0');
+        final l = doc.allValues('k0');
         _sink ^= l.length;
       },
     ).minus(baseline),

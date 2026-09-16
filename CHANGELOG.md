@@ -32,6 +32,14 @@ Fixed:
 - **`toMap()` and `valuesOf()` are unmodifiable after `cache()`.** Pre-caching
   handed out a writable view of a document documented as immutable, so
   `doc.cache(); doc.toMap()['a'] = 'x';` changed the document.
+- **`FlatDocument.lookup(key)` tells the three states apart.** `doc['k'] == null`
+  cannot distinguish a key that was never mentioned from one explicitly cleared
+  with `k =`, and the difference decides whether a default still applies. The
+  sealed `FlatLookup` (`FlatAbsent`, `FlatReset`, `FlatPresent`) is exhaustively
+  switchable; `operator []` stays as the nullable convenience.
+- **Lookup renames.** `has` is now `containsKey`, matching `Map`. `valuesOf` is
+  now `allValues`. `hasNonNull`, `firstValueOf` and `lastValueOf` are gone:
+  they are `doc[k] != null`, `allValues(k).first` and `doc[k]`.
 - **Path identity no longer assumes macOS is case-insensitive.** Every macOS
   path was lowercased, so on a case-sensitive APFS volume `Foo.conf` and
   `foo.conf` collapsed into one canonical id, inventing include cycles and

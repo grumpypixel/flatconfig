@@ -39,7 +39,7 @@ font-family =
       final doc = FlatConfig.parse(src);
 
       expect(doc['background'], '343028');
-      expect(doc.valuesOf('shader'), ['bloom=intense', 'vignette=soft']);
+      expect(doc.allValues('shader'), ['bloom=intense', 'vignette=soft']);
       expect(doc['font-family'], isNull);
 
       final pair = doc.getKeyValue('shader');
@@ -82,7 +82,7 @@ k = v
       const src = 'feature =';
       final doc = FlatConfig.parse(src);
       expect(doc['feature'], isNull);
-      expect(doc.valuesOf('feature'), [null]);
+      expect(doc.allValues('feature'), [null]);
     });
 
     test('duplicate keys preserve insertion order; indexer returns last '
@@ -93,7 +93,7 @@ mode = b
 mode = c
 ''';
       final doc = FlatConfig.parse(src);
-      expect(doc.valuesOf('mode'), ['a', 'b', 'c']);
+      expect(doc.allValues('mode'), ['a', 'b', 'c']);
       expect(doc['mode'], 'c');
       expect(doc.keys.toList(), ['mode']);
     });
@@ -117,7 +117,7 @@ mode = c
           'color = aabbcc\n';
 
       final doc = FlatConfig.parse(src);
-      expect(doc.valuesOf('color'), ['ffaa00', null, 'aabbcc']);
+      expect(doc.allValues('color'), ['ffaa00', null, 'aabbcc']);
       expect(doc['color'], 'aabbcc');
     });
 
@@ -591,7 +591,7 @@ shader = vignette=soft
       final doc = await io.parseFlatFile(file.path);
       expect(doc['background'], '343028');
       expect(doc['font-family'], isNull);
-      expect(doc.valuesOf('shader'), ['vignette=soft']);
+      expect(doc.allValues('shader'), ['vignette=soft']);
     });
 
     test('honors custom encoding and LineSplitter', () async {
@@ -858,9 +858,9 @@ shader = vignette=soft
       final map = {'a': '1', 'b': null, 'c': ' x '};
       final doc = FlatConfig.fromMap(map);
       expect(doc.keys.toList(), ['a', 'b', 'c']);
-      expect(doc.valuesOf('a'), ['1']);
-      expect(doc.valuesOf('b'), [null]);
-      expect(doc.valuesOf('c'), [' x ']);
+      expect(doc.allValues('a'), ['1']);
+      expect(doc.allValues('b'), [null]);
+      expect(doc.allValues('c'), [' x ']);
 
       final encoded = doc.encode();
       expect(encoded.split('\n')[0], 'a = 1');
@@ -1136,7 +1136,7 @@ shader = vignette=soft
       final doc = FlatConfig.parseLines(lines);
 
       expect(doc['key'], 'third');
-      expect(doc.valuesOf('key'), ['first', 'second', 'third']);
+      expect(doc.allValues('key'), ['first', 'second', 'third']);
     });
 
     test('parseLines with strict mode throws on invalid lines', () {

@@ -47,6 +47,7 @@ export 'src/include_resolver_io.dart'
 export 'src/includes_stub.dart' if (dart.library.io) 'src/includes.dart';
 // Conditional export: file I/O (export the whole file)
 export 'src/io_stub.dart' if (dart.library.io) 'src/io.dart';
+export 'src/lookup.dart' show FlatAbsent, FlatLookup, FlatPresent, FlatReset;
 export 'src/options.dart'
     show
         FlatEncodeOptions,

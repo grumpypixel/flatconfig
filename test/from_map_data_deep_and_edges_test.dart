@@ -64,7 +64,7 @@ void main() {
         ],
       });
 
-      final vals = doc.valuesOf('pipeline');
+      final vals = doc.allValues('pipeline');
       expect(vals.length, 2);
       expect(vals.first, contains('"name":"blur"'));
       expect(vals.last, 'end');
@@ -199,7 +199,7 @@ void main() {
   group('Root null handling (dropNulls)', () {
     test('dropNulls=false creates explicit reset entry', () {
       final doc = FlatConfig.fromMapData({'k': null});
-      expect(doc.valuesOf('k'), [null]);
+      expect(doc.allValues('k'), [null]);
       expect(doc['k'], isNull);
     });
 
@@ -207,7 +207,7 @@ void main() {
       final doc = FlatConfig.fromMapData({
         'k': null,
       }, options: const FlatMapDataOptions(dropNulls: true));
-      expect(doc.valuesOf('k'), isEmpty);
+      expect(doc.allValues('k'), isEmpty);
       expect(doc['k'], isNull);
       expect(doc.keys.contains('k'), isFalse);
     });
@@ -242,7 +242,7 @@ void main() {
       final doc = FlatConfig.fromMapData({
         'l': [_OkVal(1), _OkVal(2)],
       }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
-      expect(doc.valuesOf('l'), ['{"n":1}', '{"n":2}']);
+      expect(doc.allValues('l'), ['{"n":1}', '{"n":2}']);
     });
   });
 
@@ -287,9 +287,9 @@ void main() {
       final doc = FlatConfig.fromMapData(map);
 
       // Spot check a few positions and values
-      expect(doc.valuesOf('k0'), ['0', '1']);
-      expect(doc.valuesOf('k50'), ['50', '51']);
-      expect(doc.valuesOf('k199'), ['199', '200']);
+      expect(doc.allValues('k0'), ['0', '1']);
+      expect(doc.allValues('k50'), ['50', '51']);
+      expect(doc.allValues('k199'), ['199', '200']);
 
       // Key order preserved
       final keys = doc.keys.toList();

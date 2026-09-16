@@ -2,6 +2,8 @@ import 'package:flatconfig/flatconfig.dart';
 import 'package:test/test.dart';
 
 void main() {
+  _lookupTests();
+
   group('FlatDocument Core Behavior', () {
     test('preserves order of keys (first occurrence only)', () {
       final doc = FlatDocument(const [
@@ -20,18 +22,18 @@ void main() {
       expect(doc['a'], '2');
     });
 
-    test('valuesOf returns all values for a key', () {
+    test('allValues returns all values for a key', () {
       final doc = FlatDocument(const [
         FlatEntry('x', 'foo'),
         FlatEntry('x', 'bar'),
       ]);
-      expect(doc.valuesOf('x'), ['foo', 'bar']);
+      expect(doc.allValues('x'), ['foo', 'bar']);
     });
 
     test('supports null values (reset)', () {
       final doc = FlatDocument(const [FlatEntry('font-family', null)]);
       expect(doc['font-family'], isNull);
-      expect(doc.valuesOf('font-family'), [null]);
+      expect(doc.allValues('font-family'), [null]);
     });
 
     test('indexer reflects null if last value is null', () {
@@ -42,13 +44,13 @@ void main() {
       expect(doc['x'], isNull);
     });
 
-    test('valuesOf returns nulls among values', () {
+    test('allValues returns nulls among values', () {
       final doc = FlatDocument(const [
         FlatEntry('k', 'v1'),
         FlatEntry('k', null),
         FlatEntry('k', 'v3'),
       ]);
-      expect(doc.valuesOf('k'), ['v1', null, 'v3']);
+      expect(doc.allValues('k'), ['v1', null, 'v3']);
     });
 
     test('calling toMap does not mutate entries order', () {
@@ -79,31 +81,32 @@ void main() {
       );
     });
 
-    test('valuesOf returns empty for missing key in non-empty doc', () {
+    test('allValues returns empty for missing key in non-empty doc', () {
       final doc = FlatDocument(const [FlatEntry('a', '1')]);
-      expect(doc.valuesOf('missing'), isEmpty);
+      expect(doc.allValues('missing'), isEmpty);
     });
 
-    test('firstValueOf returns first occurrence value', () {
+    test('allValues exposes the first occurrence too', () {
+      // firstValueOf used to do this; allValues answers it and more.
       final doc = FlatDocument(const [
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('a', '3'),
       ]);
-      expect(doc.firstValueOf('a'), '1');
-      expect(doc.firstValueOf('b'), '2');
-      expect(doc.firstValueOf('missing'), isNull);
+      expect(doc.allValues('a').first, '1');
+      expect(doc.allValues('b').first, '2');
+      expect(doc.allValues('missing'), isEmpty);
     });
 
-    test('lastValueOf returns last occurrence value', () {
+    test('operator [] returns the last occurrence value', () {
       final doc = FlatDocument(const [
         FlatEntry('a', '1'),
         FlatEntry('b', '2'),
         FlatEntry('a', '3'),
       ]);
-      expect(doc.lastValueOf('a'), '3');
-      expect(doc.lastValueOf('b'), '2');
-      expect(doc.lastValueOf('missing'), isNull);
+      expect(doc['a'], '3');
+      expect(doc['b'], '2');
+      expect(doc['missing'], isNull);
     });
 
     test('getString returns last value', () {
@@ -154,7 +157,7 @@ void main() {
 
   group('FlatDocument Utility', () {
     test(
-      'cache() should populate expando caches for toMap() and/or valuesOf',
+      'cache() should populate expando caches for toMap() and/or allValues',
       () {
         final doc = FlatDocument(const [
           FlatEntry('a', '1'),
@@ -163,22 +166,22 @@ void main() {
         ]);
 
         // Cache both maps
-        doc.cache(toMap: true, toValuesOf: true);
+        doc.cache(toMap: true, toAllValues: true);
 
         // Verify toMap is cached
         expect(doc.toMap(), {'a': '3', 'b': '2'});
         expect(doc['a'], '3');
 
-        // Verify valuesOf is cached
-        expect(doc.valuesOf('a'), ['1', '3']);
-        expect(doc.valuesOf('b'), ['2']);
+        // Verify allValues is cached
+        expect(doc.allValues('a'), ['1', '3']);
+        expect(doc.allValues('b'), ['2']);
       },
     );
 
     test('cache() should not throw on empty document', () {
       final doc = FlatDocument.empty();
       expect(() => doc.cache(), returnsNormally);
-      expect(() => doc.cache(toMap: true, toValuesOf: true), returnsNormally);
+      expect(() => doc.cache(toMap: true, toAllValues: true), returnsNormally);
     });
 
     test('cache() can cache only toMap', () {
@@ -188,26 +191,26 @@ void main() {
       ]);
 
       // Cache only toMap
-      doc.cache(toMap: true, toValuesOf: false);
+      doc.cache(toMap: true, toAllValues: false);
 
       // Verify toMap is cached
       expect(doc.toMap(), {'a': '1', 'b': '2'});
 
-      // valuesOf should still work but not be cached
-      expect(doc.valuesOf('a'), ['1']);
+      // allValues should still work but not be cached
+      expect(doc.allValues('a'), ['1']);
     });
 
-    test('cache() can cache only valuesOf', () {
+    test('cache() can cache only allValues', () {
       final doc = FlatDocument(const [
         FlatEntry('a', '1'),
         FlatEntry('a', '2'),
       ]);
 
       // Cache only valuesOf
-      doc.cache(toMap: false, toValuesOf: true);
+      doc.cache(toMap: false, toAllValues: true);
 
-      // Verify valuesOf is cached
-      expect(doc.valuesOf('a'), ['1', '2']);
+      // Verify allValues is cached
+      expect(doc.allValues('a'), ['1', '2']);
 
       // toMap should still work but not be cached
       expect(doc.toMap(), {'a': '2'});
@@ -226,7 +229,7 @@ void main() {
       expect(doc.toMap(), {'a': '1', 'b': '2'});
 
       // valuesOf should not be cached
-      expect(doc.valuesOf('a'), ['1']);
+      expect(doc.allValues('a'), ['1']);
     });
 
     test('whereKey() should return correct filtered subsets', () {
@@ -385,7 +388,7 @@ void main() {
       final doc = FlatDocument.empty();
       expect(doc.keys, isEmpty);
       expect(doc.toMap(), isEmpty);
-      expect(doc.valuesOf('missing'), isEmpty);
+      expect(doc.allValues('missing'), isEmpty);
     });
 
     test('isEmpty and isNotEmpty work correctly for non-empty document', () {
@@ -911,13 +914,64 @@ void main() {
       expect(doc['a'], '1');
     });
 
-    test('valuesOf() is unwritable either way', () {
+    test('allValues() is unwritable either way', () {
       final plain = FlatConfig.parse('a = 1\na = 2');
-      expect(() => plain.valuesOf('a').add('3'), throwsUnsupportedError);
+      expect(() => plain.allValues('a').add('3'), throwsUnsupportedError);
 
-      final cached = FlatConfig.parse('a = 1\na = 2')..cache(toValuesOf: true);
-      expect(() => cached.valuesOf('a').add('3'), throwsUnsupportedError);
-      expect(cached.valuesOf('a'), ['1', '2']);
+      final cached = FlatConfig.parse('a = 1\na = 2')..cache(toAllValues: true);
+      expect(() => cached.allValues('a').add('3'), throwsUnsupportedError);
+      expect(cached.allValues('a'), ['1', '2']);
+    });
+  });
+}
+
+void _lookupTests() {
+  group('FlatDocument.lookup (Phase 2.5)', () {
+    final doc = FlatDocument(const [
+      FlatEntry('present', 'x'),
+      FlatEntry('empty', ''),
+      FlatEntry('reset', null),
+    ]);
+
+    test('separates the three states operator [] collapses', () {
+      expect(doc.lookup('present'), const FlatLookup.present('x'));
+      expect(doc.lookup('reset'), const FlatLookup.reset());
+      expect(doc.lookup('missing'), const FlatLookup.absent());
+
+      // All three of those read as the same thing through the operator.
+      expect(doc['reset'], isNull);
+      expect(doc['missing'], isNull);
+    });
+
+    test('an empty string is present, not a reset', () {
+      expect(doc.lookup('empty'), const FlatLookup.present(''));
+    });
+
+    test('last write wins, resets included', () {
+      final overwritten = FlatDocument(const [
+        FlatEntry('k', 'first'),
+        FlatEntry('k', null),
+      ]);
+      expect(overwritten.lookup('k'), const FlatLookup.reset());
+      expect(overwritten.containsKey('k'), isTrue);
+    });
+
+    test('is exhaustively switchable', () {
+      String describe(FlatLookup lookup) => switch (lookup) {
+        FlatAbsent() => 'absent',
+        FlatReset() => 'reset',
+        FlatPresent(:final value) => 'present:$value',
+      };
+
+      expect(describe(doc.lookup('present')), 'present:x');
+      expect(describe(doc.lookup('reset')), 'reset');
+      expect(describe(doc.lookup('missing')), 'absent');
+    });
+
+    test('valueOrNull agrees with operator []', () {
+      for (final key in ['present', 'empty', 'reset', 'missing']) {
+        expect(doc.lookup(key).valueOrNull, doc[key], reason: key);
+      }
     });
   });
 }

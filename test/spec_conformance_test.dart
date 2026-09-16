@@ -164,7 +164,7 @@ void main() {
     final doc = FlatConfig.parse('reset =\nempty = ""\nvalue = x');
 
     test('parsing keeps them apart', () {
-      expect(doc.has('absent'), isFalse);
+      expect(doc.containsKey('absent'), isFalse);
       expect(doc['reset'], isNull);
       expect(doc['empty'], '');
       expect(doc['value'], 'x');

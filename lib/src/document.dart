@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart';
 
+import 'lookup.dart';
 import 'parser_utils.dart';
 import 'validation.dart';
 
@@ -83,7 +84,7 @@ class FlatEntry {
 ///
 /// final doc = FlatConfig.parse(config);
 /// print(doc['background']); // ffaa00 (last value)
-/// print(doc.valuesOf('background')); // [343028, ffaa00] (all values)
+/// print(doc.allValues('background')); // [343028, ffaa00] (all values)
 /// ```
 @immutable
 class FlatDocument extends Iterable<FlatEntry> {
@@ -187,35 +188,27 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// only the first occurrence determines its position in this iterable.
   Iterable<String> get keys => toMap().keys;
 
-  /// Returns true if the document contains the given key, regardless of value.
+  /// Whether the document mentions [key] at all, with or without a value.
   ///
-  /// This includes keys with null values (empty assignments like `key =`).
-  bool has(String key) => toMap().containsKey(key);
+  /// A key assigned nothing (`key =`) counts as present; see [lookup] to tell
+  /// the two apart.
+  bool containsKey(String key) => toMap().containsKey(key);
 
-  /// Returns true if the latest value for [key] is non-null.
+  /// Which of the three states [key] is in.
   ///
-  /// This is equivalent to `this[key] != null`.
-  bool hasNonNull(String key) => this[key] != null;
-
-  /// Returns the first value for the given key.
-  ///
-  /// If the key appears multiple times in the document, this returns the value
-  /// from the first occurrence. Returns null if the key is not found.
-  String? firstValueOf(String key) {
-    for (final e in entries) {
-      if (e.key == key) {
-        return e.value;
-      }
+  /// Reach for this instead of `operator []` whenever "never mentioned" and
+  /// "explicitly cleared" call for different behaviour, since both read as
+  /// `null` through the operator.
+  FlatLookup lookup(String key) {
+    final map = toMap();
+    if (!map.containsKey(key)) {
+      return const FlatLookup.absent();
     }
 
-    return null;
-  }
+    final value = map[key];
 
-  /// Returns the last value for the given key.
-  ///
-  /// This is equivalent to `this[key]` and returns the value from the most
-  /// recent occurrence of the key in the document.
-  String? lastValueOf(String key) => this[key];
+    return value == null ? const FlatLookup.reset() : FlatLookup.present(value);
+  }
 
   /// Returns a map containing the last value for each key.
   ///
@@ -240,21 +233,21 @@ class FlatDocument extends Iterable<FlatEntry> {
     return Map.unmodifiable(map);
   }
 
-  /// Caches the latest and valuesOf maps.
+  /// Caches the latest and allValues maps.
   ///
   /// Parameters:
   /// - [toMap]: whether to cache the latest map
-  /// - [toValuesOf]: whether to cache the valuesOf map
-  void cache({bool toMap = true, bool toValuesOf = false}) {
+  /// - [toAllValues]: whether to cache the allValues map
+  void cache({bool toMap = true, bool toAllValues = false}) {
     if (toMap) {
       _latestExpando[this] = _buildLatest();
     }
-    if (toValuesOf) {
-      _valuesOfExpando[this] = _buildValuesOf();
+    if (toAllValues) {
+      _allValuesExpando[this] = _buildAllValues();
     }
   }
 
-  /// Returns all values for a given key, including duplicates and nulls.
+  /// Returns every value assigned to [key], in file order, nulls included.
   ///
   /// This method preserves the order of values as they appeared in the original
   /// configuration file. If a key appears multiple times, all values are returned
@@ -269,20 +262,20 @@ class FlatDocument extends Iterable<FlatEntry> {
   /// ''';
   ///
   /// final doc = FlatConfig.parse(config);
-  /// print(doc.valuesOf('background')); // [343028, ffaa00, null]
+  /// print(doc.allValues('background')); // [343028, ffaa00, null]
   /// ```
-  List<String?> valuesOf(String key) {
-    final map = _valuesOfExpando[this] ??= _buildValuesOf();
+  List<String?> allValues(String key) {
+    final map = _allValuesExpando[this] ??= _buildAllValues();
     return map[key] ?? const [];
   }
 
-  static final Expando<Map<String, List<String?>>> _valuesOfExpando =
-      Expando<Map<String, List<String?>>>('flatconf_valuesOf_cache');
+  static final Expando<Map<String, List<String?>>> _allValuesExpando =
+      Expando<Map<String, List<String?>>>('flatconf_allValues_cache');
 
   /// Unmodifiable all the way down, for the reason given on [_buildLatest].
   /// The inner lists are frozen here so [valuesOf] can hand them out directly
   /// instead of copying on every call.
-  Map<String, List<String?>> _buildValuesOf() {
+  Map<String, List<String?>> _buildAllValues() {
     final map = <String, List<String?>>{};
     for (final e in entries) {
       map.putIfAbsent(e.key, () => []).add(e.value);

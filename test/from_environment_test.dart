@@ -37,8 +37,8 @@ void main() {
 
         // Test that it works with standard FlatDocument methods
         expect(doc.toMap(), equals({'KEY1': 'value1', 'KEY2': 'value2'}));
-        expect(doc.has('KEY1'), isTrue);
-        expect(doc.has('KEY3'), isFalse);
+        expect(doc.containsKey('KEY1'), isTrue);
+        expect(doc.containsKey('KEY3'), isFalse);
         expect(doc['KEY1'], equals('value1'));
       });
     });
@@ -563,7 +563,7 @@ void main() {
         expect(clean['HOST'], equals('api.example.com'));
         expect(clean['PORT'], equals('8080'));
         expect(clean['URL'], equals('https://api.example.com:8080'));
-        expect(clean.has('OTHER_VAR'), isFalse);
+        expect(clean.containsKey('OTHER_VAR'), isFalse);
       });
 
       test('layering defaults, env, and overrides', () {

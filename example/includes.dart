@@ -89,8 +89,7 @@ auto-save = true
 
     // 1. Basic include functionality
     print('1. Basic include functionality:');
-    print(
-        '   - Main file entries: ${doc.firstValueOf("app-name")}, ${doc.firstValueOf("version")}');
+    print('   - Main file entries: ${doc["app-name"]}, ${doc["version"]}');
     print('   - Theme from include: ${doc["theme"]}');
     print('   - Colors from nested include: ${doc["primary"]}');
     print('');
@@ -113,7 +112,7 @@ auto-save = true
 
     // 4. Multiple values for the same key
     print('4. Multiple values preserved:');
-    final themeValues = doc.valuesOf('theme');
+    final themeValues = doc.allValues('theme');
     print('   - All theme values: $themeValues');
     print('   - Last theme value (for direct access): ${doc["theme"]}');
     print('');

@@ -96,10 +96,10 @@ void main() {
   print(doc['background']);         // → 343028
   print(doc['foreground']);         // → f3d735
   print(doc['shader']);             // → vignette (latest value wins)
-  print(doc.valuesOf('shader'));    // → ["bloom", "vignette"]
-  print(doc.has('shader'));         // → true
+  print(doc.allValues('shader'));   // → ["bloom", "vignette"]
+  print(doc.containsKey('shader')); // → true
   print(doc['texture']);            // → null (explicit reset)
-  print(doc.hasNonNull('texture')); // → false
+  print(doc.lookup('texture'));     // → FlatLookup.reset()
 }
 ```
 
@@ -225,9 +225,9 @@ class FlatDocument {
   Map<String, String?> toMap();     // last value per key
   String? operator [](String key);  // same as toMap()[key]
   Iterable<String> get keys;        // first occurrence order
-  List<String?> valuesOf(String key);
-  bool has(String key);
-  bool hasNonNull(String key);
+  List<String?> allValues(String key);
+  bool containsKey(String key);
+  FlatLookup lookup(String key);    // absent vs. reset vs. present
 }
 ```
 
@@ -606,7 +606,7 @@ final ratio = doc.requireAsWith('video', (raw, key, d) {
 
 `getAllAs()` / `requireAllAs()`
 
-Convert all values for a key (see `valuesOf()`):
+Convert all values for a key (see `allValues()`):
 
 ```dart
 // Lenient: skips invalid items

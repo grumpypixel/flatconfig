@@ -1005,13 +1005,13 @@ void main() {
       expect(d.getIntInRange('ix'), isNull);
     });
 
-    test('containsKey/hasKey/hasNonNull basics', () {
+    test('containsKey and resolved-value basics', () {
       final d = docOf({'a': '1', 'b': null});
-      expect(d.has('a'), isTrue);
-      expect(d.has('b'), isTrue);
-      expect(d.hasNonNull('a'), isTrue);
-      expect(d.hasNonNull('b'), isFalse);
-      expect(d.has('missing'), isFalse);
+      expect(d.containsKey('a'), isTrue);
+      expect(d.containsKey('b'), isTrue);
+      expect(d['a'], isNotNull);
+      expect(d['b'], isNull);
+      expect(d.containsKey('missing'), isFalse);
     });
 
     test('getTrimmedOrEmpty returns trimmed or empty', () {
@@ -1525,7 +1525,7 @@ void main() {
       expect(map1.containsKey('key3'), isFalse);
     });
 
-    test('valuesOf(key) should return all values for key in order', () {
+    test('allValues(key) should return all values for key in order', () {
       final doc = FlatDocument(const [
         FlatEntry('key1', 'first'),
         FlatEntry('key2', 'only'),
@@ -1534,35 +1534,35 @@ void main() {
         FlatEntry('key1', 'last'),
       ]);
 
-      final values = doc.valuesOf('key1');
+      final values = doc.allValues('key1');
       expect(values, ['first', 'second', null, 'last']);
       expect(values.length, 4);
     });
 
-    test('valuesOf(key) should return empty list if key not found', () {
+    test('allValues(key) should return empty list if key not found', () {
       final doc = FlatDocument(const [
         FlatEntry('key1', 'value1'),
         FlatEntry('key2', 'value2'),
       ]);
 
-      final values = doc.valuesOf('missing');
+      final values = doc.allValues('missing');
       expect(values, isEmpty);
       expect(values, isA<List<String?>>());
     });
 
-    test('valuesOf(key) should be immutable', () {
+    test('allValues(key) should be immutable', () {
       final doc = FlatDocument(const [
         FlatEntry('key1', 'value1'),
         FlatEntry('key1', 'value2'),
       ]);
 
-      final values = doc.valuesOf('key1');
+      final values = doc.allValues('key1');
       expect(() => values.add('value3'), throwsUnsupportedError);
       expect(() => values.removeAt(0), throwsUnsupportedError);
       expect(() => values.clear(), throwsUnsupportedError);
     });
 
-    test('firstValueOf(key) should return first occurrence of value', () {
+    test('allValues(key).first is the first occurrence', () {
       final doc = FlatDocument(const [
         FlatEntry('key1', 'first'),
         FlatEntry('key2', 'only'),
@@ -1570,14 +1570,14 @@ void main() {
         FlatEntry('key1', 'last'),
       ]);
 
-      expect(doc.firstValueOf('key1'), 'first');
-      expect(doc.firstValueOf('key2'), 'only');
+      expect(doc.allValues('key1').first, 'first');
+      expect(doc.allValues('key2').first, 'only');
     });
 
-    test('firstValueOf(key) should return null if key not found', () {
+    test('allValues(key) is empty if the key is not found', () {
       final doc = FlatDocument(const [FlatEntry('key1', 'value1')]);
 
-      expect(doc.firstValueOf('missing'), isNull);
+      expect(doc.allValues('missing'), isEmpty);
     });
 
     test(
@@ -1590,16 +1590,16 @@ void main() {
           FlatEntry('key1', 'last'),
         ]);
 
-        expect(doc.lastValueOf('key1'), 'last');
-        expect(doc.lastValueOf('key2'), 'only');
-        expect(doc.lastValueOf('key1'), doc['key1']); // should be equivalent
+        expect(doc['key1'], 'last');
+        expect(doc['key2'], 'only');
+        expect(doc['key1'], doc['key1']); // should be equivalent
       },
     );
 
     test('lastValueOf(key) should return null if missing', () {
       final doc = FlatDocument(const [FlatEntry('key1', 'value1')]);
 
-      expect(doc.lastValueOf('missing'), isNull);
+      expect(doc['missing'], isNull);
     });
 
     test('has() should be true if key exists (even with null)', () {
@@ -1609,23 +1609,23 @@ void main() {
         FlatEntry('key3', ''),
       ]);
 
-      expect(doc.has('key1'), isTrue);
-      expect(doc.has('key2'), isTrue); // should be true even with null
-      expect(doc.has('key3'), isTrue);
-      expect(doc.has('missing'), isFalse);
+      expect(doc.containsKey('key1'), isTrue);
+      expect(doc.containsKey('key2'), isTrue); // should be true even with null
+      expect(doc.containsKey('key3'), isTrue);
+      expect(doc.containsKey('missing'), isFalse);
     });
 
-    test('hasNonNull() should be true only if value != null', () {
+    test('operator [] is null exactly when the value is null', () {
       final doc = FlatDocument(const [
         FlatEntry('key1', 'value1'),
         FlatEntry('key2', null),
         FlatEntry('key3', ''),
       ]);
 
-      expect(doc.hasNonNull('key1'), isTrue);
-      expect(doc.hasNonNull('key2'), isFalse); // null value
-      expect(doc.hasNonNull('key3'), isTrue); // empty string is not null
-      expect(doc.hasNonNull('missing'), isFalse);
+      expect(doc['key1'], isNotNull);
+      expect(doc['key2'], isNull); // null value
+      expect(doc['key3'], isNotNull); // empty string is not null
+      expect(doc['missing'], isNull);
     });
 
     test('getInt() should parse valid numeric values correctly', () {

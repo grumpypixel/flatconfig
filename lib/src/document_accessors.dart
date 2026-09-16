@@ -1018,7 +1018,7 @@ extension FlatDocumentAccessors on FlatDocument {
   /// Throws [FormatException] listing the first missing key encountered.
   void requireKeys(Iterable<String> keys) {
     for (final k in keys) {
-      if (!has(k)) {
+      if (!containsKey(k)) {
         throw const FormatException('Missing required key').explain(key: k);
       }
     }
@@ -1327,7 +1327,7 @@ extension FlatDocumentAccessors on FlatDocument {
     bool trim = true,
     bool ignoreEmpty = true,
   }) sync* {
-    for (final raw in valuesOf(key)) {
+    for (final raw in allValues(key)) {
       if (raw == null) {
         continue;
       }
@@ -1363,7 +1363,7 @@ extension FlatDocumentAccessors on FlatDocument {
     bool ignoreEmpty = true,
   }) {
     final out = <T>[];
-    for (final raw in valuesOf(key)) {
+    for (final raw in allValues(key)) {
       if (raw == null) {
         throw const FormatException(
           'Missing value',

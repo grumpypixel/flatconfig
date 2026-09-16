@@ -10,14 +10,14 @@ folded in below, with reproductions.
 
 ## Where this stands
 
-Last updated after Phase 1.7. Verify with `dart test` (expect 778 passing),
+Last updated after Phase 2.5. Verify with `dart test` (expect 783 passing),
 `dart test --compiler exe` for the same suite without assertions, and
 `sed -n '/^### Open/,$p' SPEC.md` for format deviations.
 
 **Done:** Phase 0 and Phase 1, in full. `SPEC.md` Appendix A is empty — every
 listed deviation is fixed and pinned by a test.
 
-**Next:** Phase 2, the 1.0 API. Nothing in Phase 1 is left open.
+**Next:** Phase 2, the 1.0 API. 2.5 is done; the rest is open.
 
 **How the work is organised.** Every fix carries a regression test.
 `test/round_trip_test.dart` is the property gate for the format and must stay
@@ -400,13 +400,13 @@ two orthogonal operations that were already there:
 via typed getters — "present but unparseable". This is the root of several
 downstream inconsistencies.
 
-- [ ] Add sealed `FlatLookup` and `doc.lookup(key)`.
-- [ ] Keep `operator []` as the nullable convenience, documented as unsuitable
+- [x] Add sealed `FlatLookup` and `doc.lookup(key)`.
+- [x] Keep `operator []` as the nullable convenience, documented as unsuitable
       for presence detection.
-- [ ] Rename `has` → `containsKey` (matches `Map`), delete `hasNonNull`.
-- [ ] `firstValueOf` / `lastValueOf` → deleted. `lastValueOf` is an exact alias
+- [x] Rename `has` → `containsKey` (matches `Map`), delete `hasNonNull`.
+- [x] `firstValueOf` / `lastValueOf` → deleted. `lastValueOf` is an exact alias
       for `[]`; `firstValueOf` becomes `allValues(key).first`.
-- [ ] `valuesOf` → `allValues` (pairs with `allAs`).
+- [x] `valuesOf` → `allValues` (pairs with `allAs`).
 
 ### 2.6 Collapse the accessor catalog
 
@@ -686,7 +686,7 @@ customizable separators.
 | Phase | Content | Days | Gate to proceed |
 |-------|---------|------|-----------------|
 | 0 | `SPEC.md` | done | Every ambiguity has one stated answer |
-| 1 | Correctness | 2–3 | Round-trip property test passes — **passing**; 1.1, 1.6, rest of 1.2 and 1.7–1.9 still open |
+| 1 | Correctness | done | Round-trip property test passes; `SPEC.md` Appendix A empty |
 | 2 | 1.0 API | 6–8 | All four entry points compile for JS and WASM |
 | 3 | Testing | 2 | Full CI matrix green |
 | 4 | Release | 2 | Clean dry-run; migration guide complete |

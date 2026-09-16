@@ -68,7 +68,7 @@ void main() {
         result.filteredTailEntries,
       );
 
-      expect(finalDoc.valuesOf('x'), [
+      expect(finalDoc.allValues('x'), [
         'root',
         'from-include-1',
         'from-include-2',

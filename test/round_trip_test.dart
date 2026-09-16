@@ -88,7 +88,7 @@ void main() {
         FlatEntry('a', null),
       ]);
       _expectRoundTrip(d);
-      expect(_rebuild(d).valuesOf('a'), ['1', '2', null]);
+      expect(_rebuild(d).allValues('a'), ['1', '2', null]);
     });
 
     test('null and empty string stay distinct', () {

@@ -137,7 +137,7 @@ void main() {
         ),
       );
 
-      expect(doc.valuesOf(r'root\.key.list\.with\.dots'), ['a', 'b']);
+      expect(doc.allValues(r'root\.key.list\.with\.dots'), ['a', 'b']);
       expect(doc[r'root\.key.list\.with\.dots'], 'b');
     });
   });
@@ -148,7 +148,7 @@ void main() {
         'list': [1, 'a', true],
       }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
 
-      expect(doc.valuesOf('list'), ['1', 'a', 'true']);
+      expect(doc.allValues('list'), ['1', 'a', 'true']);
       expect(doc['list'], 'true');
     });
 
@@ -156,7 +156,7 @@ void main() {
       final d1 = FlatConfig.fromMapData({
         'nums': [1, null, 2],
       }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
-      expect(d1.valuesOf('nums'), ['1', null, '2']);
+      expect(d1.allValues('nums'), ['1', null, '2']);
 
       final d2 = FlatConfig.fromMapData(
         {
@@ -167,7 +167,7 @@ void main() {
           dropNulls: true,
         ),
       );
-      expect(d2.valuesOf('nums'), ['1', '2']);
+      expect(d2.allValues('nums'), ['1', '2']);
     });
 
     test('composite items default to JSON, can skip or error', () {
@@ -177,7 +177,7 @@ void main() {
           [2, 3],
         ],
       }, options: const FlatMapDataOptions(listMode: FlatListMode.multi));
-      expect(jsonDoc.valuesOf('items'), ['{"a":1}', '[2,3]']);
+      expect(jsonDoc.allValues('items'), ['{"a":1}', '[2,3]']);
 
       final skipDoc = FlatConfig.fromMapData(
         {
@@ -192,7 +192,7 @@ void main() {
           onUnsupportedListItem: FlatUnsupportedListItem.skip,
         ),
       );
-      expect(skipDoc.valuesOf('items'), ['1', '2']);
+      expect(skipDoc.allValues('items'), ['1', '2']);
 
       expect(
         () => FlatConfig.fromMapData(
@@ -304,10 +304,10 @@ void main() {
         ),
       );
 
-      expect(doc.valuesOf('a'), ['X:a']);
+      expect(doc.allValues('a'), ['X:a']);
       // valueEncoder has highest priority and applies to the list as a whole
       // (root override), so we get a single entry for 'b'.
-      expect(doc.valuesOf('b'), ['X:b']);
+      expect(doc.allValues('b'), ['X:b']);
     });
 
     test('overrides in csv mode and ignores dropNulls', () {
@@ -445,7 +445,7 @@ void main() {
         ),
       );
 
-      expect(doc.valuesOf('l'), ['I', 'I']);
+      expect(doc.allValues('l'), ['I', 'I']);
     });
 
     test('csv mode: overrides individual items (not root list)', () {

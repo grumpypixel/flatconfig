@@ -19,7 +19,7 @@ void main() {
       }, options: const FlatMapDataOptions(strict: false));
 
       expect(doc, isEmpty);
-      expect(doc.valuesOf(''), isEmpty);
+      expect(doc.allValues(''), isEmpty);
     },
   );
 }

@@ -164,7 +164,7 @@ color = aabbcc
 
         final doc = await mainFile.parseWithIncludes();
 
-        expect(doc.valuesOf('color'), ['ffaa00', null, 'aabbcc']);
+        expect(doc.allValues('color'), ['ffaa00', null, 'aabbcc']);
         expect(doc['color'], 'aabbcc');
       },
     );
@@ -190,7 +190,7 @@ color = aabbcc
         final doc = await mainFile.parseWithIncludes();
 
         // Ghostty semantics: tail entries for keys present in includes are filtered
-        expect(doc.valuesOf('color'), ['ffaa00', null, 'aabbcc']);
+        expect(doc.allValues('color'), ['ffaa00', null, 'aabbcc']);
         expect(doc['color'], 'aabbcc');
       },
     );
@@ -1015,8 +1015,8 @@ key2 = value4
       final doc = await mainFile.parseWithIncludes();
 
       // Verify all values are preserved
-      expect(doc.valuesOf('key1'), equals(['value1', 'value2']));
-      expect(doc.valuesOf('key2'), equals(['value4']));
+      expect(doc.allValues('key1'), equals(['value1', 'value2']));
+      expect(doc.allValues('key2'), equals(['value4']));
 
       // Verify last value wins for direct access
       expect(doc['key1'], equals('value2'));
