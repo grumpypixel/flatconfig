@@ -358,10 +358,8 @@ Map<String, String?> _interpolate(
     }
 
     out[e.key] = raw.replaceAllMapped(pattern, (m) {
-      if (m.groupCount < 1) {
-        return m[0]!;
-      }
-
+      // FlatEnvOptions rejects a varPattern without a capture group, so group
+      // one is always there to name the variable.
       final name = m.group(1)!;
       final value = snapshot[name];
       if (value != null) {

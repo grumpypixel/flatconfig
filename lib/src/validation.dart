@@ -1,5 +1,4 @@
 import 'constants.dart';
-import 'document.dart';
 
 /// Why [key] is not a valid configuration key, or `null` if it is.
 ///
@@ -65,21 +64,6 @@ String? invalidValueReason(String? value) {
   if (value.contains(Constants.newline) ||
       value.contains(Constants.carriageReturn)) {
     return 'must not contain a line break';
-  }
-
-  return null;
-}
-
-/// Why [entry] cannot be written out, or `null` if it can.
-String? invalidEntryReason(FlatEntry entry) {
-  final keyProblem = invalidKeyReason(entry.key);
-  if (keyProblem != null) {
-    return 'Key "${entry.key}" $keyProblem';
-  }
-
-  final valueProblem = invalidValueReason(entry.value);
-  if (valueProblem != null) {
-    return 'Value of "${entry.key}" $valueProblem';
   }
 
   return null;
