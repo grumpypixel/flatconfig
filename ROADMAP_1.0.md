@@ -464,14 +464,19 @@ not own, and all are trivially expressible via `getAs`:
 
 Also:
 
-- [ ] `requireAllAs` currently returns `[]` for a missing key. `allAs` replaces
+- [x] `requireAllAs` currently returns `[]` for a missing key. `allAs` replaces
       it with defined semantics via `FlatLookup`.
-- [ ] Narrow every `catch (_)` so `Error` subclasses thrown by user converters
+- [x] Narrow every `catch (_)` so `Error` subclasses thrown by user converters
       are not misreported as malformed config.
-- [ ] Drop `preNormalizedLowerMapping` / `preNormalizedLowerValues` — internal
+- [x] Drop `preNormalizedLowerMapping` / `preNormalizedLowerValues` — internal
       performance knobs leaking into public signatures.
 
-**Result: 66 methods → 19 in core, ~15 in the optional accessors library.**
+**Result: 66 methods → 19 in core, 15 in the optional accessors library.**
+
+Done. Core is `document_accessors.dart` at 280 lines; the moved types live in
+`lib/flatconfig_accessors.dart`. The inline `key=value` grammar went with
+`getDocument`, so the SPEC 5 backslash regressions now pin
+`splitRespectingQuotes` directly, which is what they were always about.
 
 ### 2.7 Put everything on the class
 
@@ -599,9 +604,14 @@ package:flatconfig/flatconfig_accessors.dart  DateTime, Duration, Uri, JSON, enu
 - [ ] Choose **one** canonical file API. Today top-level functions, `File`
       extensions, and `FlatDocument.saveToFile()` duplicate the same workflow.
       Proposed: keep only the `File` extensions.
-- [ ] Export every type appearing in a public signature. Currently
-      `FlatConverter`, `FlatAdvancedConverter`, and `FlatParseException` are not
-      exported.
+- [ ] Export every type appearing in a public signature. `FlatConverter` is
+      exported as of 2.6 and `FlatAdvancedConverter` is deleted, so
+      `FlatParseException` is what remains.
+- [ ] Decide where `splitRespectingQuotes` / `indexOfUnquoted` belong. Deleting
+      `getDocument` left them with no caller inside `lib/`, but they are exactly
+      what someone writing the replacement converter needs, and SPEC §5 pins
+      their behaviour. Export them or delete them; leaving them internal and
+      unused is the one option that is wrong.
 - [ ] Delete the placeholder classes `FlatConfigIO {}` / `FlatDocumentIO {}`.
 
 ---

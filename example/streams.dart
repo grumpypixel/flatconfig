@@ -133,12 +133,33 @@ void _dump(FlatDocument doc) {
   final enabled = doc.getBool('fullscreen');
   final w = doc.getInt('width');
   final h = doc.getInt('height');
-  final colorCss = doc.getHexColor('colors.primary', cssAlphaAtEnd: true);
-  final colorArgb = doc.getHexColor('colors.primary', cssAlphaAtEnd: false);
+  final colorCss = doc.getAs('colors.primary', _parseArgb);
+  final colorArgb = doc.getAs(
+    'colors.primary',
+    (v) => _parseArgb(v, cssAlphaAtEnd: false),
+  );
 
   stdout
     ..writeln('  -> fullscreen: $enabled')
     ..writeln('  -> size: ${w}x$h')
     ..writeln('  -> primary (CSS RRGGBBAA): ${colorCss?.toRadixString(16)}')
     ..writeln('  -> primary (AARRGGBB):    ${colorArgb?.toRadixString(16)}');
+}
+
+/// Parses `RRGGBB` or `RRGGBBAA` into a packed ARGB integer.
+///
+/// getHexColor used to ship with the package. It is a presentation decision,
+/// not a format one, so it now lives where the presentation does.
+int _parseArgb(String value, {bool cssAlphaAtEnd = true}) {
+  final hex = value.startsWith('#') ? value.substring(1) : value;
+  if (hex.length != 6 && hex.length != 8) {
+    throw FormatException('Expected RRGGBB or RRGGBBAA', value);
+  }
+
+  final n = int.parse(hex, radix: 16);
+  if (hex.length == 6) {
+    return 0xFF000000 | n;
+  }
+
+  return cssAlphaAtEnd ? (n & 0xFF) << 24 | (n >> 8) & 0xFFFFFF : n;
 }

@@ -30,21 +30,6 @@ void main(List<String> args) async {
   final doc = FlatDocument.parse(sample);
   final bytes = file.readAsBytesSync();
 
-  // Small helper documents for getDocument/getListOfDocuments/getHexColor
-  final docPairs = FlatDocument.fromMap({
-    'mini': r'a=1, b = "x = y", c=, d = " spaced "',
-  });
-  final docListOfDocs = FlatDocument.fromMap({
-    'servers': r'host=a,port=1 | host=b,port=2 | note="x = y"',
-  });
-  final docColors = FlatDocument.fromMap({
-    'cRgb': '#123',
-    'cRgba': '#1234',
-    'cRrGgBb': '#112233',
-    'cAaRrGgBb': '#80112233',
-    'cRrGgBbAa': '#11223380',
-  });
-
   // Baseline (Loop-Overhead) for Sync-Benches
   final baseline = _measureSync(
     label: 'baseline',
@@ -207,53 +192,6 @@ void main(List<String> args) async {
       body: () {
         final d = doc.collapse();
         _sink ^= d.length;
-      },
-    ).minus(baseline),
-  );
-
-  _printStats(
-    _measureSync(
-      label: 'getDocument("mini")',
-      iterations: iterations,
-      repeats: repeats,
-      body: () {
-        final sub = docPairs.getDocument('mini');
-        _sink ^= sub.length;
-      },
-    ).minus(baseline),
-  );
-
-  _printStats(
-    _measureSync(
-      label: 'getListOfDocuments("servers")',
-      iterations: iterations,
-      repeats: repeats,
-      body: () {
-        final list = docListOfDocs.getListOfDocuments('servers') ?? const [];
-        _sink ^= list.length;
-      },
-    ).minus(baseline),
-  );
-
-  _printStats(
-    _measureSync(
-      label: 'getHexColor(AA at end, cssAlphaAtEnd=true)',
-      iterations: iterations,
-      repeats: repeats,
-      body: () {
-        _sink ^= (docColors.getHexColor('cRrGgBbAa', cssAlphaAtEnd: true) ?? 0);
-      },
-    ).minus(baseline),
-  );
-
-  _printStats(
-    _measureSync(
-      label: 'getHexColor(AA at front, cssAlphaAtEnd=false)',
-      iterations: iterations,
-      repeats: repeats,
-      body: () {
-        _sink ^=
-            (docColors.getHexColor('cAaRrGgBb', cssAlphaAtEnd: false) ?? 0);
       },
     ).minus(baseline),
   );

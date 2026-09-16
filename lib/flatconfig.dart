@@ -4,7 +4,7 @@
 // - Pure parsing APIs (FlatDocument, FlatEntry, etc.) are always available.
 // - File and include APIs are conditionally exported only on dart:io platforms.
 export 'src/document.dart' show FlatDocument, FlatEntry;
-export 'src/document_accessors.dart' show FlatDocumentAccessors;
+export 'src/document_accessors.dart' show FlatConverter, FlatDocumentAccessors;
 export 'src/document_extensions.dart'
     show CollapseOrder, FlatDocumentExtensions;
 export 'src/exceptions.dart'

@@ -1,4 +1,5 @@
 import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/src/parser_utils.dart';
 import 'package:test/test.dart';
 
 /// Regression tests for the rules SPEC.md fixes, one group per section.
@@ -141,25 +142,27 @@ void main() {
       expect(FlatDocument.parse(r'a = C:\temp\x')['a'], r'C:\temp\x');
     });
 
-    test('the inline grammar preserves them too', () {
+    test('splitting on a separator preserves them too', () {
       // splitRespectingQuotes used to consume every backslash as an escape
-      // marker without copying it, so this returned win -> 'C:tempx'.
-      final doc = FlatDocument.parse(r'paths = win=C:\temp\x,unix=/tmp');
-      final paths = doc.getDocument('paths');
-      expect(paths['win'], r'C:\temp\x');
-      expect(paths['unix'], '/tmp');
+      // marker without copying it, so this returned 'win=C:tempx'.
+      expect(splitRespectingQuotes(r'win=C:\temp\x,unix=/tmp', ','), [
+        r'win=C:\temp\x',
+        'unix=/tmp',
+      ]);
     });
 
-    test('a regex survives the inline grammar', () {
-      final doc = FlatDocument.parse(r'rules = digits=\d+,word=\w+');
-      final rules = doc.getDocument('rules');
-      expect(rules['digits'], r'\d+');
-      expect(rules['word'], r'\w+');
+    test('a regex survives splitting', () {
+      expect(splitRespectingQuotes(r'digits=\d+,word=\w+', ','), [
+        r'digits=\d+',
+        r'word=\w+',
+      ]);
     });
 
     test('a trailing backslash survives', () {
-      final doc = FlatDocument.parse(r'paths = dir=C:\temp\,other=x');
-      expect(doc.getDocument('paths')['dir'], r'C:\temp\');
+      expect(splitRespectingQuotes(r'dir=C:\temp\,other=x', ','), [
+        r'dir=C:\temp\',
+        'other=x',
+      ]);
     });
   });
 

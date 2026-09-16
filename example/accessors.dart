@@ -1,141 +1,120 @@
 import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_accessors.dart';
 
 void main() {
-  // A small, mixed example
   const cfg = r'''
 # flags & numbers
 enabled = true
 retries = 3
+threshold = 0.75
 timeout = 2.5s
 backoff = 150ms
-threshold = 0.75
-bytes.si = 2MB
-bytes.iec = 1MiB
 
-# colors (CSS rrggbbaa and Flutter/Android aarrggbb)
-color.css = #336699cc
-color.argb = #cc336699
-# #00ff88 (shorthand)
-color.short = #0f8
-
-# dates, duration, ratio, percent
-when = 2024-12-31T23:59:59Z
-aspect = 16:9
-percent.a = 80%
-percent.b = 0.4
-percent.c = 12
-
-# enums (freely mapped)
-mode = FAST
-
-# lists, sets, maps
+# lists
 list = a, b , c , , d
-set = A, b, a, B
-map = k1:v1, k2 : v2 , ignored, :novalue
+hosts = alpha
+hosts = beta
 
-# nested/mini document
-mini = a=1, b = "text with = equals", c=
-servers = host=a,port=8080 | host=b,port=9090 | invalid_no_equals
-
-# url, uri-ish, json
+# dates, uris, json, enums
+when = 2024-12-31T23:59:59Z
 endpoint = https://api.example.com/v1
 json = {"k": [1,2,3], "ok": true}
+mode = FAST
 
-# host:port (including IPv6)
-hp1 = example.com:443
-hp2 = [::1]:8080
-hp3 = localhost
+# things the package deliberately does not parse for you
+color = #336699cc
+size = 2MB
   ''';
 
   final doc = FlatDocument.parse(cfg);
 
-  print('🔢 Booleans & numbers:');
+  // Every type follows the same three shapes: getX, getXOr, requireX.
+  print('🔢 Core types:');
+  print('  enabled:   ${doc.getBool('enabled')}');
+  print('  retries:   ${doc.getInt('retries')}');
+  print('  missing:   ${doc.getIntOr('missing', 42)} (default)');
+  print('  threshold: ${doc.requireDouble('threshold')}');
+  print('  list:      ${doc.getList('list')}');
+  print('  absent:    ${doc.getListOr('absent', const ['fallback'])}');
+
+  // A key can appear more than once; allAs converts every occurrence.
+  print('\n🔁 Repeated keys:');
+  print('  hosts:  ${doc.allAs('hosts', (v) => v.toUpperCase())}');
+  print('  absent: ${doc.allAs('absent', (v) => v)} (null, not [])');
+
+  // Dates, durations, URIs, JSON and enums live in flatconfig_accessors.dart.
+  print('\n📦 Optional accessors:');
+  print('  timeout:  ${doc.getDuration('timeout')}');
+  print('  backoff:  ${doc.requireDuration('backoff')}');
+  print('  when:     ${doc.getDateTime('when')}');
+  print('  endpoint: ${doc.getUri('endpoint')}');
+  print('  json:     ${doc.getJson('json')}');
   print(
-      'enabled: ${doc.getBool("enabled")} (require: ${_try(() => doc.requireBool("enabled"))})');
+    '  mode:     ${doc.getEnum('mode', const {
+          'slow': 0,
+          'normal': 1,
+          'fast': 2
+        })}',
+  );
+
+  // Anything else is a converter away. Colours and byte sizes used to ship
+  // with the package; both are app-level decisions about notation, so they
+  // are better written once, where the app can see them.
+  print('\n🎨 Your own types, via getAs:');
+  print('  color: 0x${doc.getAs('color', _parseArgb)?.toRadixString(16)}');
+  print('  size:  ${doc.getAs('size', _parseBytes)} B');
   print(
-      'retries: ${doc.getInt("retries")} (default: ${doc.getIntOr("missing", 42)})');
-  print('threshold: ${doc.getDouble("threshold")}');
+      '  bad:   ${doc.getAsOr('color', _parseBytes, -1)} (converter said no)');
 
-  print('\n⏱️ Duration:');
-  print('timeout: ${doc.getDuration("timeout")}');
-  print(
-      'backoff: ${doc.getDuration("backoff")} (require: ${_try(() => doc.requireDuration("backoff"))})');
-
-  print('\n📦 Bytes:');
-  print('bytes.si:  ${doc.getBytes("bytes.si")} B');
-  print('bytes.iec: ${doc.getBytes("bytes.iec")} B');
-
-  print('\n🎨 Colors:');
-  final css = doc.getHexColor('color.css', cssAlphaAtEnd: true);
-  final argb = doc.getHexColor('color.argb', cssAlphaAtEnd: false);
-  final short = doc.getHexColor('color.short');
-  print('color.css  (CSS rrggbbaa → ARGB): 0x${css?.toRadixString(16)}');
-  print('color.argb (AARRGGBB):            0x${argb?.toRadixString(16)}');
-  print('color.short (#rgb):                0x${short?.toRadixString(16)}');
-  print('color.css channels: ${doc.getColor("color.css")}');
-
-  print('\n📅 Date, ratio, percent:');
-  print(
-      'when:     ${doc.getDateTime("when")} (require: ${_try(() => doc.requireDateTime("when"))})');
-  print('aspect:   ${doc.getRatio("aspect")}');
-  print('percent.a ${doc.getPercent("percent.a")}');
-  print('percent.b ${doc.getPercent("percent.b")}');
-  print('percent.c ${doc.getPercent("percent.c")}');
-
-  print('\n🔠 Enums (mapping):');
-  final modeMap = {
-    'slow': 0,
-    'normal': 1,
-    'fast': 2,
-  };
-  print('mode: ${doc.getEnum("mode", modeMap, caseInsensitive: true)}');
-
-  print('\n🧮 Lists, sets, maps:');
-  print('list: ${doc.getListOrEmpty("list")}');
-  print('set:  ${doc.getSetOrEmpty("set")}');
-  print(
-      'map:  ${doc.getMap("map")} (orEmpty: ${doc.getMapOrEmpty("missing")})');
-
-  print('\n🧩 Mini document & list of docs:');
-  final mini = doc.getDocument('mini');
-  print('mini:\n${mini.toPrettyString(alignColumns: true)}');
-
-  final servers = doc.getListOfDocuments('servers') ?? const [];
-  for (var i = 0; i < servers.length; i++) {
-    final s = servers[i];
-    print('server[$i]: host=${s.getString("host")}, port=${s.getInt("port")}');
+  // require* reports which key and which value went wrong.
+  print('\n💥 Failure reporting:');
+  try {
+    doc.requireInt('threshold');
+  } on FormatException catch (e) {
+    print('  $e');
   }
-
-  print('\n🔗 URI, JSON:');
-  print(
-      'endpoint: ${doc.getUri("endpoint")} (require: ${_try(() => doc.requireUri("endpoint"))})');
-  print('json:     ${doc.getJson("json")}');
-
-  print('\n🔌 Host:port:');
-  print('hp1: ${doc.getHostPort("hp1")}');
-  print('hp2: ${doc.getHostPort("hp2")}');
-  print('hp3: ${doc.getHostPort("hp3")}');
-
-  print('\n📏 Ranges, clamping, one-of, requireKeys:');
-  print('retries in [0..5]: ${doc.getIntInRange("retries", min: 0, max: 5)}');
-  print(
-      'clamped retries to [5..1] (swapped): ${doc.getClampedInt("retries", min: 5, max: 1)}');
-  print(
-      'threshold in [0.5..1.0]: ${doc.getDoubleInRange("threshold", min: 0.5, max: 1.0)}');
-  print('theme oneOf {dark,light}: ${doc.isOneOf("theme", {"dark", "light"})}');
-  print('requireKeys: ${_try(() => doc.requireKeys([
-            "enabled",
-            "retries",
-            "theme"
-          ]))}');
 }
 
-/// Helper, to catch require*-calls in the example nicely.
-String _try(Object? Function() f) {
-  try {
-    final v = f();
-    return '$v';
-  } on FormatException catch (e) {
-    return 'ERROR($e)';
+/// Parses `#RRGGBB` or `#RRGGBBAA` into a packed ARGB integer.
+int _parseArgb(String value) {
+  final hex = value.startsWith('#') ? value.substring(1) : value;
+  if (hex.length != 6 && hex.length != 8) {
+    throw FormatException('Expected RRGGBB or RRGGBBAA', value);
   }
+
+  final n = int.parse(hex, radix: 16);
+  if (hex.length == 6) {
+    return 0xFF000000 | n;
+  }
+
+  // CSS puts alpha last; ARGB puts it first.
+  return (n & 0xFF) << 24 | (n >> 8) & 0xFFFFFF;
+}
+
+/// Parses `2MB`, `1MiB` or a bare byte count.
+int _parseBytes(String value) {
+  final match = RegExp(
+    r'^(\d+(?:\.\d+)?)\s*([kmgt]i?b?)?$',
+    caseSensitive: false,
+  ).firstMatch(value.trim());
+  if (match == null) {
+    throw FormatException('Expected a byte size', value);
+  }
+
+  final unit = (match.group(2) ?? '').toLowerCase();
+  final base = unit.contains('i') ? 1024 : 1000;
+  final power = switch (unit.isEmpty ? '' : unit[0]) {
+    'k' => 1,
+    'm' => 2,
+    'g' => 3,
+    't' => 4,
+    _ => 0,
+  };
+
+  var factor = 1;
+  for (var i = 0; i < power; i++) {
+    factor *= base;
+  }
+
+  return (double.parse(match.group(1)!) * factor).round();
 }

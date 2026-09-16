@@ -24,10 +24,11 @@ Perfect for tools, CLIs, and Flutter apps that need structured settings without 
 - 🔐 **Strict or lenient parsing**, optional callbacks for invalid lines  
 - ✅ **Valid by construction** — an entry the format cannot write out cannot be built  
 - 📁 **Async/sync file I/O**, handles UTF-8 BOM and any line endings  
-- 🧠 **Typed accessors** for durations, bytes, colors, URIs, JSON, enums, ratios, percents, lists, sets, maps, and ranges  
+- 🧠 **Typed accessors** with one rule: `getX`, `getXOr`, `requireX` for every type  
+- 🔌 **`getAs` for everything else** — your converter, the same three shapes  
 - 🧱 **Collapse helpers** to deduplicate keys (first occurrence or last write)  
 - 🔁 **Round-tripping** with configurable quoting and escaping  
-- 🧮 **Factories for easy creation** — build documents from maps, entries, or nested data (`fromMapData`)  
+- 🧮 **Factories for easy creation** — build documents from maps, entries, or nested data (`fromData`)  
 - 🧰 **Pretty-print and debug dumps**  
 
 ## Usage
@@ -171,7 +172,7 @@ While `flatconfig` looks familiar if you’ve used INI or TOML, it’s intention
 | Sections / Tables | ✅ `[section]` or `[table]` | 🚫 none — single flat namespace |
 | Nested data | ✅ via tables or dotted keys | 🚫 flat only |
 | Comments | `#` or `;` | `#` only |
-| Arrays / Lists | ✅ `[1, 2, 3]` etc. | ✅ via `getList()` / `getSet()` helpers |
+| Arrays / Lists | ✅ `[1, 2, 3]` etc. | ✅ via `getList()` / a `getAs()` converter |
 | Data types | explicit (bool, int, float, etc.) | string-based + typed accessors |
 | Includes | ❌ (TOML only via preprocessors) | ✅ built-in recursive `config-file` support |
 | Complexity | moderate | minimal & predictable |
@@ -464,202 +465,128 @@ Notes:
 final section = doc.slice('window.').stripPrefix('window.');
 ```
 
-## Accessors – At a Glance
+## Accessors
 
-- **Missing vs. empty:** Missing keys return `null`. An unquoted empty value (`key =`) is an explicit reset and also returns `null`; write `key = ""` for an empty string.  
-- **`get*` vs. `require*`:** `get*` returns `null` or a default; `require*` throws a `FormatException` on missing or invalid values.  
-- **Trimming:** String helpers (`getTrimmed…`) strip leading and trailing spaces.  
-- **Booleans:** Supported values are `true/false`, `on/off`, `yes/no`, and `1/0` (case-insensitive).  
-- **Ranges:** `get*InRange` validates and returns `null` when out of bounds; `require*InRange` throws.  
-- **Quote awareness:** `getMap()` is not quote-aware, while `getDocument()` and `getListOfDocuments()` are.  
+Every supported type offers exactly three shapes, with no exceptions:
 
-### Typed Accessors (Examples)
+| Shape | Missing, reset or unparseable | Use when |
+|---|---|---|
+| `getX(key)` | returns `null` | the value is genuinely optional |
+| `getXOr(key, fallback)` | returns `fallback` | you have a sensible default |
+| `requireX(key)` | throws `FormatException` | a missing value is a startup error |
 
-```dart
-final b  = doc.getBytes('size');          // SI (kB/MB/...) & IEC (KiB/MiB/...)
-final cc = doc.getColor('color');         // {a, r, g, b}
-final d  = doc.getDuration('timeout');    // "150ms", "2s", "5m", "3h", "1d"
-final e  = doc.getEnum('mode', {'prod': 1, 'dev': 2}); // case-insensitive
-final hc = doc.getHexColor('color');      // #rgb, #rgba, #rrggbb, #aarrggbb → 0xAARRGGBB
-final j  = doc.getJson('payload');        // parsed JSON (Map/List/num/bool/String)
-final p  = doc.getPercent('alpha');       // "80%", "0.8", "80" → 0.8
-final r  = doc.getRatio('video');         // "16:9" → 1.777…
-final u  = doc.getUri('endpoint');        // relative or absolute URI
-
-// Collections
-final l  = doc.getList('features');       // "A, b , a" → ["A","b","a"]
-final s  = doc.getSet('features');        // → {"a","b"} (case-insensitive, lower-cased unique)
-
-// Ranges
-final dir = doc.getDoubleInRange('gamma', min: 0.5, max: 2.0);
-final iir = doc.getIntInRange('retries', min: 0, max: 10);
-
-// Require* throw FormatException on missing/invalid values
-final siz = doc.requireBytes('size');
-final tim = doc.requireDuration('timeout');
-final hex = doc.requireHexColor('color');
-final pct = doc.requirePercent('alpha');
-```
-
-### More Accessors
+The core library covers five types plus an escape hatch:
 
 ```dart
-// Strings
-final t0 = doc.getTrimmed('title');
-final t1 = doc.getTrimmedOrEmpty('title');
-final t2 = doc.getStringOr('env', 'prod');
-final t3 = doc.requireString('env');
-
-// Booleans
-final b0 = doc.getBoolOr('debug', false);
-final b1 = doc.requireBool('debug');
-final on  = doc.isEnabled('feature_x', defaultValue: true);
-final off = doc.isDisabled('feature_y');
-
-// Numbers
-final n0 = doc.getIntOr('retries', 3);
-final n1 = doc.requireInt('retries');
-final n2 = doc.getDoubleOr('gamma', 1.0);
-final n3 = doc.requireDouble('gamma');
-final n4 = doc.getNum('threshold');
-final n5 = doc.requireNum('threshold');
-
-// Date/time & URI
-final dt  = doc.getDateTime('start_at');   // ISO-8601 (Z/offset supported)
-final rdt = doc.requireDateTime('start_at');
-final ru  = doc.requireUri('endpoint');
-
-// Colors (extras)
-final color = doc.requireColor('color');   // {a,r,g,b}
-final tuple = doc.getColorTuple('color');  // (a,r,g,b)
-final rtpl  = doc.requireColorTuple('color');
-
-// Ranges & clamping
-final ri = doc.requireIntInRange('retries', min: 0, max: 10);
-final rd = doc.requireDoubleInRange('gamma', min: 0.5, max: 2.0);
-final ci = doc.getClampedInt('retries', min: 0, max: 10);
-
-// Collections (extras)
-final ls = doc.getListOrEmpty('features');
-final ss = doc.getSetOrEmpty('features');
-final m  = doc.getMap('overrides');        // "a:1, b: 2" → {a:1, b:2} (not quote-aware)
-final me = doc.getMapOrEmpty('overrides');
-
-// Validation & predicates
-doc.requireKeys(['host', 'port']);         // throws on missing keys
-final ok = doc.isOneOf('mode', {'prod', 'dev'});
+final name     = doc.getString('name');
+final port     = doc.getIntOr('port', 8080);
+final gamma    = doc.requireDouble('gamma');
+final debug    = doc.getBoolOr('debug', false);
+final features = doc.getList('features');       // "a, b , c" → ["a","b","c"]
 ```
+
+- **Missing vs. reset vs. empty:** a missing key and a reset (`key =`) both read
+  as `null`; use [`lookup()`](#data-model) when the difference matters. Write
+  `key = ""` for an empty string.
+- **Booleans:** `true/false`, `on/off`, `yes/no`, `1/0`, case-insensitive.
+- **Doubles:** `NaN` and the infinities are rejected. They pass every range
+  check by being unordered, which makes them worse than a parse failure.
+- **Lists:** items are trimmed and empties dropped; both are switchable, as is
+  the separator.
+
+### Repeated Keys
+
+`allAs()` converts every value recorded for a key, in file order:
+
+```dart
+// hosts = alpha
+// hosts = beta
+final hosts = doc.allAs('hosts', parseHost);   // [alpha, beta]
+final none  = doc.allAs('absent', parseHost);  // null, not []
+```
+
+It returns `null` for a key that never appears, which an empty list cannot
+express: a key mentioned only as a reset legitimately carries no values. One
+unconvertible value throws rather than silently shortening the list.
 
 ### Custom Converters
 
-`flatconfig` also lets you define your own typed accessors using generic converter callbacks.
-This makes it easy to handle custom value formats or structured strings.
-
-`getAs()` / `getAsOr()` / `requireAs()`
-
-Convert a single key using your own converter:
+`getAs()` extends the same three shapes to any type you can write a function
+for. This is where everything beyond the five core types belongs:
 
 ```dart
-// Safe: returns null on invalid or missing value
-final port = doc.getAs('port', int.parse);
+// Safe: null on invalid or missing value
+final color = doc.getAs('color', parseArgb);
 
-// With default fallback
+// With a fallback
 final retries = doc.getAsOr('retries', int.parse, 3);
 
-// Strict: throws on missing or invalid value
+// Strict: throws, naming the key and the offending value
 final timeout = doc.requireAs('timeout', Duration.parse);
 ```
 
-You can combine these with `trim` and `ignoreEmpty` flags:
+A converter signals rejection by throwing. An `Exception` means the config is
+wrong and is reported as such; an `Error` propagates untouched, because a
+`TypeError` or `ArgumentError` says the *converter* is wrong and swallowing it
+would blame the user's file for your bug.
+
+`trim` (default `true`) and `ignoreEmpty` (default `true`) control what reaches
+the converter:
 
 ```dart
-final title = doc.getAs('title', (s) => s.toUpperCase(), trim: true);
+final title = doc.getAs('title', (s) => s.toUpperCase(), trim: false);
 ```
 
-`getAsWith()` / `requireAsWith()`
+### Optional Accessors
 
-Pass the entire document to a context-aware converter — useful for multi-field logic or sub-documents:
+Dates, durations, URIs, JSON and enums are common in configuration but are not
+part of the format, so they ship in a separate library. Same three shapes:
 
 ```dart
-final db = doc.getAsWith('db', (raw, key, d) {
-  if (raw == null) return null;
-  final sub = FlatDocument.parse(raw).toMap();
-  final host = sub['host'];
-  final port = int.tryParse(sub['port'] ?? '');
-  return (host != null && port != null) ? '$host:$port' : null;
+import 'package:flatconfig/flatconfig_accessors.dart';
+
+final start   = doc.getDateTime('start_at');                  // ISO-8601
+final timeout = doc.getDurationOr('timeout', const Duration(seconds: 30));
+final api     = doc.requireUri('endpoint');
+final payload = doc.getJson('payload');
+final mode    = doc.getEnum('mode', {'prod': 1, 'dev': 2});   // case-insensitive
+```
+
+`getDuration` accepts a number with an optional `ms`, `s`, `m`, `h` or `d`
+suffix, defaulting to milliseconds. Fractions round to whole milliseconds, so
+`1.5s` is 1500 ms.
+
+Importing this library is optional: a program that only reads strings and
+numbers does not carry a date parser it never calls.
+
+### Anything Else Is a Converter
+
+Colours, byte sizes, percentages, ratios, `host:port` pairs and inline
+sub-documents used to ship as accessors. Each encodes a notation decision that
+belongs to your application rather than to the format, and each is a few lines
+behind `getAs`:
+
+```dart
+final size  = doc.getAs('cache', parseByteSize);   // "2MB" → 2000000
+final color = doc.getAs('accent', parseArgb);      // "#336699cc" → 0xcc336699
+final ratio = doc.getAs('video', (v) {
+  final p = v.split(':');
+  return double.parse(p[0]) / double.parse(p[1]);  // "16:9" → 1.777…
 });
 ```
 
+Range checks are the same idea — a validating converter, or `clamp()` on the
+result:
+
 ```dart
-final ratio = doc.requireAsWith('video', (raw, key, d) {
-  if (raw == null) return null;
-  final parts = raw.split(':');
-  if (parts.length != 2) return null;
-  final w = double.tryParse(parts[0]);
-  final h = double.tryParse(parts[1]);
-  return (w != null && h != null && h != 0) ? (w / h) : null;
+final retries = doc.getAs('retries', (v) {
+  final n = int.parse(v);
+  if (n < 0 || n > 10) throw FormatException('out of range', v);
+  return n;
 });
 ```
 
-`getAllAs()` / `requireAllAs()`
-
-Convert all values for a key (see `allValues()`):
-
-```dart
-// Lenient: skips invalid items
-final sizes = doc.getAllAs('size', int.parse).toList();
-
-// Strict: throws if any item fails
-final ports = doc.requireAllAs('port', int.parse);
-```
-
-### Mini-Documents & Pairs
-
-```dart
-// Single key=value inside a value
-final pair = doc.getKeyValue('shader');
-// e.g. "bloom=intense" → ('bloom', 'intense')
-
-// Mini-document in a single value
-final sub = doc.getDocument('db'); // "host=localhost, port=2358"
-print(sub.toMap());                // {host: localhost, port: 2358}
-
-// List of mini-documents
-final effects = doc.getListOfDocuments('shaders');
-// "name=bloom,intensity=0.8 | name=vignette,intensity=0.5"
-// → List<FlatDocument>
-
-// Host[:port]
-final hp = doc.getHostPort('listen'); // "127.0.0.1:8080" → ('127.0.0.1', 8080)
-```
-
-> **🧠 Note:**
-> `getMap()` performs a simple, non-quoted split by commas and equals signs — it is *not quote-aware*.
-> For parsing quoted key-value pairs (e.g. `name="My App", version="1.0"`), use `getDocument()` or `getListOfDocuments()`, which are quote-aware and handle escaped quotes correctly.
-
-```dart
-// getMap() - NOT quote-aware (simple splitting)
-final map = doc.getMap('data'); // "key1="value, with, commas", key2=normal"
-// Result: {'key1': '"value', 'key2': 'normal'} // Wrong! Missing middle part
-
-// getDocument() - IS quote-aware (respects quotes)
-final sub = doc.getDocument('data'); // "key1="value, with, commas", key2=normal"
-// Result: [FlatEntry('key1', 'value, with, commas'), FlatEntry('key2', 'normal')]
-```
-
-### Other Convenience Methods
-
-```dart
-doc.getTrimmed('name');                  // trimmed value
-doc.getStringOr('title', 'Untitled');    // default fallback
-doc.isEnabled('feature');                // "true", "yes", "on", "1" → true
-doc.isEnabled('feature');                // "false", "no", "off", "0" → false
-doc.isOneOf('env', {'dev', 'prod'});     // case-insensitive
-doc.requireKeys(['host', 'port']);       // throws on first missing key
-doc.hasAllKeys(['a', 'b', 'c']);         // returns true if all exist
-```
-
-All `require*` methods throw a `FormatException` with context on invalid data.
+See `example/accessors.dart` for worked converters.
 
 ## Debug & Pretty Print
 
@@ -747,7 +674,7 @@ final single = FlatDocument.single('theme', value: 'dark');
 > **Note:**
 > `fromMap` and `fromDynamicMap` are *shallow* — they do not traverse nested maps or lists.
 > Each map entry becomes exactly one key in the resulting document.
-> For structured or nested data, use `fromMapData` below.
+> For structured or nested data, use `fromData` below.
 
 ### Deep Flattening with `fromData`
 
@@ -780,7 +707,7 @@ for (final e in doc.entries) {
 
 ### Configuration Options
 
-`fromMapData` is highly customizable through `FlatMapDataOptions`:
+`fromData` is highly customizable through `FlatMapDataOptions`:
 
 | Option                  | Description                                                                  | Default              |
 | ----------------------- | ---------------------------------------------------------------------------- | -------------------- |
@@ -835,13 +762,13 @@ The encoder automatically escapes quotes (`" → ""`)
 and wraps any item containing the separator, quotes, or newlines in quotes.
 
 > **💡 Tip:**
-> Combine `fromMapData` with your app’s JSON models or structured settings
+> Combine `fromData` with your app’s JSON models or structured settings
 > to directly generate `.conf` files — ideal for CLIs, build tools, and user-editable configs.
 
 ### Round-Trip Workflow
 
 Together with `FlatDocument.parse` and `FlatDocument.encode`,
-`fromMapData` completes a full round-trip pipeline
+`fromData` completes a full round-trip pipeline
 between structured data and human-editable config files:
 
 ```text

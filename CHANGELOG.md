@@ -8,6 +8,13 @@ is still outstanding.
 
 Added:
 
+- **`package:flatconfig/flatconfig_accessors.dart`** — ready-made accessors for
+  `DateTime`, `Duration`, `Uri`, JSON and enums, in the same three shapes as the
+  core catalog. A program reading strings and numbers no longer carries a date
+  parser it never calls.
+- **`allAs`, `getListOr`, `requireList`, `getDateTimeOr`, `getUriOr`,
+  `getJsonOr`, `getEnumOr`** — the shapes that were missing from types that
+  already had two of the three.
 - **`SPEC.md`** — the format is now specified rather than implied. Appendix A
   tracks where the implementation still deviates.
 - **`InvalidKeyException`** — raised in strict mode for a key that breaks
@@ -16,6 +23,45 @@ Added:
   variables.
 
 Fixed:
+
+- **The accessor catalog collapses from 66 methods to 19 in core.** It had grown
+  by crossing {type} × {lenient, default, strict, trimmed, ranged, clamped,
+  empty}, so finding the right method meant reading a 1,460-line file. There is
+  now one rule with no exceptions: for every type `X`, exactly `getX` (nullable),
+  `getXOr(key, fallback)` and `requireX` (throws).
+
+  Core keeps `String`, `int`, `double`, `bool`, `List<String>` and the `getAs`
+  family. `DateTime`, `Duration`, `Uri`, JSON and enums move to
+  `flatconfig_accessors.dart`. Everything else is deleted, because each encoded
+  an application's notation decision that the package should not own, and each
+  is a few lines behind `getAs`:
+
+  | removed | replacement |
+  |---|---|
+  | `getHexColor`, `getColor`, `getColorTuple` (+ `require*`) | `doc.getAs('bg', parseMyColor)` |
+  | `getPercent`, `getRatio`, `getBytes`, `getHostPort` (+ `require*`) | `getAs` with your converter |
+  | `getNum`, `requireNum` | `getInt` ?? `getDouble` |
+  | `getIntInRange`, `getDoubleInRange`, `getClampedInt` (+ `require*`) | a validating converter, or `clamp()` on the result |
+  | `getMap`, `getMapOrEmpty`, `getDocument`, `getListOfDocuments`, `getKeyValue` | a second, undocumented grammar — out of core |
+  | `getSet`, `getSetOrEmpty` | `getList(k)?.toSet()` |
+  | `getTrimmed`, `getTrimmedOrEmpty` | unquoted values arrive trimmed; quoted whitespace was deliberate |
+  | `getListOrEmpty` | `getListOr(k, const [])` |
+  | `isEnabled`, `isDisabled` | `getBoolOr` — and `isDisabled(k, defaultValue: true)` returned `false`, because the default was negated along with the value |
+  | `isOneOf` | `values.contains(doc[k])` |
+  | `hasAllKeys`, `requireKeys` | `keys.every(doc.containsKey)` |
+  | `getAsWith`, `requireAsWith` | the document is already in scope at the call site |
+  | `getAllAs`, `requireAllAs` | `allAs` |
+
+- **`allAs` gives repeated keys defined semantics.** `requireAllAs` returned `[]`
+  for a key that was never mentioned, which is also what a key present only as a
+  reset yields; `allAs` returns `null` for the first and `[]` for the second. It
+  also throws on the first unconvertible value instead of dropping it, so a typo
+  can no longer turn into a silently shorter list.
+- **A converter's `Error` is no longer reported as malformed config.** `getAs`
+  caught everything, so an `ArgumentError` or `TypeError` from a buggy converter
+  came back as "this value could not be parsed". Only `Exception` is caught now.
+- **`preNormalizedLowerMapping` is gone from `getEnum`.** An internal performance
+  knob had leaked into a public signature.
 
 - **`FlatConfig` is deleted; the entry points are statics on `FlatDocument`.**
   It was an instantiable `const` class holding no state, used only as a static

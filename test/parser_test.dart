@@ -43,8 +43,7 @@ font-family =
       expect(doc.allValues('shader'), ['bloom=intense', 'vignette=soft']);
       expect(doc['font-family'], isNull);
 
-      final pair = doc.getKeyValue('shader');
-      expect(pair, ('vignette', 'soft')); // latest wins
+      expect(doc['shader'], 'vignette=soft'); // latest wins
     });
 
     test('ignores lines without "="', () {
