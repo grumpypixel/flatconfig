@@ -935,6 +935,66 @@ class FlatDocument {
   /// Alias for [concat], so documents can be combined with `+`.
   FlatDocument operator +(FlatDocument other) => concat(other);
 
+  /// This document with [key] set to [value], as the only entry for that key.
+  ///
+  /// An existing key keeps the position of its first occurrence and loses its
+  /// other occurrences; a new key is appended. Setting a key twice therefore
+  /// leaves one entry rather than a growing history, which is what makes this
+  /// safe to call in a loop before writing the document back out.
+  ///
+  /// Pass `null` for [value] to write an explicit reset (`key =`), which is a
+  /// different thing from [without]: the key is still there, and still shadows
+  /// a value an earlier include set.
+  ///
+  /// ```dart
+  /// final doc = FlatDocument.parse('a = 1\nb = x\na = 3');
+  /// print(doc.withValue('a', '2').encode()); // a = 2\nb = x\n
+  /// ```
+  ///
+  /// Throws an [ArgumentError] if [key] or [value] breaks SPEC.md 3.
+  FlatDocument withValue(String key, String? value) {
+    final replacement = FlatEntry(key, value);
+    final result = <FlatEntry>[];
+    var placed = false;
+
+    for (final entry in entries) {
+      if (entry.key != key) {
+        result.add(entry);
+      } else if (!placed) {
+        result.add(replacement);
+        placed = true;
+      }
+    }
+
+    if (!placed) {
+      result.add(replacement);
+    }
+
+    return FlatDocument(result);
+  }
+
+  /// This document without any entry for [key].
+  ///
+  /// Every occurrence goes, including an explicit reset, so the key reads as
+  /// absent afterwards. The remaining entries keep their order.
+  ///
+  /// ```dart
+  /// final doc = FlatDocument.parse('a = 1\nb = x\na = 3');
+  /// print(doc.without('a').encode()); // b = x\n
+  /// ```
+  FlatDocument without(String key) => FlatDocument([
+    for (final e in entries)
+      if (e.key != key) e,
+  ]);
+
+  /// This document with [entry] appended, keeping any entry for the same key.
+  ///
+  /// This is the format's own notion of a write: a later line shadows an
+  /// earlier one without erasing it, which is what [allValues] reports and
+  /// what [collapse] resolves. Use [withValue] when the document is going to
+  /// be written back out and one entry per key is what you want.
+  FlatDocument withEntry(FlatEntry entry) => FlatDocument([...entries, entry]);
+
   /// Creates a human-friendly dump of entries in insertion order.
   ///
   /// This method is useful for debugging and understanding the structure of

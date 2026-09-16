@@ -8,6 +8,12 @@ is still outstanding.
 
 Added:
 
+- **`FlatDocument.withValue`, `without` and `withEntry`** — editing a document
+  no longer means rebuilding its entry list by hand. All three return a new
+  document and leave the original alone. `withValue` leaves exactly one entry
+  for the key, keeping the place of its first occurrence, so calling it in a
+  loop before writing a file out does not grow the file; `withEntry` appends
+  and keeps the earlier entry, which is the format's own notion of a write.
 - **`FlatIssue`, `FlatIssueKind` and `FlatParseOptions.onIssue`** — one channel
   for every problem the parser finds, carrying the kind, the 1-based line and
   column, and the raw line.

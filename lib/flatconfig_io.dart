@@ -8,7 +8,7 @@
 /// import 'package:flatconfig/flatconfig_io.dart';
 ///
 /// final doc = await File('main.conf').parseWithIncludes();
-/// await File('out.conf').writeFlat(doc.set('font-size', '16'));
+/// await File('out.conf').writeFlat(doc.withValue('font-size', '16'));
 /// ```
 ///
 /// Needs `dart:io`, so this is the one library a web or WASM program cannot
