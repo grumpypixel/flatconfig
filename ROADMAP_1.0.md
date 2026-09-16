@@ -8,6 +8,35 @@ folded in below, with reproductions.
 **Target:** one deliberate breaking release, `1.0.0`.
 **Estimate:** 12–16 focused days.
 
+## Where this stands
+
+Last updated after Phase 1.3. Verify with `dart test` (expect 763 passing) and
+`sed -n '/^### Open/,$p' SPEC.md` for the remaining format deviations.
+
+**Done:** Phase 0 in full; Phase 1.2, 1.3, 1.4 and 1.5.
+
+**Open in Phase 1, in the order I would take them:**
+
+| Item | Reproduction, verified on this tree | Why it is still here |
+|---|---|---|
+| 1.1 | `d.cache(); d.toMap()['a'] = 'HACKED';` succeeds and changes `d['a']`. Without `cache()` it correctly throws. | `cache()` stores a plain map |
+| 1.6 | `getDoubleInRange('p', min: 0, max: 1)` returns `NaN` for `p = NaN` | every comparison with NaN is false, so the guard is skipped |
+| 1.2 rest | `FlatEntry('a', 'x\ny')` encodes to two physical lines and re-parses as `a` → `"x` | values are not checked for newlines |
+| 1.2 rest | `ensureTrailingNewline: false` cannot remove the trailing newline | the flag is a no-op |
+| 1.7–1.9 | path canonicalization, assertions on public input, SDK floor | not started |
+
+**How the work is organised.** Every fix carries a regression test.
+`test/round_trip_test.dart` is the property gate for the format and must stay
+green; `test/spec_conformance_test.dart` has one group per `SPEC.md` section.
+`SPEC.md` Appendix A is the live scoreboard: it lists what still deviates, and a
+row moves from Open to Fixed only when a test pins it.
+
+**What is unreleased.** The `v1` bookmark carries four breaking commits that are
+not in any published version. `CHANGELOG.md` has an Unreleased section for them.
+`main` stays on 0.5.x so it can still be patched.
+
+---
+
 ## Decisions (locked)
 
 | # | Decision | Consequence |
@@ -115,19 +144,27 @@ backslash as an escape marker without copying it, regardless of
 
 **Reproduction:** `paths = win=C:\temp\x,unix=/tmp` → `{win: C:tempx, unix: /tmp}`.
 
-- [ ] Use backslashes only to decide whether a quote is escaped; preserve them.
-- [ ] Let `parseValue()` own all optional escape decoding.
-- [ ] Tests: Windows paths, regexes, trailing backslashes, escaped quotes, both
+- [x] Use backslashes only to decide whether a quote is escaped; preserve them.
+- [x] Let `parseValue()` own all optional escape decoding.
+- [x] Tests: Windows paths, regexes, trailing backslashes, escaped quotes, both
       values of `decodeEscapesInQuoted`.
+
+`indexOfUnquoted` held a second hand-rolled copy of the same escape rule, and
+disagreed with the splitter on an escaped separator. Both now share
+`isUnescapedQuoteAt`.
 
 > Note: the affected callers (`getDocument`, `getListOfDocuments`) are removed
 > from core in Phase 2. Fix the utility anyway — it is shared with `parseValue`.
 
-### 1.4 Guard prefix operations against empty keys
+### 1.4 Guard prefix operations against empty keys — **done**
 
-**Reproduction:** `'app = x\napp.host = y'.stripPrefix('app')` yields
-`[FlatEntry(, x), FlatEntry(.host, y)]`, which encodes to `" = x"` — a line the
+`'app = x\napp.host = y'.stripPrefix('app')` yielded
+`[FlatEntry(, x), FlatEntry(.host, y)]`, which encoded to `" = x"` — a line the
 parser can never read back.
+
+- [x] Fixed as a consequence of 1.2: an entry whose key would become invalid
+      after stripping is dropped, so the call now yields `[.host = y]` only.
+
 
 ### 1.5 Define and enforce the quoted grammar — **done**
 
@@ -632,7 +669,7 @@ customizable separators.
 | Phase | Content | Days | Gate to proceed |
 |-------|---------|------|-----------------|
 | 0 | `SPEC.md` | done | Every ambiguity has one stated answer |
-| 1 | Correctness | 2–3 | Round-trip property test passes |
+| 1 | Correctness | 2–3 | Round-trip property test passes — **passing**; 1.1, 1.6, rest of 1.2 and 1.7–1.9 still open |
 | 2 | 1.0 API | 6–8 | All four entry points compile for JS and WASM |
 | 3 | Testing | 2 | Full CI matrix green |
 | 4 | Release | 2 | Clean dry-run; migration guide complete |

@@ -35,6 +35,23 @@ only — never use them to create commits, branches, or rewrite history.
 - Commit message style in this repo follows Conventional Commits
   (`feat:`, `fix:`, `docs:`, `chore(release):`).
 
-## Current state
+## Branch layout
 
-Active bookmark: `feat/config-from-environment`, ahead of `main`.
+Two lines, on purpose:
+
+- **`main`** — 0.5.x. Stays patchable and publishable, so nothing breaking
+  lands here.
+- **`v1`** — the breaking work for 1.0.0. Everything from `ROADMAP_1.0.md`
+  goes here.
+
+Bookmarks do not advance on their own. After describing a change, move the
+bookmark explicitly before pushing:
+
+```
+jj bookmark set v1 -r @-   # or -r @ when the working copy holds the change
+jj git push --bookmark v1
+```
+
+If `@` is an empty working copy on top of the real work, use `@-`. Check with
+`jj log -r 'main::@'` that the bookmark sits where you think it does — a
+bookmark left behind is the failure mode here, and it is silent.

@@ -1,5 +1,48 @@
 # Changelog
 
+## Unreleased — towards 1.0.0
+
+On the `v1` bookmark, not on `main`. These are breaking and are meant to land
+together as `1.0.0`. See `SPEC.md` for the rules and `ROADMAP_1.0.md` for what
+is still outstanding.
+
+Added:
+
+- **`SPEC.md`** — the format is now specified rather than implied. Appendix A
+  tracks where the implementation still deviates.
+- **`InvalidKeyException`** — raised in strict mode for a key that breaks
+  `SPEC.md` §3.
+- **`FlatConfig.fromEnvironment()`** — build a document from environment
+  variables.
+
+Fixed:
+
+- **Quoted values close at the first unescaped quote**, not the last.
+  `a = "one" junk "two"` was accepted even in strict mode and yielded
+  `one" junk "two`.
+- **The empty string survives a round trip.** It was encoded as a bare
+  `key = ` and read back as `null`.
+- **Keys are validated wherever a document is built.** `FlatEntry('#x', 'v')`
+  encoded to `#x = v` and read back as *zero* entries; `FlatEntry(' a ', 'v')`
+  lost its padding. Both were silent.
+- **Backslashes survive the inline grammar.** `getDocument` turned
+  `win=C:\temp\x` into `win → C:tempx`.
+- **`stripPrefix` no longer produces an unreadable line** when a key equals the
+  prefix; the entry is dropped instead.
+
+Changed (breaking):
+
+- `escapeQuoted` and `decodeEscapesInQuoted` both default to `true`. Reading
+  0.5.x output that contains quotes and was written with the old default needs
+  `FlatParseOptions(decodeEscapesInQuoted: false)`.
+- `FlatEntry.validated` rejects a padded key instead of trimming it.
+- `strict: false` on the document factories drops invalid entries instead of
+  keeping them — which is what its documentation always claimed.
+- Building a `FlatDocument` with an invalid key throws a `FormatException`.
+- `splitRespectingQuotes` returns raw tokens; `parseValue` owns escape decoding.
+- `getDocument`'s `trimKey: false` is now inert, since every key whose padding
+  it would preserve is invalid. It goes with those accessors in Phase 2.6.
+
 ## 0.5.0
 
 Added:
