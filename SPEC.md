@@ -159,15 +159,16 @@ Encoding MUST be the exact inverse of parsing: for every valid document `d`,
 between `null` and `""`.
 
 Each entry is written as `key`, space, `=`, space, value, then the line
-terminator. Entries are written in order; duplicates are preserved.
+terminator. A reset stops after the `=`, so that the line carries no trailing
+whitespace. Entries are written in order; duplicates are preserved.
 
 A value is quoted when, and only when, leaving it bare would change how it
 parses back:
 
 | Value | Quoted | Why |
 |---|---|---|
-| `null` | no — the line is `key = ` | that *is* the wire form of a reset |
-| `""` | yes | a bare `key = ` would read back as `null` |
+| `null` | no — the line is `key =` | that *is* the wire form of a reset |
+| `""` | yes | a bare `key =` would read back as `null` |
 | leading or trailing whitespace | yes | §5 trims the bare form |
 | contains `"` | yes | §5 would take a leading quote as an opener |
 | contains `=` | yes | defensive; the first `=` is already the separator |

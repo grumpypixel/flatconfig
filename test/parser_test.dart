@@ -892,9 +892,7 @@ shader = vignette=soft
       expect(doc.allValues('b'), [null]);
       expect(doc.allValues('c'), [' x ']);
 
-      final encoded = doc.encode();
-      expect(encoded.split('\n')[0], 'a = 1');
-      expect(encoded.contains('\nb = '), isTrue);
+      expect(doc.encode(), 'a = 1\nb =\nc = " x "\n');
     });
 
     test('stringifying dynamic values is the caller\'s job now', () {

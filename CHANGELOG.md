@@ -60,6 +60,12 @@ Added:
 
 Changed:
 
+- **A reset encodes as `key =`, without the trailing space.** The line used to
+  end in one, which SPEC.md §7 prescribed and which nothing reading the file
+  cares about — but `git diff --check` and the usual whitespace linters do, and
+  a library that writes config files should not hand its users something they
+  have to strip. Parsing is unaffected in both directions, so a file written by
+  0.5.x still reads identically.
 - **The package is four libraries instead of one.**
   `package:flatconfig/flatconfig.dart` is the web-safe core;
   `flatconfig_includes.dart` adds resolver-based includes,

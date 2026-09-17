@@ -889,7 +889,7 @@ class FlatDocument {
     final buf = StringBuffer();
     for (final e in entries) {
       final v = e.value;
-      buf.writeln(v == null ? '${e.key} = ' : '${e.key} = ${quoteIfNeeded(v)}');
+      buf.writeln(v == null ? '${e.key} =' : '${e.key} = ${quoteIfNeeded(v)}');
     }
 
     return buf.toString();

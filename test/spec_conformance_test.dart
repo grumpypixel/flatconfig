@@ -176,7 +176,7 @@ void main() {
     });
 
     test('encoding keeps them apart', () {
-      expect(doc.encode(), 'reset = \nempty = ""\nvalue = x\n');
+      expect(doc.encode(), 'reset =\nempty = ""\nvalue = x\n');
     });
   });
 
@@ -186,7 +186,7 @@ void main() {
         FlatEntry('empty', ''),
         FlatEntry('reset', null),
       ]);
-      expect(doc.encode(), 'empty = ""\nreset = \n');
+      expect(doc.encode(), 'empty = ""\nreset =\n');
     });
 
     test('escaping is on by default', () {
@@ -224,7 +224,7 @@ void main() {
     });
 
     test('null is a valid value, being the explicit reset', () {
-      expect(FlatDocument([FlatEntry('k', null)]).encode(), 'k = \n');
+      expect(FlatDocument([FlatEntry('k', null)]).encode(), 'k =\n');
     });
 
     test('a non-empty document always ends with the terminator', () {

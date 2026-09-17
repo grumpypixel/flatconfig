@@ -158,8 +158,9 @@ final text = doc.encode(
 ```
 
 Encoding is **lossy by design**: comments and blank lines are not preserved, and
-no BOM is written. A `null` value is written as the explicit reset — `key`, a
-space, `=`, and a trailing space. The last line is always terminated.
+no BOM is written. A `null` value is written as `key =`, the explicit reset, and
+the line stops there rather than carrying a trailing space. The last line is
+always terminated.
 
 Writing to a file is on the [platform I/O page](platform-io.md).
 
@@ -197,9 +198,6 @@ hash = "# not a comment"
 equals = "a = b"
 backslash = C:\temp\x
 ```
-
-The `reset` line ends in a space that the block above cannot show; that is its
-wire form, and a parser ignores it either way.
 
 Note `empty` against `reset`. A bare `key =` is a reset by definition, so the
 empty string has to be written `""` or the two would be the same line. In 0.5.x
