@@ -33,8 +33,10 @@ A few things worth knowing about them:
 - **Doubles** reject `NaN` and the infinities. Every comparison with `NaN` is
   false, so it passes any range check you write afterwards — which makes it
   worse than a plain parse failure.
-- **Lists** trim items and drop empties by default, and the separator is yours
-  to choose. Quoted items keep their whitespace and may contain the separator.
+- **Lists** trim items and drop empties by default. Splitting respects quotes,
+  so `a,"b,c",d` is three items and the quotes come off the middle one; that is
+  also why the separator has to be a single character. An item quoted as `""`
+  is kept, because quoting is how the format says "on purpose".
 
 ## Repeated keys
 

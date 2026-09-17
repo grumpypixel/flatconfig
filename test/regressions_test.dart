@@ -17,6 +17,47 @@ import 'package:test/test.dart';
 /// guard that existed only as one.
 
 void main() {
+  group('getList reads the inline grammar, not just String.split', () {
+    // The guide promised that a quoted item may contain the separator, while
+    // the implementation split on every occurrence — so a,"b,c",d came back as
+    // four fragments, two of them carrying a stray quote.
+
+    test('a quoted item may contain the separator', () {
+      final doc = FlatDocument.parse('items = a,"b,c",d\n');
+
+      expect(doc.getList('items'), ['a', 'b,c', 'd']);
+    });
+
+    test('quotes protect whitespace that trimming would take', () {
+      final doc = FlatDocument.parse('items = a, "  b  " , c\n');
+
+      expect(doc.getList('items'), ['a', '  b  ', 'c']);
+    });
+
+    test('an item quoted as empty is kept, a bare empty one is dropped', () {
+      expect(FlatDocument.parse('k = a,,b\n').getList('k'), ['a', 'b']);
+      expect(FlatDocument.parse('k = a,"",b\n').getList('k'), ['a', '', 'b']);
+    });
+
+    test('escapes inside an item are decoded once', () {
+      final doc = FlatDocument.parse(
+        r'k = "say \"hi\"",plain'
+        '\n',
+      );
+
+      expect(doc.getList('k'), ['say "hi"', 'plain']);
+    });
+
+    test('a separator longer than one character is refused', () {
+      // The inline grammar is single-character, and trimming already covers
+      // what a ', ' separator was reached for.
+      final doc = FlatDocument.parse('k = a, b\n');
+
+      expect(() => doc.getList('k', separator: ', '), throwsArgumentError);
+      expect(doc.getList('k'), ['a', 'b']);
+    });
+  });
+
   group('data that contains itself is refused, not chased', () {
     // fromData recursed until the stack ran out. A StackOverflowError is not
     // catchable in any useful way, so a configuration loader handed a cyclic

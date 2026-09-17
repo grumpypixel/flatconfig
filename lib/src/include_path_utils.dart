@@ -48,25 +48,10 @@ ProcessedIncludePath processIncludePath(
     path = path.substring(1).trim();
   }
 
-  // A single quote character is not a quoted path: it opens one and never
-  // closes it. Without the length check both tests below pass for it and the
-  // unquoting runs off the end of the string.
-  final quoted =
-      path.length >= 2 &&
-      path.startsWith(Constants.quote) &&
-      path.endsWith(Constants.quote);
-
-  if (quoted) {
-    path = path.substring(1, path.length - 1);
-
-    if (decodeEscapes) {
-      path = unescapeQuotesAndBackslashes(path);
-    }
-  }
-
-  // An unquoted value is literal (SPEC.md 5), so nothing is decoded here.
+  // An unquoted path is literal (SPEC.md 5), which unquoteToken respects.
   // Decoding it anyway cost a bare Windows UNC path one of its two leading
   // backslashes, turning \\server\share into \server\share.
+  path = unquoteToken(path, decodeEscapes: decodeEscapes);
 
   // Emptiness is decided on what is left, so a directive that names nothing
   // after the marker and the quotes are gone asks no resolver anything.

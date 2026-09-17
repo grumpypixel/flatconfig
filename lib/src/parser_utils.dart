@@ -143,14 +143,33 @@ bool isWhitespace(int c) =>
     c == Constants.newlineCharCode ||
     c == Constants.carriageReturnCharCode;
 
-/// Decodes escape sequences in quoted values.
+/// Strips one layer of quotes from [token] and decodes what they protected.
 ///
-/// This function processes escape sequences in quoted configuration values:
-/// - `\"` becomes `"`
-/// - `\\` becomes `\`
-/// - Other backslashes are left intact
+/// The rule SPEC.md 5 states for an inline item: a token wrapped in quotes
+/// holds its content verbatim, separator included, and `\"` and `\\` inside it
+/// stand for a quote and a backslash. A token that is not wrapped is returned
+/// unchanged, so an unquoted backslash stays literal.
 ///
-/// This is used when [decodeEscapesInQuoted] is true in parsing options.
+/// A lone `"` is not a wrapped token: it opens a quote and never closes one.
+/// Without the length check both ends match it and the unquoting runs off the
+/// end of the string.
+String unquoteToken(String token, {bool decodeEscapes = true}) {
+  if (token.length < 2 ||
+      !token.startsWith(Constants.quote) ||
+      !token.endsWith(Constants.quote)) {
+    return token;
+  }
+
+  final inner = token.substring(1, token.length - 1);
+
+  return decodeEscapes ? unescapeQuotesAndBackslashes(inner) : inner;
+}
+
+/// Decodes the escape sequences a quoted value may carry.
+///
+/// Exactly two of them, per SPEC.md 5.2: `\"` becomes `"` and `\\` becomes
+/// `\`. Every other backslash is an ordinary character and is left where it
+/// is, so `C:\temp\x` survives and `\n` stays two characters.
 String unescapeQuotesAndBackslashes(String s) {
   var needsWork = false;
   for (var i = 0; i + 1 < s.length; i++) {

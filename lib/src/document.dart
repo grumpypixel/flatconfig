@@ -527,6 +527,12 @@ class FlatDocument {
   ///
   /// Returns `null` when the key is absent or was reset. An explicitly empty
   /// value yields an empty list, not `null`.
+  ///
+  /// Splitting respects quotes, so an item may contain [separator]:
+  /// `a,"b,c",d` is three items, and the quotes come off the middle one. That
+  /// is the inline grammar of SPEC.md 5, which is also why [separator] has to
+  /// be a single character — [ArgumentError] otherwise. Trimming makes a
+  /// multi-character separator such as `', '` unnecessary.
   List<String>? getList(
     String key, {
     String separator = ',',
@@ -539,14 +545,17 @@ class FlatDocument {
     }
 
     final out = <String>[];
-    for (var part in v.split(separator)) {
+    for (var part in splitRespectingQuotes(v, separator)) {
       if (trimItems) {
         part = part.trim();
       }
+      // Emptiness is judged before the quotes come off, so `a,,b` drops its
+      // middle item while `a,"",b` keeps an empty one — quoting is how the
+      // format says "on purpose" everywhere else too.
       if (skipEmpty && part.isEmpty) {
         continue;
       }
-      out.add(part);
+      out.add(unquoteToken(part));
     }
 
     return out;

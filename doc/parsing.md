@@ -41,7 +41,7 @@ final doc = FlatDocument.parse(
   options: const FlatParseOptions(
     strict: false,                // the default: skip a malformed line
     commentPrefix: '#',           // '' disables comments entirely
-    decodeEscapesInQuoted: true,  // the default: "a\\nb" holds a line break
+    decodeEscapesInQuoted: true,  // the default: "say \"hi\"" holds a quote
   ),
 );
 ```
@@ -50,8 +50,14 @@ final doc = FlatDocument.parse(
 |---|---|---|
 | `strict` | `false` | throw on a malformed line instead of skipping it |
 | `commentPrefix` | `'#'` | a line starting with this is ignored; `''` turns comments off |
-| `decodeEscapesInQuoted` | `true` | decode `\"`, `\\` and friends inside quotes |
+| `decodeEscapesInQuoted` | `true` | decode `\"` and `\\` inside quotes |
 | `onIssue` | `null` | called for every problem found while parsing |
+
+There are two escape sequences and no others. `\"` is a quote and `\\` is a
+backslash; every other backslash is an ordinary character, so `"a\nb"` is four
+characters with a backslash in the middle, not a line break, and `C:\temp\x`
+needs no doubling. A value cannot contain a line break at all — the format is
+line-based, and `FlatEntry` refuses one.
 
 `commentPrefix` may not contain a line break, and `FlatParseOptions` rejects one
 that does. This is checked rather than asserted, because a release build drops

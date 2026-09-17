@@ -159,6 +159,13 @@ Changed:
 
 Fixed:
 
+- **`getList` respects quotes.** It split on every occurrence of the separator,
+  so `a,"b,c",d` came back as four fragments, two of them carrying a stray
+  quote, while the guide promised the three items the format's inline grammar
+  defines (`SPEC.md` §5). It reads that grammar now and unquotes each item; an
+  item written `""` is kept, since quoting is how the format says "on purpose"
+  everywhere else. The separator must be a single character in consequence, and
+  trimming already covers what a `', '` separator was reached for.
 - **A symlinked include resolves the same way through both file APIs.**
   `File.parseWithIncludes` resolved a nested relative include against the
   directory the symlink sits in, while `FileIncludeResolver` resolved it
