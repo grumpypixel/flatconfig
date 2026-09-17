@@ -46,6 +46,8 @@ String? _directiveTarget(FlatEntry entry, FlatIncludeOptions options) {
     return null;
   }
 
+  // Only emptiness is asked here, and no decoding can turn a non-empty path
+  // into an empty one, so the parse options need not reach this far.
   return processIncludePath(raw).isEmpty ? null : raw;
 }
 

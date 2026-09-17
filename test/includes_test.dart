@@ -408,7 +408,7 @@ include = theme.conf
 
       final entries = inc.FlatConfigIncludes.processIncludesSync(
         ['included.conf'],
-        baseFile,
+        baseFile.parent,
         baseFile.absolute.path,
         traversal: IncludeTraversal(
           options: const FlatParseOptions(),
@@ -430,7 +430,7 @@ include = theme.conf
 
       final entries = inc.FlatConfigIncludes.processIncludesSync(
         ['?missing.conf'],
-        baseFile,
+        baseFile.parent,
         baseFile.absolute.path,
         traversal: IncludeTraversal(
           options: const FlatParseOptions(),
@@ -452,7 +452,7 @@ include = theme.conf
 
       final entries = inc.FlatConfigIncludes.processIncludesSync(
         ['"included.conf"'],
-        baseFile,
+        baseFile.parent,
         baseFile.absolute.path,
         traversal: IncludeTraversal(
           options: const FlatParseOptions(),
@@ -470,7 +470,7 @@ include = theme.conf
       expect(
         () => inc.FlatConfigIncludes.processIncludesSync(
           ['', '  ', 'valid.conf'],
-          baseFile,
+          baseFile.parent,
           baseFile.absolute.path,
           traversal: IncludeTraversal(
             options: const FlatParseOptions(),
@@ -1402,7 +1402,7 @@ font-size = 16
       // Test the processIncludes method directly
       final entries = await inc.FlatConfigIncludes.processIncludes(
         ['included.conf'], // relative path
-        baseFile,
+        baseFile.parent,
         baseFile.absolute.path,
         traversal: IncludeTraversal(
           options: const FlatParseOptions(),
@@ -1427,7 +1427,7 @@ font-size = 16
       // Test with optional include that doesn't exist
       final entries = await inc.FlatConfigIncludes.processIncludes(
         ['?missing.conf'], // optional include
-        baseFile,
+        baseFile.parent,
         baseFile.absolute.path,
         traversal: IncludeTraversal(
           options: const FlatParseOptions(),
@@ -1455,7 +1455,7 @@ theme = light
       // Test with quoted path
       final entries = await inc.FlatConfigIncludes.processIncludes(
         ['"included.conf"'], // quoted path
-        baseFile,
+        baseFile.parent,
         baseFile.absolute.path,
         traversal: IncludeTraversal(
           options: const FlatParseOptions(),

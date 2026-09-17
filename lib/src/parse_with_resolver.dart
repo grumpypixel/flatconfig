@@ -102,7 +102,10 @@ Future<FlatDocument> _resolveUnit(
   final groups = <List<FlatEntry>>[];
 
   for (final target in collected.includeTargets) {
-    final processed = processIncludePath(target);
+    final processed = processIncludePath(
+      target,
+      decodeEscapes: traversal.options.decodeEscapesInQuoted,
+    );
     if (processed.isEmpty) {
       groups.add(const []);
       continue;
@@ -152,7 +155,10 @@ FlatDocument _resolveUnitSync(
   final groups = <List<FlatEntry>>[];
 
   for (final target in collected.includeTargets) {
-    final processed = processIncludePath(target);
+    final processed = processIncludePath(
+      target,
+      decodeEscapes: traversal.options.decodeEscapesInQuoted,
+    );
     if (processed.isEmpty) {
       groups.add(const []);
       continue;

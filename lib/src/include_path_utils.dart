@@ -28,10 +28,19 @@ class ProcessedIncludePath {
 /// - Trimming whitespace
 /// - Detecting and removing the optional prefix (`?`)
 /// - Removing surrounding quotes
-/// - Unescaping quotes and backslashes
+/// - Unescaping quotes and backslashes, inside quotes only
+///
+/// [decodeEscapes] mirrors [FlatParseOptions.decodeEscapesInQuoted] and only
+/// applies to a path this function unquotes itself. A `?` marker hides the
+/// quotes from the parser — `?"a\\b"` is not a quoted value to it — so the
+/// same path reaches here already decoded without the marker and still
+/// wrapped with it. Passing the option through is what makes the two agree.
 ///
 /// Returns a [ProcessedIncludePath] with the processed path and metadata.
-ProcessedIncludePath processIncludePath(String rawPath) {
+ProcessedIncludePath processIncludePath(
+  String rawPath, {
+  bool decodeEscapes = true,
+}) {
   var path = rawPath.trim();
 
   final optional = path.startsWith(Constants.optionalIncludePrefix);
@@ -42,15 +51,22 @@ ProcessedIncludePath processIncludePath(String rawPath) {
   // A single quote character is not a quoted path: it opens one and never
   // closes it. Without the length check both tests below pass for it and the
   // unquoting runs off the end of the string.
-  if (path.length >= 2 &&
+  final quoted =
+      path.length >= 2 &&
       path.startsWith(Constants.quote) &&
-      path.endsWith(Constants.quote)) {
+      path.endsWith(Constants.quote);
+
+  if (quoted) {
     path = path.substring(1, path.length - 1);
+
+    if (decodeEscapes) {
+      path = unescapeQuotesAndBackslashes(path);
+    }
   }
 
-  // Always decode simple escapes for include paths to support Windows-like backslashes
-  // even when the parser didn't decode quoted escapes.
-  path = unescapeQuotesAndBackslashes(path);
+  // An unquoted value is literal (SPEC.md 5), so nothing is decoded here.
+  // Decoding it anyway cost a bare Windows UNC path one of its two leading
+  // backslashes, turning \\server\share into \server\share.
 
   // Emptiness is decided on what is left, so a directive that names nothing
   // after the marker and the quotes are gone asks no resolver anything.

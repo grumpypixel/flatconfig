@@ -92,28 +92,25 @@ extension FlatConfigIncludes on FlatDocument {
 
   /// Resolves a canonical path for a file, handling symbolic links.
   ///
-  /// This method attempts to resolve symbolic links to get the canonical path.
-  /// If symbolic link resolution fails, it falls back to the absolute path.
-  static Future<String> _canonical(File file) async {
+  /// Where [file] really is, following symbolic links.
+  ///
+  /// Identity and resolution both start here and then part ways: an identity
+  /// folds case where the filesystem does, while a directory a child is
+  /// resolved against must stay exactly as the filesystem spells it.
+  static Future<String> _realPath(File file) async {
     try {
-      final resolved = await file.resolveSymbolicLinks();
-      // Normalize case on Windows (case-insensitive FS) for stable canonical keys
-      return normalizeCanonicalPath(resolved);
+      return await file.resolveSymbolicLinks();
     } catch (_) {
-      final abs = file.absolute.path;
-      // Normalize case on Windows (case-insensitive FS) for stable canonical keys
-      return normalizeCanonicalPath(abs);
+      return file.absolute.path;
     }
   }
 
-  /// Synchronous canonical path resolution.
-  static String _canonicalSync(File file) {
+  /// Synchronous counterpart to [_realPath].
+  static String _realPathSync(File file) {
     try {
-      final resolved = file.resolveSymbolicLinksSync();
-      return normalizeCanonicalPath(resolved);
+      return file.resolveSymbolicLinksSync();
     } catch (_) {
-      final abs = file.absolute.path;
-      return normalizeCanonicalPath(abs);
+      return file.absolute.path;
     }
   }
 
@@ -135,20 +132,23 @@ extension FlatConfigIncludes on FlatDocument {
   @visibleForTesting
   static Future<List<List<FlatEntry>>> processIncludes(
     List<String> includePaths,
-    File baseFile,
+    Directory baseDir,
     String canonicalPath, {
     required IncludeTraversal traversal,
     int depth = 0,
   }) async {
     final groups = <List<FlatEntry>>[];
     for (final include in includePaths) {
-      final processed = processIncludePath(include);
+      final processed = processIncludePath(
+        include,
+        decodeEscapes: traversal.options.decodeEscapesInQuoted,
+      );
       if (processed.isEmpty) {
         groups.add(const []);
         continue;
       }
 
-      final includedFile = _resolveChild(baseFile.parent, processed.path);
+      final includedFile = _resolveChild(baseDir, processed.path);
 
       final FlatDocument subDoc;
       try {
@@ -177,20 +177,23 @@ extension FlatConfigIncludes on FlatDocument {
   @visibleForTesting
   static List<List<FlatEntry>> processIncludesSync(
     List<String> includePaths,
-    File baseFile,
+    Directory baseDir,
     String canonicalPath, {
     required IncludeTraversal traversal,
     int depth = 0,
   }) {
     final groups = <List<FlatEntry>>[];
     for (final include in includePaths) {
-      final processed = processIncludePath(include);
+      final processed = processIncludePath(
+        include,
+        decodeEscapes: traversal.options.decodeEscapesInQuoted,
+      );
       if (processed.isEmpty) {
         groups.add(const []);
         continue;
       }
 
-      final includedFile = _resolveChild(baseFile.parent, processed.path);
+      final includedFile = _resolveChild(baseDir, processed.path);
 
       final FlatDocument subDoc;
       try {
@@ -236,7 +239,8 @@ extension FlatConfigIncludes on FlatDocument {
     String? includedFrom,
     int depth = 0,
   }) async {
-    final canonicalPath = await _canonical(file);
+    final realPath = await _realPath(file);
+    final canonicalPath = normalizeCanonicalPath(realPath);
     final done = traversal.begin(
       canonicalPath,
       reportedAs: file.path,
@@ -271,7 +275,7 @@ extension FlatConfigIncludes on FlatDocument {
 
     final groups = await processIncludes(
       collectIncludes(doc, traversal.includeOptions).includeTargets,
-      file,
+      File(realPath).parent,
       canonicalPath,
       traversal: traversal,
       depth: depth,
@@ -288,7 +292,8 @@ extension FlatConfigIncludes on FlatDocument {
     String? includedFrom,
     int depth = 0,
   }) {
-    final canonicalPath = _canonicalSync(file);
+    final realPath = _realPathSync(file);
+    final canonicalPath = normalizeCanonicalPath(realPath);
     final done = traversal.begin(
       canonicalPath,
       reportedAs: file.path,
@@ -316,7 +321,7 @@ extension FlatConfigIncludes on FlatDocument {
 
     final groups = processIncludesSync(
       collectIncludes(doc, traversal.includeOptions).includeTargets,
-      file,
+      File(realPath).parent,
       canonicalPath,
       traversal: traversal,
       depth: depth,

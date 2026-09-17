@@ -36,8 +36,12 @@ is `utf8` unless `FlatStreamReadOptions.encoding` says otherwise, and writing
 terminates lines with `\n` unless `FlatStreamWriteOptions.lineTerminator` does.
 
 Includes from disk resolve relative paths against the including file's
-directory; absolute paths are used as they are. The rest of the include
-behaviour is on [its own page](includes.md).
+directory; absolute paths are used as they are. Where that file is a symbolic
+link, the directory is the one the link points at rather than the one it sits
+in, so a configuration file symlinked out of a dotfiles repository finds its
+neighbours there. `File.parseWithIncludes` and `FileIncludeResolver` follow the
+same rule; they used to disagree. The rest of the include behaviour is on
+[its own page](includes.md).
 
 ## Which library to import
 

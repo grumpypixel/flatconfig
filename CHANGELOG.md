@@ -159,6 +159,22 @@ Changed:
 
 Fixed:
 
+- **A symlinked include resolves the same way through both file APIs.**
+  `File.parseWithIncludes` resolved a nested relative include against the
+  directory the symlink sits in, while `FileIncludeResolver` resolved it
+  against the directory the link points at, so two APIs documented as
+  equivalent produced different documents from the same files. Both follow the
+  link now: a configuration file symlinked out of a dotfiles repository finds
+  its neighbours there. Identity still folds case where the filesystem does,
+  while the directory a child is resolved against keeps the spelling the
+  filesystem gave it.
+- **An include path is decoded inside quotes and nowhere else.** Every path was
+  escape-decoded regardless, so a bare Windows UNC path reached the resolver
+  with one leading backslash instead of two, and `decodeEscapesInQuoted` had no
+  effect on include paths in any form. An unquoted value is literal (`SPEC.md`
+  §5), a quoted one is decoded exactly once, and `?"path"` now means what
+  `"path"` means — the `?` marker hides the quotes from the parser, which is
+  why the two used to part ways.
 - **An unreadable include is no longer reported as a missing one.** The
   implementation asked whether a file existed and then read it, so a permission
   failure, a directory in the way or a symlink loop all came back as absence —
