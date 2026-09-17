@@ -879,7 +879,10 @@ Currently shipped to pub.dev: `PACKAGE_REVIEW.md` (39 KB), `improvements.md`
       `0.5.0`, so two public APIs share one version number.
 - [x] `doc/migration.md`: complete 0.5.x → 1.0.0 rename/removal table with
       before/after examples. **No runtime compatibility shims.**
-- [ ] `CONTRIBUTING.md`, issue templates.
+- [x] `CONTRIBUTING.md`, issue templates. Dropped: the package is not looking
+      for contributions, and the README no longer invites them. Neither file
+      counts towards pub.dev's score, which weighs the README, the changelog,
+      an example, dartdoc coverage, the licence, analysis and dependencies.
 - [x] Verify the public API delta against the 0.5.0 tag before release.
 
       Done by diffing the dartdoc `index.json` of the `v0.5.0` tree against the

@@ -190,5 +190,4 @@ mentioned.
 
 ---
 
-Made with ❤️ in Dart.
-Contributions welcome on [GitHub → grumpypixel/flatconfig](https://github.com/grumpypixel/flatconfig)
+Made with ❤️ in Dart — [grumpypixel/flatconfig](https://github.com/grumpypixel/flatconfig)
