@@ -79,10 +79,10 @@ The generators use a fixed seed, so a failure is reproducible.
 
 ## The format itself
 
-[`SPEC.md`](../SPEC.md) is normative, and Appendix A lists where the
-implementation still deviates from it. A change to parsing or encoding belongs
-in the spec first; if the two disagree, the spec is right and the code is the
-bug.
+[`SPEC.md`](../SPEC.md) is normative. Appendix A records where 0.5.0 deviated
+from it and how each deviation was closed; nothing is open there any more, and
+every entry is pinned by a test. A change to parsing or encoding belongs in the
+spec first; if the two disagree, the spec is right and the code is the bug.
 
 ## Version control
 
