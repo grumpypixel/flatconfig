@@ -26,9 +26,15 @@ import 'options.dart';
 /// );
 /// ```
 ///
+/// Only [FlatStreamReadOptions.lineSplitter] applies here. The encoding cannot:
+/// a resolver hands over text, so whatever decoding was needed has already
+/// happened, and only the resolver knew what to decode — `FileIncludeResolver`
+/// takes an encoding of its own for that reason.
+///
 /// Throws [CircularIncludeException] on a cycle, [MissingIncludeException] for
-/// a required include the resolver cannot answer, and
-/// [MaxIncludeDepthExceededException] past [FlatIncludeOptions.maxIncludeDepth].
+/// a required include the resolver cannot answer,
+/// [MaxIncludeDepthExceededException] past [FlatIncludeOptions.maxIncludeDepth],
+/// and [IncludeBudgetExceededException] past its other budgets.
 Future<FlatDocument> parseWithIncludes(
   String text, {
   required IncludeResolver resolver,

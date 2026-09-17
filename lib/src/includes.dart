@@ -149,17 +149,23 @@ extension FlatConfigIncludes on FlatDocument {
       }
 
       final includedFile = _resolveChild(baseFile.parent, processed.path);
-      if (!await includedFile.exists()) {
+
+      final FlatDocument subDoc;
+      try {
+        subDoc = await parseWithIncludesRecursive(
+          includedFile,
+          traversal: traversal,
+          includedFrom: canonicalPath,
+          depth: depth + 1,
+        );
+      } on PathNotFoundException {
+        // The file this directive names is not there, so the `?` marker
+        // decides. A miss further down has already been settled by the
+        // directive that named it and does not arrive as this exception.
         groups.add(_missingOrThrow(processed, canonicalPath));
         continue;
       }
 
-      final subDoc = await parseWithIncludesRecursive(
-        includedFile,
-        traversal: traversal,
-        includedFrom: canonicalPath,
-        depth: depth + 1,
-      );
       traversal.chargeEntries(subDoc.length, canonicalPath);
       groups.add(subDoc.entries);
     }
@@ -185,17 +191,20 @@ extension FlatConfigIncludes on FlatDocument {
       }
 
       final includedFile = _resolveChild(baseFile.parent, processed.path);
-      if (!includedFile.existsSync()) {
+
+      final FlatDocument subDoc;
+      try {
+        subDoc = parseWithIncludesRecursiveSync(
+          includedFile,
+          traversal: traversal,
+          includedFrom: canonicalPath,
+          depth: depth + 1,
+        );
+      } on PathNotFoundException {
         groups.add(_missingOrThrow(processed, canonicalPath));
         continue;
       }
 
-      final subDoc = parseWithIncludesRecursiveSync(
-        includedFile,
-        traversal: traversal,
-        includedFrom: canonicalPath,
-        depth: depth + 1,
-      );
       traversal.chargeEntries(subDoc.length, canonicalPath);
       groups.add(subDoc.entries);
     }
@@ -238,15 +247,27 @@ extension FlatConfigIncludes on FlatDocument {
       return done;
     }
 
-    if (!await file.exists()) {
-      throw MissingIncludeException(file.path, file.path);
-    }
+    // Read rather than ask. An existence check answers for a moment that has
+    // passed by the time of the read, and turns every other failure — no
+    // permission, a directory in the way — into "no such include", which an
+    // optional directive then skips without a word.
+    final FlatDocument doc;
+    try {
+      doc = await parseByteStream(
+        file.openRead(),
+        options: traversal.options,
+        readOptions: traversal.readOptions,
+      );
+    } on PathNotFoundException {
+      // Only this unit is missing. At the root that is the caller's file and
+      // nothing can make it optional; deeper, the directive that named it
+      // decides, so the failure belongs to whoever is holding it.
+      if (depth == 0) {
+        throw MissingIncludeException(file.path, file.path);
+      }
 
-    final doc = await parseByteStream(
-      file.openRead(),
-      options: traversal.options,
-      readOptions: traversal.readOptions,
-    );
+      rethrow;
+    }
 
     final groups = await processIncludes(
       collectIncludes(doc, traversal.includeOptions).includeTargets,
@@ -278,15 +299,20 @@ extension FlatConfigIncludes on FlatDocument {
       return done;
     }
 
-    if (!file.existsSync()) {
-      throw MissingIncludeException(file.path, file.path);
-    }
+    final FlatDocument doc;
+    try {
+      doc = FlatDocument.parse(
+        file.readAsStringSync(encoding: traversal.readOptions.encoding),
+        options: traversal.options,
+        lineSplitter: traversal.readOptions.lineSplitter,
+      );
+    } on PathNotFoundException {
+      if (depth == 0) {
+        throw MissingIncludeException(file.path, file.path);
+      }
 
-    final doc = FlatDocument.parse(
-      file.readAsStringSync(encoding: traversal.readOptions.encoding),
-      options: traversal.options,
-      lineSplitter: traversal.readOptions.lineSplitter,
-    );
+      rethrow;
+    }
 
     final groups = processIncludesSync(
       collectIncludes(doc, traversal.includeOptions).includeTargets,

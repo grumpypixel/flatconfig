@@ -77,15 +77,48 @@ void main() {
       );
     });
 
-    test('a path that does not exist is left alone', () {
-      // Nothing to probe, so the harmless answer wins: two spellings stay
-      // distinct rather than collapsing onto one file.
+    test('a path that does not exist falls back to the platform', () {
+      // Nothing to probe. Everywhere but Windows the harmless answer wins:
+      // two spellings stay distinct rather than collapsing onto one file.
       const input = '/no/such/File.CONF';
+      final expected = Platform.isWindows ? input.toLowerCase() : input;
 
       expect(
         normalizeCanonicalPath(input, folding: FilesystemCaseFolding()),
-        equals(input),
+        equals(expected),
       );
+    });
+
+    test('matching size and timestamp do not make two files one', () async {
+      // The probe used to compare size and modification time, which two
+      // distinct files share as soon as they are the same length and were
+      // written in the same second — a copy, or two themes of equal size.
+      // Reading them as one file serves the wrong content and invents cycles.
+      final dir = await Directory.systemTemp.createTemp('flatconfig_ident_');
+      addTearDown(() => dir.delete(recursive: true));
+
+      final lower = File(p.join(dir.path, 'theme.conf'));
+      final upper = File(p.join(dir.path, 'THEME.conf'));
+      await lower.writeAsString('a = 1\n');
+      await upper.writeAsString('b = 2\n');
+
+      if (lower.readAsStringSync() == upper.readAsStringSync()) {
+        // This volume folds case, so the two names really are one file and
+        // there is nothing here to tell apart. Said out loud, because a silent
+        // return reads as a passing test — the macOS default lands here and
+        // the Linux CI runner does not.
+        markTestSkipped('the temporary volume is case-insensitive');
+
+        return;
+      }
+
+      final when = DateTime.utc(2026, 1, 1);
+      lower.setLastModifiedSync(when);
+      upper.setLastModifiedSync(when);
+
+      expect(lower.lengthSync(), upper.lengthSync());
+      expect(lower.lastModifiedSync(), upper.lastModifiedSync());
+      expect(FilesystemCaseFolding().isCaseInsensitive(lower.path), isFalse);
     });
 
     test('the filesystem probe agrees with the filesystem', () async {

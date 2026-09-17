@@ -204,7 +204,18 @@ is the canonical id of the unit it appeared in, which is how a path-based
 resolver resolves a relative target without tracking state of its own.
 
 Returning `null` is not an error. It means "not found", and whether that throws
-is decided by the `?` marker on the directive, not by the resolver.
+is decided by the `?` marker on the directive, not by the resolver. Anything
+else that goes wrong — no permission, a malformed response, bytes that will not
+decode — should be thrown, because the `?` marker says the include is optional,
+not that failures are.
+
+A resolver also owns the decoding of what it returns, since it hands over text.
+`FlatStreamReadOptions.encoding` therefore does not reach it, and
+`FileIncludeResolver` takes an encoding of its own:
+
+```dart
+FileIncludeResolver(encoding: latin1)
+```
 
 [`example/flatconfig_flutter`](../example/flatconfig_flutter) runs the bundle
 version of this: `assets/config/app.conf` includes a theme asset and an

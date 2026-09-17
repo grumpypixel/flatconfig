@@ -1,8 +1,16 @@
-import 'package:flatconfig/flatconfig_includes.dart';
+@TestOn('vm')
+library;
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flatconfig/flatconfig_io.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-/// Depth bounds how far an include graph reaches. Neither it nor the number of
-/// directives bounds how much the graph amounts to, which is what these cover.
+/// What a traversal refuses, and how it says so: the budgets that bound an
+/// include graph, and the difference between an include that is missing and
+/// one that merely cannot be read.
 
 /// A graph where each level includes the one below it twice. Acyclic, shallow,
 /// and tiny as text: `levels` of it expand to 2^levels entries.
@@ -132,6 +140,141 @@ void main() {
         ).toMap(),
         {'a': '1'},
       );
+    });
+  });
+
+  group('an unreadable include is not a missing one', () {
+    // The implementation asked whether a file existed and then read it. Any
+    // failure other than absence — no permission, a directory in the way —
+    // came back as `false`, so a required include reported "missing" and an
+    // optional one was skipped without a word.
+
+    test('a permission failure propagates rather than reading as absent', () {
+      if (Platform.isWindows) {
+        markTestSkipped('chmod does not describe Windows permissions');
+
+        return;
+      }
+
+      final dir = Directory.systemTemp.createTempSync('flatconfig_perm_');
+      addTearDown(() {
+        Process.runSync('chmod', ['700', dir.path]);
+        dir.deleteSync(recursive: true);
+      });
+
+      final secret = File(p.join(dir.path, 'secret.conf'))
+        ..writeAsStringSync('k = v\n');
+      Process.runSync('chmod', ['000', secret.path]);
+
+      try {
+        secret.readAsStringSync();
+        markTestSkipped('this user can read a mode-000 file');
+
+        return;
+      } on FileSystemException {
+        // Good: unreadable for this user, which is the situation under test.
+      }
+
+      final main = File(p.join(dir.path, 'main.conf'))
+        ..writeAsStringSync('config-file = ?secret.conf\n');
+
+      // Optional, so being treated as missing would mean silence.
+      expect(main.parseWithIncludesSync, throwsA(isA<FileSystemException>()));
+    });
+
+    test('a directory named as an include is not reported as missing', () {
+      final dir = Directory.systemTemp.createTempSync('flatconfig_dir_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      Directory(p.join(dir.path, 'theme.conf')).createSync();
+      final main = File(p.join(dir.path, 'main.conf'))
+        ..writeAsStringSync('config-file = ?theme.conf\n');
+
+      // Optional, so "missing" would mean silence. It is not missing; it is
+      // unreadable, and that has to surface.
+      expect(
+        main.parseWithIncludesSync,
+        throwsA(
+          isA<FileSystemException>().having(
+            (e) => e,
+            'not a PathNotFoundException',
+            isNot(isA<PathNotFoundException>()),
+          ),
+        ),
+      );
+    });
+
+    test('a genuinely missing optional include is still skipped', () {
+      final dir = Directory.systemTemp.createTempSync('flatconfig_absent_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      final main = File(p.join(dir.path, 'main.conf'))
+        ..writeAsStringSync('a = 1\nconfig-file = ?nope.conf\n');
+
+      expect(main.parseWithIncludesSync().toMap(), {'a': '1'});
+    });
+
+    test('a genuinely missing required include still throws', () {
+      final dir = Directory.systemTemp.createTempSync('flatconfig_req_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      final main = File(p.join(dir.path, 'main.conf'))
+        ..writeAsStringSync('config-file = nope.conf\n');
+
+      expect(
+        main.parseWithIncludesSync,
+        throwsA(isA<MissingIncludeException>()),
+      );
+    });
+
+    test('a missing root file still throws MissingIncludeException', () {
+      final dir = Directory.systemTemp.createTempSync('flatconfig_root_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      expect(
+        File(p.join(dir.path, 'nope.conf')).parseWithIncludesSync,
+        throwsA(isA<MissingIncludeException>()),
+      );
+    });
+  });
+
+  group('a resolver decodes its own units', () {
+    test('FileIncludeResolver reads in the encoding it was given', () {
+      // readOptions cannot reach here: a resolver hands the traversal text, so
+      // by the time a unit exists the decoding has already happened.
+      final dir = Directory.systemTemp.createTempSync('flatconfig_enc_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      final theme = File(p.join(dir.path, 'theme.conf'))
+        ..writeAsBytesSync(latin1.encode('name = Grüße\n'));
+
+      expect(
+        parseWithIncludesSync(
+          'config-file = theme.conf',
+          resolver: FileIncludeResolver(encoding: latin1),
+          originId: p.join(dir.path, 'main.conf'),
+        )['name'],
+        'Grüße',
+      );
+
+      // The default reads the same bytes as UTF-8 and fails on them, which is
+      // what makes the parameter worth having.
+      expect(
+        () => parseWithIncludesSync(
+          'config-file = theme.conf',
+          resolver: FileIncludeResolver(),
+          originId: p.join(dir.path, 'main.conf'),
+        ),
+        throwsA(
+          isA<FileSystemException>().having(
+            (e) => e.message,
+            'message',
+            contains('decode'),
+          ),
+        ),
+      );
+
+      expect(theme.existsSync(), isTrue);
     });
   });
 

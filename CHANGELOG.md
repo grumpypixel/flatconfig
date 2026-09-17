@@ -159,6 +159,24 @@ Changed:
 
 Fixed:
 
+- **An unreadable include is no longer reported as a missing one.** The
+  implementation asked whether a file existed and then read it, so a permission
+  failure, a directory in the way or a symlink loop all came back as absence —
+  which a required include reported as `MissingIncludeException` and an
+  optional one skipped in silence. It reads first now, and only a genuine
+  `PathNotFoundException` counts as missing. The gap between the two calls is
+  gone with it.
+- **Filesystem identity is asked for rather than inferred.** Deciding whether
+  two spellings of a path were one file compared size and modification time,
+  which two distinct files share as soon as they are the same length and were
+  written in the same second. It uses `FileSystemEntity.identicalSync` now, and
+  Windows is probed like everything else instead of being assumed
+  case-insensitive.
+- **`FileIncludeResolver` takes an encoding.** It always read UTF-8, so a
+  Latin-1 include worked through the file API and failed through the resolver
+  with the same read options. A resolver hands over text, so the decoding is
+  its own business; `FlatStreamReadOptions.encoding` never reaches one, and the
+  entry points say so now.
 - **An empty include directive no longer duplicates the entries after it.**
   `config-file =` ended the head of the document without starting the tail, so
   everything below it was collected as both and appeared twice. Three separate

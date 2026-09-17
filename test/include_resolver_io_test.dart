@@ -293,11 +293,19 @@ void main() {
           currentLink = nextLink;
         }
 
-        // This should trigger ELOOP in resolveSymbolicLinksSync on many systems
-        unit = resolver.resolveSync(IncludeRequest(currentLink));
-        if (unit != null) {
-          expect(unit.content, equals('deep content'));
-          expect(unit.id, isNotEmpty);
+        // A chain this long trips ELOOP on most systems. That is a broken
+        // filesystem, not a missing include: reporting it as "not found" would
+        // let an optional directive skip it without a word, so it propagates.
+        try {
+          unit = resolver.resolveSync(IncludeRequest(currentLink));
+          if (unit != null) {
+            expect(unit.content, equals('deep content'));
+            expect(unit.id, isNotEmpty);
+          }
+        } on PathNotFoundException {
+          fail('a symlink loop is not a missing file');
+        } on FileSystemException {
+          // Expected where the chain exceeds the system's limit.
         }
 
         // Test with circular directory symlinks in the path

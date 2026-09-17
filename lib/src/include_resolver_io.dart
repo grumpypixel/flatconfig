@@ -1,5 +1,6 @@
 // IO-only resolver: depends on dart:io and path.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -7,10 +8,22 @@ import 'package:path/path.dart' as p;
 import 'include_resolver_core.dart';
 import 'path_utils.dart';
 
-/// File-backed resolver that mirrors current path resolution.
+/// Resolves include targets against the filesystem.
+///
+/// A relative target is resolved against the directory of the unit holding the
+/// directive; an absolute one is used as it is.
 class FileIncludeResolver extends SyncIncludeResolver {
-  /// Creates a new file resolver.
-  FileIncludeResolver();
+  /// Creates a resolver that decodes the files it reads with [encoding].
+  ///
+  /// The encoding belongs here rather than in `FlatStreamReadOptions`, because
+  /// a resolver hands the traversal text: by the time a unit exists, the
+  /// decoding has already happened, and only the resolver knew what to decode.
+  /// Passing `readOptions` to a resolver-based entry point therefore cannot
+  /// reach this.
+  FileIncludeResolver({this.encoding = utf8});
+
+  /// How the bytes of an included file are decoded.
+  final Encoding encoding;
 
   @override
   IncludeUnit? resolveSync(IncludeRequest request) {
@@ -24,7 +37,15 @@ class FileIncludeResolver extends SyncIncludeResolver {
         : p.normalize(p.join(baseDir.path, request.target));
 
     final file = File(absPath);
-    if (!file.existsSync()) {
+
+    // Read first. Asking whether the file exists and then reading it answers
+    // for a moment that has passed by the time of the read, and reports every
+    // failure — a permission denied, a directory in the way — as "no such
+    // include", which an optional directive then skips in silence.
+    final String content;
+    try {
+      content = file.readAsStringSync(encoding: encoding);
+    } on PathNotFoundException {
       return null;
     }
 
@@ -35,11 +56,7 @@ class FileIncludeResolver extends SyncIncludeResolver {
       canonical = file.absolute.path;
     }
 
-    canonical = normalizeCanonicalPath(canonical);
-
-    final content = file.readAsStringSync();
-
-    return IncludeUnit(id: canonical, content: content);
+    return IncludeUnit(id: normalizeCanonicalPath(canonical), content: content);
   }
 
   /// Resolves the canonical path for a file.

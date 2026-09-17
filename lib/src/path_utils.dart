@@ -30,19 +30,18 @@ class FixedCaseFolding implements PathCaseFolding {
 
 /// Answers by asking the filesystem, caching one answer per directory.
 ///
-/// Windows is answered without a probe. Elsewhere the platform does not settle
-/// it: an APFS volume can be mounted either way, and so can a removable exFAT
-/// one on Linux. Assuming macOS is case-insensitive, as this used to, collapses
-/// `Foo.conf` and `foo.conf` on the volumes that are not.
+/// No platform settles this on its own: an APFS volume can be mounted either
+/// way, a removable exFAT one on Linux is insensitive, and Windows supports
+/// per-directory case sensitivity. Assuming macOS is insensitive, as this used
+/// to, collapses `Foo.conf` and `foo.conf` on the volumes that are not.
+///
+/// A probe that cannot decide falls back to what the platform usually does,
+/// which is the answer that was wrong least often before any probing existed.
 class FilesystemCaseFolding implements PathCaseFolding {
   final _byDirectory = <String, bool>{};
 
   @override
   bool isCaseInsensitive(String path) {
-    if (Platform.isWindows) {
-      return true;
-    }
-
     final directory = p.dirname(path);
     final cached = _byDirectory[directory];
     if (cached != null) {
@@ -53,13 +52,16 @@ class FilesystemCaseFolding implements PathCaseFolding {
     if (probed == null) {
       // Inconclusive for this file, but another file in the same directory may
       // still answer it, so nothing is cached.
-      return false;
+      return _platformDefault;
     }
 
     _byDirectory[directory] = probed;
 
     return probed;
   }
+
+  /// What to answer where the filesystem will not say.
+  static bool get _platformDefault => Platform.isWindows;
 
   /// Whether [directory] is case-insensitive, or `null` if [path] cannot tell.
   static bool? _probe(String path, String directory) {
@@ -68,24 +70,29 @@ class FilesystemCaseFolding implements PathCaseFolding {
         ? name.toLowerCase()
         : name.toUpperCase();
 
+    // A name without letters — `123.conf` — has no other spelling to try.
     if (flipped == name) {
       return null;
     }
 
+    final other = p.join(directory, flipped);
+
     try {
-      final original = File(path).statSync();
-      if (original.type == FileSystemEntityType.notFound) {
+      if (!File(path).existsSync()) {
         return null;
       }
 
-      final other = File(p.join(directory, flipped)).statSync();
-      if (other.type == FileSystemEntityType.notFound) {
+      // The other spelling does not resolve, so the filesystem keeps the two
+      // apart.
+      if (!File(other).existsSync()) {
         return false;
       }
 
-      // A case-sensitive volume can genuinely hold both spellings as separate
-      // files. Matching size and timestamp says this is one file seen twice.
-      return other.size == original.size && other.modified == original.modified;
+      // Both spellings resolve. Whether that is one file or two is a question
+      // for the filesystem: identicalSync compares device and inode rather
+      // than inferring it from metadata, which two distinct files routinely
+      // share — copies written in the same second, or files of equal length.
+      return FileSystemEntity.identicalSync(path, other);
     } on FileSystemException {
       return null;
     }
