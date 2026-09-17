@@ -8,6 +8,12 @@ is still outstanding.
 
 Added:
 
+- **The Flutter example resolves includes out of the asset bundle.** Its
+  `app.conf` includes a theme asset and an optional one that does not exist,
+  through an `AssetBundleIncludeResolver` that can only be asynchronous —
+  a bundle hands out its contents through a `Future`, so no synchronous
+  resolver can be written against one. `MyApp` is a `StatefulWidget` now and
+  caches the load, instead of starting a fresh one on every rebuild.
 - **A documentation set under `doc/`** — `parsing.md`, `document-model.md`,
   `accessors.md`, `includes.md`, `building.md`, `platform-io.md` and
   `development.md`. The README drops from 932 lines to 194 and indexes them.

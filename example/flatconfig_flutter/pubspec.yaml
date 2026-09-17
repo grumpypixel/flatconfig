@@ -23,4 +23,4 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/config/app.conf
+    - assets/config/

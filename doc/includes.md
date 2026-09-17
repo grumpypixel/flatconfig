@@ -180,7 +180,8 @@ resolver works with both entry points and needs no wrapper.
 
 A resolver that has to await — an HTTP endpoint, a database, a Flutter asset
 behind `rootBundle.loadString()` — implements `IncludeResolver` instead and is
-used with the asynchronous entry point:
+used with the asynchronous entry point. A bundle is the clearest case, because
+a synchronous resolver cannot be written against one at all:
 
 ```dart
 final class AssetResolver implements IncludeResolver {
@@ -204,6 +205,10 @@ resolver resolves a relative target without tracking state of its own.
 
 Returning `null` is not an error. It means "not found", and whether that throws
 is decided by the `?` marker on the directive, not by the resolver.
+
+[`example/flatconfig_flutter`](../example/flatconfig_flutter) runs the bundle
+version of this: `assets/config/app.conf` includes a theme asset and an
+optional one that does not exist, and the tests cover both.
 
 ## Options
 

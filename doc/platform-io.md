@@ -73,7 +73,9 @@ final doc = parseWithIncludesSync(
 ```
 
 For Flutter assets, which have to be awaited, write an asynchronous resolver —
-see [writing a resolver](includes.md#writing-one).
+see [writing a resolver](includes.md#writing-one), and
+[`example/flatconfig_flutter`](../example/flatconfig_flutter) for one that
+resolves includes out of the asset bundle.
 
 CI compiles the three web-safe libraries to JavaScript and to WASM on every
 push, and runs the browser-compatible part of the suite in Chrome. A

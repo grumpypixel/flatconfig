@@ -1,7 +1,7 @@
+import 'package:flatconfig/flatconfig_includes.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:provider/provider.dart';
-import 'package:flatconfig/flatconfig.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,13 +26,57 @@ Color parseHexColor(String raw) {
   return Color(hex.length == 6 ? 0xFF000000 | value : value);
 }
 
-class MyApp extends StatelessWidget {
+/// Resolves `config-file` directives against the asset bundle.
+///
+/// A bundle hands out its contents through a [Future], which is the whole
+/// reason [IncludeResolver] is asynchronous: a synchronous resolver cannot be
+/// written against one at all.
+final class AssetBundleIncludeResolver implements IncludeResolver {
+  /// Resolves targets as paths under [directory] of [bundle].
+  const AssetBundleIncludeResolver(
+    this.bundle, {
+    this.directory = 'assets/config',
+  });
+
+  /// The bundle to read from.
+  final AssetBundle bundle;
+
+  /// The directory a directive's target is relative to.
+  final String directory;
+
+  @override
+  Future<IncludeUnit?> resolve(IncludeRequest request) async {
+    final key = '$directory/${request.target}';
+
+    try {
+      return IncludeUnit(id: key, content: await bundle.loadString(key));
+    } on FlutterError {
+      // Not in the bundle. Whether that is an error is the directive's
+      // decision, through its `?` marker, not the resolver's.
+      return null;
+    }
+  }
+}
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  /// Started once, on first build.
+  ///
+  /// Calling the loader inside [build] would start a fresh read of the bundle
+  /// on every rebuild — and the app rebuilds whenever the platform brightness,
+  /// the text scale or the window size changes.
+  late final Future<FlatDocument> _config = _loadConfigFromAssets();
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<FlatDocument>(
-      future: _loadConfigFromAssets(),
+      future: _config,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const MaterialApp(
@@ -256,10 +300,12 @@ class _InfoCard extends StatelessWidget {
 }
 
 Future<FlatDocument> _loadConfigFromAssets() async {
-  final content = await rootBundle.loadString('assets/config/app.conf');
-  return FlatDocument.parse(
-    content,
-    options: const FlatParseOptions(strict: false, decodeEscapesInQuoted: true),
+  const root = 'assets/config/app.conf';
+
+  return parseWithIncludes(
+    await rootBundle.loadString(root),
+    resolver: AssetBundleIncludeResolver(rootBundle),
+    originId: root,
   );
 }
 

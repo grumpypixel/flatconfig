@@ -854,10 +854,20 @@ Currently shipped to pub.dev: `PACKAGE_REVIEW.md` (39 KB), `improvements.md`
 - [x] `test/widget_test.dart` is still the generated counter template and fails.
       Replaced in Phase 3 with tests for the title, the welcome message and the
       `parseHexColor` converter the example now needs.
-- [ ] Convert `MyApp` to a `StatefulWidget` with the future cached in
+- [x] Convert `MyApp` to a `StatefulWidget` with the future cached in
       `initState()`; it currently recreates the future on every rebuild.
-- [ ] Add an async `AssetBundleIncludeResolver` to the example — it is the
+      Cached in a `late final` field, which runs once on first build and needs
+      no `initState()` override.
+- [x] Add an async `AssetBundleIncludeResolver` to the example — it is the
       clearest demonstration of why Phase 2.11 matters.
+
+      `app.conf` now includes `theme.conf` and an optional `user.conf` that
+      does not exist, so the example shows a real include, a real optional
+      miss, and a resolver that can only be asynchronous. Writing the tests
+      turned up a trap worth knowing: `rootBundle` caches the future it returns
+      and each test runs in its own zone, so a second test awaiting a cached
+      hit waits forever. A missing asset is never cached, so the negative tests
+      passed while the positive ones hung. `tearDown(rootBundle.clear)`.
 - [x] Stop excluding the example from the root analyzer. The root
       `analysis_options.yaml` excludes only generated directories now, and CI
       runs `flutter analyze` and `flutter test` on the example.
