@@ -160,6 +160,7 @@ extension FlatConfigIncludes on FlatDocument {
         includedFrom: canonicalPath,
         depth: depth + 1,
       );
+      traversal.chargeEntries(subDoc.length, canonicalPath);
       groups.add(subDoc.entries);
     }
 
@@ -195,6 +196,7 @@ extension FlatConfigIncludes on FlatDocument {
         includedFrom: canonicalPath,
         depth: depth + 1,
       );
+      traversal.chargeEntries(subDoc.length, canonicalPath);
       groups.add(subDoc.entries);
     }
 

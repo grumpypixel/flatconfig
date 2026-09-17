@@ -117,6 +117,7 @@ Future<FlatDocument> _resolveUnit(
       traversal: traversal,
       depth: depth + 1,
     );
+    traversal.chargeEntries(subDoc.length, included.id);
     groups.add(subDoc.entries);
   }
 
@@ -166,6 +167,7 @@ FlatDocument _resolveUnitSync(
       traversal: traversal,
       depth: depth + 1,
     );
+    traversal.chargeEntries(subDoc.length, included.id);
     groups.add(subDoc.entries);
   }
 

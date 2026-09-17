@@ -45,6 +45,15 @@ Added:
 - **`FlatIssue`, `FlatIssueKind` and `FlatParseOptions.onIssue`** — one channel
   for every problem the parser finds, carrying the kind, the 1-based line and
   column, and the raw line.
+- **`FlatIncludeOptions.maxIncludes` and `maxIncludedEntries`** — budgets for a
+  whole include traversal, raising `IncludeBudgetExceededException`. Depth
+  bounds how far an include graph reaches, not how much it amounts to: a
+  document whose includes each pull in the previous one twice doubles per
+  level, and because a repeated unit is parsed once and then copied into every
+  parent that names it, sixteen such levels stay at 32 directives while
+  reaching 65,536 entries — from under a kilobyte of source, well inside the
+  default depth. The entry budget is charged as entries are handed up, so the
+  refusal happens before the allocation rather than after it.
 - **`FlatIncludeOptions.mergePolicy`** — Ghostty precedence is a setting now
   rather than the only behaviour. `IncludeMergePolicy.lastWins` expands each
   include where it is written and lets a later entry win, which is what most

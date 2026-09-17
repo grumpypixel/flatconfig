@@ -204,6 +204,34 @@ class MaxIncludeDepthExceededException extends ConfigIncludeException {
       'MaxIncludeDepthExceededException: depth=$depth (max=$maxDepth) at "$filePath"';
 }
 
+/// Thrown when an include traversal outgrows one of its budgets.
+///
+/// Depth alone does not bound an include graph. A document whose includes each
+/// pull in the previous one twice doubles per level, and since a repeated unit
+/// is parsed once and then copied into every parent that names it, sixteen
+/// such levels reach 65,536 entries from under a kilobyte of source — well
+/// inside the default depth limit. [budget] names which limit was reached, so
+/// the message says what to raise.
+class IncludeBudgetExceededException extends ConfigIncludeException {
+  /// Creates a new [IncludeBudgetExceededException].
+  IncludeBudgetExceededException(String filePath, this.budget, this.limit)
+    : super(
+        'Include budget exceeded at "$filePath": $budget reached its limit of '
+        '$limit',
+        filePath,
+      );
+
+  /// The name of the option that was reached, as written in the API.
+  final String budget;
+
+  /// The value that option held.
+  final int limit;
+
+  @override
+  String toString() =>
+      'IncludeBudgetExceededException: $budget=$limit reached at "$filePath"';
+}
+
 @internal
 extension FormatExceptionCopyWith on FormatException {
   /// Creates a new [FormatException] with a custom message,

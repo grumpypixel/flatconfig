@@ -138,8 +138,15 @@ class FlatIncludeOptions {
   const FlatIncludeOptions({
     this.includeKey = Constants.includeKey,
     this.maxIncludeDepth = 64,
+    this.maxIncludes = 256,
+    this.maxIncludedEntries = 100000,
     this.mergePolicy = IncludeMergePolicy.ghostty,
-  }) : assert(maxIncludeDepth >= 0, 'maxIncludeDepth must not be negative');
+  }) : assert(maxIncludeDepth >= 0, 'maxIncludeDepth must not be negative'),
+       assert(maxIncludes >= 0, 'maxIncludes must not be negative'),
+       assert(
+         maxIncludedEntries >= 0,
+         'maxIncludedEntries must not be negative',
+       );
 
   /// Key used to identify include directives in configuration files.
   ///
@@ -164,6 +171,31 @@ class FlatIncludeOptions {
   /// one raises `MaxIncludeDepthExceededException`. Defaults to 64.
   final int maxIncludeDepth;
 
+  /// Maximum number of include directives one traversal may follow.
+  ///
+  /// Bounds the work of reaching documents: for a resolver backed by a
+  /// network or a database, this is the number of requests a single parse can
+  /// make. Counts every directive followed, including repeats of a target the
+  /// traversal has already read.
+  ///
+  /// Exceeding it raises `IncludeBudgetExceededException`. Defaults to 256.
+  final int maxIncludes;
+
+  /// Maximum number of entries all of a traversal's includes may contribute.
+  ///
+  /// Bounds the size of the result, which is the half that can run away.
+  /// Depth limits how far an include graph reaches and [maxIncludes] how often
+  /// it is followed, but neither limits how much the graph *amounts to*: a
+  /// document whose includes each pull in the previous one twice doubles per
+  /// level, and because a repeated unit is parsed once and then copied into
+  /// every parent that names it, sixteen such levels stay at 32 directives
+  /// while reaching 65,536 entries — from under a kilobyte of source, well
+  /// inside the default depth.
+  ///
+  /// Entries of the including document itself do not count. Exceeding it
+  /// raises `IncludeBudgetExceededException`. Defaults to 100,000.
+  final int maxIncludedEntries;
+
   /// Where an include's entries land, and what may override them.
   ///
   /// Defaults to [IncludeMergePolicy.ghostty], which is what this package has
@@ -174,27 +206,41 @@ class FlatIncludeOptions {
   FlatIncludeOptions copyWith({
     String? includeKey,
     int? maxIncludeDepth,
+    int? maxIncludes,
+    int? maxIncludedEntries,
     IncludeMergePolicy? mergePolicy,
   }) => FlatIncludeOptions(
     includeKey: includeKey ?? this.includeKey,
     maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
+    maxIncludes: maxIncludes ?? this.maxIncludes,
+    maxIncludedEntries: maxIncludedEntries ?? this.maxIncludedEntries,
     mergePolicy: mergePolicy ?? this.mergePolicy,
   );
 
   @override
   String toString() =>
       'FlatIncludeOptions(includeKey: $includeKey, '
-      'maxIncludeDepth: $maxIncludeDepth, mergePolicy: ${mergePolicy.name})';
+      'maxIncludeDepth: $maxIncludeDepth, maxIncludes: $maxIncludes, '
+      'maxIncludedEntries: $maxIncludedEntries, '
+      'mergePolicy: ${mergePolicy.name})';
 
   @override
   bool operator ==(Object other) =>
       other is FlatIncludeOptions &&
       other.includeKey == includeKey &&
       other.maxIncludeDepth == maxIncludeDepth &&
+      other.maxIncludes == maxIncludes &&
+      other.maxIncludedEntries == maxIncludedEntries &&
       other.mergePolicy == mergePolicy;
 
   @override
-  int get hashCode => Object.hash(includeKey, maxIncludeDepth, mergePolicy);
+  int get hashCode => Object.hash(
+    includeKey,
+    maxIncludeDepth,
+    maxIncludes,
+    maxIncludedEntries,
+    mergePolicy,
+  );
 }
 
 /// Options for reading configuration data from a byte stream.

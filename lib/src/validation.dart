@@ -112,6 +112,16 @@ void checkIncludeDepth(int depth) {
   }
 }
 
+/// Throws an [ArgumentError] if [limit] cannot be a traversal budget.
+///
+/// Same reasoning as [checkIncludeDepth]: the options class asserts it, and a
+/// release build does not.
+void checkIncludeBudget(int limit, String name) {
+  if (limit < 0) {
+    throw ArgumentError.value(limit, name, 'Must not be negative');
+  }
+}
+
 /// Throws an [ArgumentError] unless [key] is valid.
 ///
 /// Used at every boundary where a key enters a document from outside. The

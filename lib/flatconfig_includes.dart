@@ -24,6 +24,7 @@ export 'src/exceptions.dart'
     show
         CircularIncludeException,
         ConfigIncludeException,
+        IncludeBudgetExceededException,
         MaxIncludeDepthExceededException,
         MissingIncludeException;
 export 'src/include_resolver_core.dart'
