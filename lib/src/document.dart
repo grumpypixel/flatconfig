@@ -908,7 +908,7 @@ class FlatDocument {
   ///
   /// This method first encodes the document to text using [options], then
   /// converts the text to bytes using the encoding specified in [writeOptions].
-  /// Line endings are normalized according to [writeOptions.lineTerminator].
+  /// Line endings are normalized according to [FlatStreamWriteOptions.lineTerminator].
   ///
   /// Example:
   /// ```dart
@@ -1057,7 +1057,8 @@ class FlatDocument {
   /// formatting options to improve readability.
   ///
   /// Parameters:
-  /// - [includeIndexes]: if true, lines are prefixed with "[i] " showing their index
+  /// - [includeIndexes]: if true, each line is prefixed with its index in
+  ///   brackets, as in `[0] `
   /// - [sortByKey]: if true, lines are ordered by key (stable sort on index)
   /// - [alignColumns]: if true, keys are padded so the '=' signs align in columns
   ///

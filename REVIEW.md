@@ -11,7 +11,7 @@ remediation commits refer to them.
 | Re-reviewed | `0813492a` after the first round, `f945525d` after the second |
 | Findings | 29 original (1 high, 12 medium, 16 low), 5 follow-up, 1 found while testing |
 | Closed | every high and medium, and the low ones the guides got wrong |
-| Open | 13 low, listed at the end |
+| Open | 8 low, listed at the end; none blocks the release |
 
 The candidate was never published. pub.dev served 0.5.0 throughout, and the
 premature `v1.0.0` tag was removed from both the local repository and origin.
@@ -190,13 +190,32 @@ Also handled in passing:
 - **F-26** — `.pubignore` now excludes `doc/api/`, which `dart doc` fills and
   which tripled the archive.
 
-Still open, thirteen of them, to be assessed before the tag: **F-14** through
-**F-18**, **F-20**, **F-21**, **F-23** through **F-25**, **F-27** through
-**F-29**. Two are specification deviations and matter most: a BOM is stripped
-from every line rather than only at the start of the document, and an empty
-comment prefix is accepted although the specification requires a non-empty one.
-Until those are settled, no claim of complete conformance belongs in the
-changelog.
+The two specification deviations are settled, in opposite directions, and
+Appendix A of `SPEC.md` records both with the reasoning:
+
+- **F-20** — a BOM was stripped from the start of every line. The code changed:
+  a U+FEFF anywhere but the very start of the input is ordinary data, and
+  removing it quietly is the kind of silent edit this release exists to end. A
+  later line that begins with one is now reported as an invalid key instead.
+- **F-21** — an empty comment prefix was accepted although §2 required a
+  non-empty one. The spec changed: turning comments off is a real need for a
+  document whose lines may begin with `#`, and nothing about the format depends
+  on comments existing.
+
+Three more that were published and misleading are closed as well:
+
+- **F-23** — `example/error_handling.dart` printed nothing for four of its six
+  sections, because those parsed in lenient mode and their `catch` blocks never
+  ran, and it claimed warnings it never asked for. Each section now
+  demonstrates its own claim.
+- **F-24** — the Flutter example's README named a deleted API and platforms the
+  project does not contain.
+- **F-25** — `dart doc --validate-links` reported 35 warnings; 21 were real and
+  are fixed. See below for the fourteen that remain and why they stay.
+
+Still open, eight of them: **F-14** through **F-18**, **F-27** through **F-29**.
+None is a correctness defect in the common path; each is a narrow edge, a
+diagnostic, or a gap in the test matrix.
 
 **F-19** counts as closed above, but on a narrowed contract: `getList` reads
 the format's single-character inline grammar, where it used to take any
@@ -204,7 +223,18 @@ separator and split on every occurrence. The alternatives — RFC 4180, or a
 plainer list grammar — were not chosen, and that decision is worth recording
 rather than rediscovering.
 
-`dart doc --validate-links` reports 34 warnings (**F-25**), and every CI job
-runs on Ubuntu while the path code branches on Windows and on case-insensitive
+`dart doc --validate-links` reports fourteen warnings, all accounted for and
+none actionable. Twelve are relative links from the README to `SPEC.md`,
+`doc/`, `LICENSE` and `example/`: correct on GitHub and on pub.dev, which
+rewrites them, and unreachable only from dartdoc's own generated site, which
+does not contain those files. Making them absolute would fix the warning by
+pinning every reader to one branch. The other two are dartdoc choosing between
+two barrels for a private `src` library, which is inherent to
+`flatconfig_io.dart` re-exporting `flatconfig_includes.dart` and affects no
+documented page. Link validation therefore cannot be a clean CI gate without
+degrading the README, which is the trade this declines.
+
+Every CI job runs on Ubuntu while the path code branches on Windows and on
+case-insensitive
 volumes (**F-27**) — the identity test written for F-05 skips on macOS for
 exactly that reason.

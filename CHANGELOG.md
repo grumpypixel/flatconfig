@@ -170,6 +170,28 @@ Changed:
 
 Fixed:
 
+- **A BOM is stripped only at the very start of the input.** It was removed
+  from the start of every line, so a U+FEFF that a later line legitimately
+  began with was edited away in silence. `SPEC.md` §1 calls one anywhere but
+  the front ordinary data; a line that begins with one now reports an invalid
+  key, because a key cannot start with whitespace and Dart counts U+FEFF as
+  whitespace.
+- **An empty comment prefix is specified, not merely tolerated.** `SPEC.md` §2
+  required a non-empty prefix while the implementation accepted `''` to turn
+  comments off — a real need for a document whose lines may begin with `#`. The
+  specification carries the rule now, with what an empty prefix means.
+- **The error-handling example demonstrates its own claims.** Four of its six
+  sections printed nothing at all: they parsed in lenient mode, so their
+  `catch` blocks never ran, and a fifth advertised warnings without installing
+  an `onIssue` handler. It now shows strict mode throwing, a handler reporting,
+  the default staying silent, and a handler that makes one rule strict.
+- **The Flutter example's README describes the example.** It named
+  `FlatConfig.parse`, deleted in this release, and advertised platforms the
+  project does not contain.
+- **Twenty-one dartdoc warnings are gone.** Stale references to the accessor
+  and extension types folded into `FlatDocument`, and symbols that dartdoc
+  could not attribute to a library because `flatconfig_io.dart` re-exports
+  `flatconfig_includes.dart`.
 - **The published examples no longer use inline comments.** This format has
   whole-line comments only, so `config-file = ?user.conf  # optional` asked for
   a file whose name ended in the annotation, and the quoted examples in the

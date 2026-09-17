@@ -86,7 +86,12 @@ FlatDocument parseSourceLines(
   for (final raw in lines) {
     lineNumber++;
 
-    final entry = parseLine(raw, lineNumber: lineNumber, options: options);
+    final entry = parseLine(
+      raw,
+      lineNumber: lineNumber,
+      isFirstLine: lineNumber == 1,
+      options: options,
+    );
     if (entry != null) {
       out.add(entry);
     }
@@ -139,7 +144,12 @@ Future<FlatDocument> parseStringStream(
   await for (var raw in stream) {
     lineNumber++;
 
-    final entry = parseLine(raw, lineNumber: lineNumber, options: options);
+    final entry = parseLine(
+      raw,
+      lineNumber: lineNumber,
+      isFirstLine: lineNumber == 1,
+      options: options,
+    );
 
     if (entry != null) {
       out.add(entry);
@@ -189,7 +199,12 @@ Stream<FlatEntry> streamEntriesFromStrings(
   await for (var raw in stream) {
     lineNumber++;
 
-    final entry = parseLine(raw, lineNumber: lineNumber, options: options);
+    final entry = parseLine(
+      raw,
+      lineNumber: lineNumber,
+      isFirstLine: lineNumber == 1,
+      options: options,
+    );
     if (entry != null) {
       yield entry;
     }
@@ -456,9 +471,14 @@ String _transformKey(String key, FlatEnvOptions opts) {
 FlatEntry? parseLine(
   String raw, {
   int? lineNumber,
+  bool isFirstLine = false,
   FlatParseOptions options = const FlatParseOptions(),
 }) {
-  final line = preprocessLine(raw, options.commentPrefix);
+  final line = preprocessLine(
+    raw,
+    options.commentPrefix,
+    stripLeadingBom: isFirstLine,
+  );
   if (line == null) {
     return null;
   }
@@ -547,7 +567,11 @@ FlatEntry? parseLine(
 ///
 /// Returns the cleaned line to be parsed, or `null` if the line should be ignored.
 @visibleForTesting
-String? preprocessLine(String raw, String commentPrefix) {
+String? preprocessLine(
+  String raw,
+  String commentPrefix, {
+  bool stripLeadingBom = false,
+}) {
   if (raw.isEmpty) {
     return null;
   }
@@ -555,8 +579,10 @@ String? preprocessLine(String raw, String commentPrefix) {
   var start = 0;
   var end = raw.length;
 
-  // Strip BOM
-  if (raw.codeUnitAt(0) == Constants.bomCharCode) {
+  // Only the document's own first character can be a byte order mark. One
+  // anywhere else is an ordinary character (SPEC.md 1) — removing it from
+  // every line silently edited data that happened to contain U+FEFF.
+  if (stripLeadingBom && raw.codeUnitAt(0) == Constants.bomCharCode) {
     start = 1;
   }
 

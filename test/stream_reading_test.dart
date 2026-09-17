@@ -86,14 +86,23 @@ void main() {
       expect(doc['a'], '\uFEFFx');
     });
 
-    test('a later line loses its BOM too, and nothing is lost with it', () {
-      // Lines can arrive from concatenated sources, so a BOM is stripped
-      // wherever a line starts, not only at the very front. That costs
-      // nothing: a key beginning with one is rejected as leading whitespace,
-      // so no key this could damage can exist in the first place.
+    test('a later line keeps its BOM, and says so', () {
+      // Stripping it from every line was convenient and wrong: a U+FEFF
+      // anywhere but the very start of the input is an ordinary character
+      // (SPEC.md 1), and quietly removing it edits data. A key that begins
+      // with one cannot exist, so the line is reported rather than repaired.
       expect(() => FlatEntry('\uFEFFb', '2'), throwsArgumentError);
 
-      expect(FlatDocument.parse('a = 1\n\uFEFFb = 2\n')['b'], '2');
+      final issues = <FlatIssue>[];
+      final doc = FlatDocument.parse(
+        'a = 1\n\uFEFFb = 2\n',
+        options: FlatParseOptions(onIssue: issues.add),
+      );
+
+      expect(doc['b'], isNull);
+      expect(doc['a'], '1');
+      expect(issues.single.kind, FlatIssueKind.invalidKey);
+      expect(issues.single.line, 2);
     });
 
     test('a BOM inside a key or a value is ordinary data', () {

@@ -1,105 +1,110 @@
 import 'package:flatconfig/flatconfig.dart';
 
+/// The three ways a malformed line can be handled, side by side.
+///
+/// Strict mode throws, an `onIssue` handler reports, and the default does
+/// neither. The same four broken lines go through all three, so the difference
+/// is the mode and nothing else.
 void main() {
   print('🚨 Error handling examples:');
   print('');
 
-  // Example 1: Missing equals separator
-  print('1. Missing equals separator:');
-  try {
-    FlatDocument.parse('''
-app-name = MyApp
-version 1.0.0
-debug = true
-''');
-  } on MissingEqualsException catch (e) {
-    print('   - Error: ${e.message}');
-    print('   - Content: "${e.rawLine}"');
-  }
+  _strictThrows();
+  _lenientReports();
+  _lenientIsSilent();
+  _handlerDecides();
+
+  print('💡 Key takeaways:');
+  print('   - The same input is an exception, a report, or nothing at all,');
+  print('     depending only on how you asked for it to be parsed.');
+  print('   - Every parse exception extends FlatParseException, which');
+  print('     extends FormatException.');
+  print('   - Issues carry the kind, the 1-based line and column, and the');
+  print('     raw line, which is what an editor needs to point at it.');
+  print('   - Throwing from an onIssue handler stops the parse, which is how');
+  print('     you build a policy between the two modes.');
   print('');
+  print('🎉 Example completed successfully!');
+}
 
-  // Example 2: Empty key
-  print('2. Empty key:');
-  try {
-    FlatDocument.parse('''
-app-name = MyApp
-= 1.0.0
-debug = true
-''');
-  } on EmptyKeyException catch (e) {
-    print('   - Error: ${e.message}');
-    print('   - Content: "${e.rawLine}"');
+/// Each malformed line, with the exception strict mode raises for it.
+const _broken = <String, String>{
+  'missing equals': 'app-name = MyApp\nversion 1.0.0\n',
+  'empty key': 'app-name = MyApp\n= 1.0.0\n',
+  'unterminated quote': 'app-name = MyApp\nversion = "1.0.0\n',
+  'trailing characters': 'app-name = MyApp\nversion = "1.0.0" extra\n',
+  'invalid key': 'app-name = MyApp\nver"sion = 1.0.0\n',
+};
+
+void _strictThrows() {
+  print('1. Strict mode throws, one exception type per rule:');
+
+  for (final entry in _broken.entries) {
+    try {
+      FlatDocument.parse(
+        entry.value,
+        options: const FlatParseOptions(strict: true),
+      );
+      print('   - ${entry.key}: nothing thrown');
+    } on FlatParseException catch (e) {
+      print('   - ${entry.key}: ${e.runtimeType} at line ${e.lineNumber}');
+    }
   }
-  print('');
 
-  // Example 3: Unterminated quote
-  print('3. Unterminated quote:');
-  try {
-    FlatDocument.parse('''
-app-name = MyApp
-version = "1.0.0
-debug = true
-''');
-  } on UnterminatedQuoteException catch (e) {
-    print('   - Error: ${e.message}');
-    print('   - Content: "${e.rawLine}"');
+  print('');
+}
+
+void _lenientReports() {
+  print('2. Lenient mode with a handler reports the same lines:');
+
+  final issues = <FlatIssue>[];
+  final doc = FlatDocument.parse(
+    _broken.values.join(),
+    options: FlatParseOptions(onIssue: issues.add),
+  );
+
+  for (final issue in issues) {
+    print(
+      '   - line ${issue.line}, column ${issue.column}: '
+      '${issue.kind.name} in «${issue.rawLine.trim()}»',
+    );
   }
+  print('   ${doc.length} entries survived, ${issues.length} lines reported.');
   print('');
+}
 
-  // Example 4: Trailing characters after quote
-  print('4. Trailing characters after quote:');
-  try {
-    FlatDocument.parse('''
-app-name = MyApp
-version = "1.0.0" extra
-debug = true
-''');
-  } on TrailingCharactersAfterQuoteException catch (e) {
-    print('   - Error: ${e.message}');
-    print('   - Content: "${e.rawLine}"');
-  }
-  print('');
+void _lenientIsSilent() {
+  print('3. Lenient mode without a handler says nothing at all:');
 
-  // Example 5: Non-strict mode (default) - shows warnings instead of errors
-  print('5. Non-strict mode (default behavior):');
-  final doc = FlatDocument.parse('''
-app-name = MyApp
-version 1.0.0    # missing equals - ignored
-= 2.0.0          # empty key - ignored
-debug = true
-# Trailing characters after a closing quote.
-theme = "dark" extra
-''');
+  final doc = FlatDocument.parse(_broken.values.join());
 
-  print('   Parsed successfully with ${doc.length} entries:');
+  print('   Parsed ${doc.length} entries, and nothing reported a problem:');
   for (final entry in doc.entries) {
     print('   - ${entry.key} = ${entry.value}');
   }
   print('');
+}
 
-  // Example 6: Strict mode - throws exceptions
-  print('6. Strict mode (throws exceptions):');
+void _handlerDecides() {
+  print(
+    '4. A handler that throws makes one rule strict and forgives the rest:',
+  );
+
   try {
-    FlatDocument.parse('''
-app-name = MyApp
-version 1.0.0
-debug = true
-''', options: const FlatParseOptions(strict: true));
-  } on MissingEqualsException catch (e) {
-    print('   - Strict mode caught: ${e.message}');
+    FlatDocument.parse(
+      _broken.values.join(),
+      options: FlatParseOptions(
+        onIssue: (issue) {
+          if (issue.kind == FlatIssueKind.invalidKey) {
+            throw FormatException(issue.message, issue.rawLine, issue.column);
+          }
+        },
+      ),
+    );
+    print('   - nothing was strict enough to stop the parse');
+  } on FormatException catch (e) {
+    print('   - stopped on the invalid key: ${e.message}');
   }
-  print('');
 
-  print('💡 Key takeaways:');
-  print(
-    '   - Error messages now include column information for precise location',
-  );
-  print('   - Non-strict mode (default) ignores malformed lines with warnings');
-  print('   - Strict mode throws exceptions for better error handling');
-  print(
-    '   - All parsing errors extend FormatException for consistent handling',
-  );
-  print('   - Use try-catch blocks to handle specific error types');
   print('');
-  print('🎉 Example completed successfully!');
 }

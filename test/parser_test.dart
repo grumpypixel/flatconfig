@@ -1377,10 +1377,11 @@ shader = vignette=soft
         expect(callbackCalled, isTrue);
       });
 
-      test('handles BOM in input', () {
+      test('handles BOM on the document\'s first line', () {
         final result = parseLine(
           '\uFEFFkey=value',
           lineNumber: 1,
+          isFirstLine: true,
           options: const FlatParseOptions(
             commentPrefix: '#',
             strict: false,
@@ -1409,9 +1410,15 @@ shader = vignette=soft
     });
 
     group('preprocessLine', () {
-      test('removes BOM from beginning of line', () {
-        final result = preprocessLine('\uFEFFkey=value', '#');
-        expect(result, 'key=value');
+      test('removes a BOM only where the document starts', () {
+        // A U+FEFF anywhere but the very start of the input is an ordinary
+        // character (SPEC.md 1). Removing it from every line silently edited
+        // data that happened to contain one.
+        expect(
+          preprocessLine('\uFEFFkey=value', '#', stripLeadingBom: true),
+          'key=value',
+        );
+        expect(preprocessLine('\uFEFFkey=value', '#'), '\uFEFFkey=value');
       });
 
       test('returns null for empty line', () {

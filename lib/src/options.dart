@@ -537,7 +537,7 @@ class FlatEnvOptions {
   ///
   /// If set, only keys that start with this prefix will be included in the
   /// resulting document. The keys will retain the prefix in the document.
-  /// Use [FlatDocumentExtensions.stripPrefix] on the result if you want to
+  /// Use [FlatDocument.stripPrefix] on the result if you want to
   /// remove the prefix from the keys.
   ///
   /// Example:

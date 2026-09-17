@@ -9,7 +9,7 @@ import 'parser_utils.dart';
 /// part of the format.
 ///
 /// These follow the same three shapes as the core accessors — `getX`, `getXOr`,
-/// `requireX` — and each is a thin layer over [FlatDocumentAccessors.getAs].
+/// `requireX` — and each is a thin layer over [FlatDocument.getAs].
 /// They live in their own library so that a program parsing `key = value` pairs
 /// does not carry a date parser it never calls.
 ///

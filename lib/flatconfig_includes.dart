@@ -17,6 +17,24 @@
 ///
 /// Web- and WASM-safe. Re-exports `package:flatconfig/flatconfig.dart`, so one
 /// import is enough.
+///
+/// {@canonicalFor parse_with_resolver.parseWithIncludes}
+/// {@canonicalFor parse_with_resolver.parseWithIncludesSync}
+/// {@canonicalFor include_resolver_core.CompositeIncludeResolver}
+/// {@canonicalFor include_resolver_core.IncludeRequest}
+/// {@canonicalFor include_resolver_core.IncludeResolver}
+/// {@canonicalFor include_resolver_core.IncludeUnit}
+/// {@canonicalFor include_resolver_core.MemoryIncludeResolver}
+/// {@canonicalFor include_resolver_core.Resolvers}
+/// {@canonicalFor include_resolver_core.SyncCompositeIncludeResolver}
+/// {@canonicalFor include_resolver_core.SyncIncludeResolver}
+/// {@canonicalFor options.FlatIncludeOptions}
+/// {@canonicalFor options.IncludeMergePolicy}
+/// {@canonicalFor exceptions.CircularIncludeException}
+/// {@canonicalFor exceptions.ConfigIncludeException}
+/// {@canonicalFor exceptions.IncludeBudgetExceededException}
+/// {@canonicalFor exceptions.MaxIncludeDepthExceededException}
+/// {@canonicalFor exceptions.MissingIncludeException}
 library;
 
 export 'flatconfig.dart';

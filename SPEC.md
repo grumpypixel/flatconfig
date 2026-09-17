@@ -38,8 +38,13 @@ Each line is classified after **left-trimming** whitespace (space, tab, `\r`,
 There are **no inline comments.** A comment prefix appearing after the separator
 is an ordinary part of the value. `a = b # c` yields the value `b # c`.
 
-The comment prefix is configurable. It MUST be non-empty and MUST NOT contain
-`\n` or `\r`. It defaults to `#`.
+The comment prefix is configurable and defaults to `#`. It MUST NOT contain
+`\n` or `\r`, since no single line could match such a prefix.
+
+An **empty** prefix is permitted and means the document has no comments: every
+line is an entry, and one beginning with `#` is read as a key, which rule 6 of
+§3 then rejects. This is how a document whose first character may legitimately
+be `#` is parsed without losing lines to it.
 
 ## 3. Keys
 
@@ -300,7 +305,15 @@ invalid entries, as its documentation always claimed.
 
 None. Every deviation Appendix A listed is fixed and pinned by a test.
 
+Two more were found by review after 0.5.0 and settled in opposite directions,
+which is worth recording because the reasoning differs:
+
+| Rule | Found | Settled |
+|---|---|---|
+| §1 BOM | A BOM was stripped from the start of *every* line, not only the input. | The code changed. Quietly removing a character that is ordinary data anywhere but the front is the kind of silent edit this release exists to end. |
+| §2 comment prefix | An empty prefix was accepted although §2 required a non-empty one. | The spec changed. Turning comments off is a real need for a document whose lines may begin with `#`, and nothing about the format depends on comments existing. |
+
 Behaviour that already conforms, confirmed by probe: line-ending handling (`\n`,
-`\r\n`, `\r`), BOM stripping, comment classification including custom prefixes,
-absence of inline comments, `=` inside quoted values, duplicate-key ordering, and
+`\r\n`, `\r`), comment classification including custom prefixes, absence of
+inline comments, `=` inside quoted values, duplicate-key ordering, and
 last-write-wins resolution.
