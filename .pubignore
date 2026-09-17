@@ -11,6 +11,10 @@ coverage/
 
 # Internal planning and tooling.
 ROADMAP_1.0.md
+PACKAGE_REVIEW.md
 justfile
-coverage-review/
 tool/
+
+# `dart doc` writes here. Publishing it triples the archive and pub.dev builds
+# its own API documentation anyway. The prose pages under doc/ do ship.
+doc/api/

@@ -1,4 +1,4 @@
-import 'package:flatconfig/flatconfig.dart';
+import 'package:flatconfig/flatconfig_includes.dart';
 import 'package:test/test.dart';
 
 /// Regression tests for the rules SPEC.md fixes, one group per section.
@@ -230,6 +230,140 @@ void main() {
     test('a non-empty document always ends with the terminator', () {
       expect(FlatDocument([FlatEntry('k', 'v')]).encode(), endsWith('\n'));
       expect(FlatDocument.empty().encode(), '');
+    });
+  });
+
+  group('SPEC 8 — where an include lands is a policy', () {
+    final resolver = MemoryIncludeResolver(const {
+      'sets-theme.conf': 'theme = included',
+      'also-theme.conf': 'theme = later',
+      'resets-theme.conf': 'theme =',
+      'other.conf': 'unrelated = yes',
+    });
+
+    FlatDocument read(String source, IncludeMergePolicy policy) =>
+        parseWithIncludesSync(
+          source,
+          resolver: resolver,
+          originId: 'main.conf',
+          includeOptions: FlatIncludeOptions(mergePolicy: policy),
+        );
+
+    group('8.1 ghostty, the default', () {
+      test('it is the default', () {
+        expect(
+          const FlatIncludeOptions().mergePolicy,
+          IncludeMergePolicy.ghostty,
+        );
+      });
+
+      test('a line before the directive survives but loses the value', () {
+        final doc = read(
+          'theme = local\nconfig-file = sets-theme.conf\n',
+          IncludeMergePolicy.ghostty,
+        );
+
+        expect(doc.entries, [
+          FlatEntry('theme', 'local'),
+          FlatEntry('theme', 'included'),
+        ]);
+        expect(doc['theme'], 'included');
+      });
+
+      test('a line after the directive is dropped when an include sets it', () {
+        final doc = read(
+          'config-file = sets-theme.conf\ntheme = local\n',
+          IncludeMergePolicy.ghostty,
+        );
+
+        expect(doc.entries, [FlatEntry('theme', 'included')]);
+      });
+
+      test('a line after the directive survives when no include sets it', () {
+        final doc = read(
+          'config-file = other.conf\nmine = kept\n',
+          IncludeMergePolicy.ghostty,
+        );
+
+        expect(doc.entries, [
+          FlatEntry('unrelated', 'yes'),
+          FlatEntry('mine', 'kept'),
+        ]);
+      });
+    });
+
+    group('8.2 lastWins', () {
+      test('each directive expands where it was written', () {
+        final doc = read(
+          'a = 1\nconfig-file = sets-theme.conf\nb = 2\n',
+          IncludeMergePolicy.lastWins,
+        );
+
+        expect(doc.entries, [
+          FlatEntry('a', '1'),
+          FlatEntry('theme', 'included'),
+          FlatEntry('b', '2'),
+        ]);
+      });
+
+      test('a line below the directive wins', () {
+        final doc = read(
+          'config-file = sets-theme.conf\ntheme = local\n',
+          IncludeMergePolicy.lastWins,
+        );
+
+        expect(doc['theme'], 'local');
+      });
+    });
+
+    group('8.3 rules both policies share', () {
+      for (final policy in IncludeMergePolicy.values) {
+        test('a later include beats an earlier one, under $policy', () {
+          final doc = read(
+            'config-file = sets-theme.conf\nconfig-file = also-theme.conf\n',
+            policy,
+          );
+
+          expect(doc['theme'], 'later');
+        });
+
+        test(
+          'a reset in an include loses to a later include, under $policy',
+          () {
+            final doc = read(
+              'config-file = sets-theme.conf\n'
+              'config-file = resets-theme.conf\n'
+              'config-file = also-theme.conf\n',
+              policy,
+            );
+
+            expect(doc['theme'], 'later');
+          },
+        );
+
+        test('a reset in an include clears an earlier one, under $policy', () {
+          final doc = read(
+            'config-file = sets-theme.conf\nconfig-file = resets-theme.conf\n',
+            policy,
+          );
+
+          expect(doc.lookup('theme'), isA<FlatReset>());
+        });
+
+        test('a directive naming nothing has no effect, under $policy', () {
+          for (final spelling in const ['', '?', '""', '?""']) {
+            final source =
+                'a = 1\n'
+                '${spelling.isEmpty ? 'config-file =' : 'config-file = $spelling'}\n'
+                'b = 2\n';
+
+            expect(read(source, policy).entries, [
+              FlatEntry('a', '1'),
+              FlatEntry('b', '2'),
+            ], reason: 'for «$spelling» under $policy');
+          }
+        });
+      }
     });
   });
 }

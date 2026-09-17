@@ -3,8 +3,8 @@
 ## 1.0.0
 
 A breaking release, and the one that fixes the format's own defects rather
-than only its API. `SPEC.md` is now the normative definition and the
-implementation conforms to it with nothing outstanding;
+than only its API. `SPEC.md` is now the normative definition, and Appendix A
+records where the implementation still departs from it.
 [`doc/migration.md`](doc/migration.md) is the complete table of what to type
 instead, derived from the public API delta against the `v0.5.0` tag.
 
@@ -75,6 +75,14 @@ Added:
 
 Changed:
 
+- **`SPEC.md` §8 is policy-aware.** It described in-place expansion with
+  ordinary last-write-wins — which is `IncludeMergePolicy.lastWins`, not the
+  `ghostty` default the API ships. The section now defines both, names
+  `ghostty` as the default, and the conformance suite tests each policy
+  against its own rule rather than leaving §8 untested.
+- **`flatDocumentFromMapData` is no longer exported.** `FlatDocument.fromData`
+  is the spelling, and shipping both in 1.0 would have made removing one a
+  breaking change of its own.
 - **A reset encodes as `key =`, without the trailing space.** The line used to
   end in one, which SPEC.md §7 prescribed and which nothing reading the file
   cares about — but `git diff --check` and the usual whitespace linters do, and
@@ -142,6 +150,27 @@ Changed:
 
 Fixed:
 
+- **An empty include directive no longer duplicates the entries after it.**
+  `config-file =` ended the head of the document without starting the tail, so
+  everything below it was collected as both and appeared twice. Three separate
+  answers to "is this line a directive?" had drifted apart; there is one now,
+  and it covers all four spellings that name nothing.
+- **A key beginning with a configured comment prefix is refused at encode
+  time.** `;secret` is a valid key — validity is judged against the default `#`
+  so that a document does not become invalid because of the options of whoever
+  reads it — and it encoded to `;secret = value`, which re-parses as a comment
+  with a non-default prefix. The entry disappeared without a trace, and
+  `SPEC.md` §3 always required the encoder to catch this.
+- **`collapse(ignoreResets: true)` now ignores resets.** An ignored reset still
+  claimed a position, so a key written only as a reset survived as one, and a
+  trailing reset moved the value it was supposed to leave alone.
+- **`stripPrefix` refuses a key it cannot rename instead of dropping it.**
+  `window.#secret` and `window. padded` are valid keys that strip to invalid
+  ones, and the entry used to vanish silently.
+- **Data that contains itself is refused.** `FlatDocument.fromData` recursed
+  until the stack ran out; a cyclic map or list now raises an `ArgumentError`
+  naming the key path. Sharing the same map twice is not a cycle and still
+  works.
 - **`FlatDocument.parseBytes` and `streamEntries` accept a
   `Stream<Uint8List>`.** Both transformed the stream with a decoder, which is a
   `StreamTransformer<List<int>, String>` and throws when bound to a stream of

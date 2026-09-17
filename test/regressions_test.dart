@@ -17,6 +17,54 @@ import 'package:test/test.dart';
 /// guard that existed only as one.
 
 void main() {
+  group('data that contains itself is refused, not chased', () {
+    // fromData recursed until the stack ran out. A StackOverflowError is not
+    // catchable in any useful way, so a configuration loader handed a cyclic
+    // structure could only die.
+
+    test('a map containing itself', () {
+      final map = <String, Object?>{};
+      map['self'] = map;
+
+      expect(() => FlatDocument.fromData(map), throwsArgumentError);
+    });
+
+    test('two maps containing each other', () {
+      final a = <String, Object?>{};
+      final b = <String, Object?>{'a': a};
+      a['b'] = b;
+
+      expect(() => FlatDocument.fromData(a), throwsArgumentError);
+    });
+
+    test('a list containing itself', () {
+      // Lists reach the JSON fallback, which signalled this with a
+      // JsonCyclicError — an Error, and so outside what any accessor promises.
+      final list = <Object?>[];
+      list.add(list);
+
+      expect(() => FlatDocument.fromData({'items': list}), throwsArgumentError);
+    });
+
+    test('the same map used twice is sharing, not a cycle', () {
+      final shared = <String, Object?>{'x': 1};
+
+      expect(FlatDocument.fromData({'l': shared, 'r': shared}).toMap(), {
+        'l.x': '1',
+        'r.x': '1',
+      });
+    });
+
+    test('deep but finite nesting still flattens', () {
+      Object? node = 'leaf';
+      for (var i = 0; i < 200; i++) {
+        node = <String, Object?>{'n': node};
+      }
+
+      expect(FlatDocument.fromData({'root': node}).length, 1);
+    });
+  });
+
   group('an ignored reset is absent, not merely unread', () {
     // An ignored reset still claimed an anchor and still updated the last-write
     // position. The existing tests missed both shapes because each of their

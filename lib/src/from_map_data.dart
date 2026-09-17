@@ -154,19 +154,26 @@ typedef CsvItemEncoder = String Function(String item, String keyPath);
 /// Escaper for path key segments before concatenation (applied to root and child segments).
 typedef KeyEscaper = String Function(String rawKey);
 
-/// Public top-level entrypoint used by FlatDocument.fromData.
+/// Flattens nested [data] into a document. Implements [FlatDocument.fromData].
 FlatDocument flatDocumentFromMapData(
   Map<String, Object?> data, {
   FlatDataOptions options = const FlatDataOptions(),
 }) {
   final entries = <FlatEntry>[];
+  final active = Set<Object>.identity();
 
   for (final e in data.entries) {
     final root = options.keyEscaper != null
         ? options.keyEscaper!(e.key)
         : e.key;
 
-    flattenValue(keyPath: root, value: e.value, options: options, out: entries);
+    flattenValue(
+      keyPath: root,
+      value: e.value,
+      options: options,
+      out: entries,
+      active: active,
+    );
   }
 
   return FlatDocument.fromEntries(entries);
@@ -175,11 +182,15 @@ FlatDocument flatDocumentFromMapData(
 // ===== Helper Implementations (top-level; no nested functions) =====
 
 /// Recursively flattens `value` at `keyPath` into `out` respecting `options`.
+///
+/// `active` holds the maps on the path from the root to `value`, so that a map
+/// reaching itself is reported instead of recursing until the stack runs out.
 void flattenValue({
   required String keyPath,
   required Object? value,
   required FlatDataOptions options,
   required List<FlatEntry> out,
+  required Set<Object> active,
 }) {
   // Highest priority: user-supplied encoder may force a specific representation for ANY value.
   final forced = _tryValueOverride(
@@ -217,6 +228,18 @@ void flattenValue({
   // Map traversal (accept any Map; convert keys to string paths).
   if (value is Map) {
     final map = value;
+
+    // By identity, not equality: two maps with equal contents are not a cycle,
+    // and the same map appearing twice as a sibling is sharing rather than
+    // recursion. Only a map that is its own descendant cannot terminate.
+    if (!active.add(map)) {
+      throw ArgumentError.value(
+        keyPath,
+        'data',
+        'Cyclic structure: the value at this key contains itself',
+      );
+    }
+
     for (final entry in map.entries) {
       final rawChild = entry.key.toString();
       final childKey = _toChildPath(
@@ -230,8 +253,11 @@ void flattenValue({
         value: entry.value,
         options: options,
         out: out,
+        active: active,
       );
     }
+
+    active.remove(map);
 
     return;
   }
@@ -321,7 +347,23 @@ String joinAsCsv({
 }
 
 /// Returns a JSON-encoded representation of the object (null-safe).
-String encodeJson(Object? value) => convert.jsonEncode(value);
+///
+/// A composite the flattener does not descend into — a list, or anything that
+/// is neither scalar, map nor list — ends up here. `jsonEncode` signals a
+/// structure that contains itself with a [JsonCyclicError], which is an
+/// `Error`: the wrong shape for bad input, and it escapes the nullable
+/// accessor contract of everything built on top.
+String encodeJson(Object? value) {
+  try {
+    return convert.jsonEncode(value);
+  } on convert.JsonCyclicError {
+    throw ArgumentError.value(
+      value.runtimeType.toString(),
+      'data',
+      'Cyclic structure: a value of this type contains itself',
+    );
+  }
+}
 
 // ===== Private helpers =====
 

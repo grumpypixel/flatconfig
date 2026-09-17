@@ -9,5 +9,8 @@ pubspec.lock
 # Coverage outputs (keep lcov.info tracked)
 coverage/*
 #!coverage/lcov.info
+
+# Generated API documentation; the prose pages under doc/ are tracked.
+doc/api/
 .DS_Store
 .vscode/settings.json

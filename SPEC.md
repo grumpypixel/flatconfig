@@ -207,15 +207,44 @@ a =        # resolved: a -> null
 ```
 
 Includes are directives, not keys. A line whose key equals the include key
-(default `config-file`) is replaced, in place, by the entries of the referenced
-document, processed depth-first. A target prefixed with `?` is optional and
-silently skipped when it cannot be resolved.
+(default `config-file`) names another document, whose entries are pulled in and
+processed depth-first. A target prefixed with `?` is optional and silently
+skipped when it cannot be resolved. A directive that names nothing once the
+marker and any quotes are removed — `config-file =`, `config-file = ?`,
+`config-file = ""`, `config-file = ?""` — resolves nothing and has no effect on
+the document at all, including on the boundaries defined below.
 
-Because inclusion is textual and in place, include precedence falls out of the
-last-write-wins rule in this section — it needs no separate mechanism.
+Where those entries land is a **merge policy**, and a document does not say
+which one applies; the program reading it does. Two are defined.
+
+### 8.1 `ghostty` — the default
+
+The including document contributes its entries before the first directive, then
+every included entry in directive order, then the entries after the first
+directive **except** those whose key an include set.
+
+A key any include sets therefore belongs to the includes, wherever the local
+line is written. A line before the first directive survives as an entry and
+loses the resolved value; a line after it is dropped. This is Ghostty's
+behaviour, which this format is modelled on, and it is why a local override has
+to be arranged rather than merely written last.
+
+### 8.2 `lastWins`
+
+Each directive is replaced, in place, by the entries of the document it names.
+Precedence then falls out of the last-write-wins rule above and needs no
+separate mechanism — what most formats do, and what a line written below an
+include looks like it should do.
+
+### 8.3 Common rules
+
+Under both policies a later include beats an earlier one, and a reset inside an
+include is an ordinary value: it clears what came before and loses to what
+comes after.
 
 A document MUST NOT include itself, directly or transitively. Cycles are an
-error, as is exceeding the configured depth limit.
+error, as is exceeding the configured depth limit or any other traversal
+budget the implementation enforces.
 
 ## 9. Errors
 
