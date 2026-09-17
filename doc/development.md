@@ -88,8 +88,8 @@ spec first; if the two disagree, the spec is right and the code is the bug.
 
 The repository is a colocated `jj`/`git` checkout. Work happens through
 [Jujutsu](https://jj-vcs.github.io/jj/): edit, then `jj commit -m "…"`. There is
-no staging area, bookmarks do not advance on their own, and `main` (0.5.x) and
-`v1` are separate lines on purpose. Commit messages follow Conventional Commits.
+no staging area and bookmarks do not advance on their own, so move one
+explicitly before pushing. Commit messages follow Conventional Commits.
 
 ## House rules
 

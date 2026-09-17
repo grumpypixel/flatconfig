@@ -1,10 +1,19 @@
 # Changelog
 
-## Unreleased — towards 1.0.0
+## 1.0.0
 
-On the `v1` bookmark, not on `main`. These are breaking and are meant to land
-together as `1.0.0`. See `SPEC.md` for the rules and `ROADMAP_1.0.md` for what
-is still outstanding.
+A breaking release, and the one that fixes the format's own defects rather
+than only its API. `SPEC.md` is now the normative definition and the
+implementation conforms to it with nothing outstanding;
+[`doc/migration.md`](doc/migration.md) is the complete table of what to type
+instead, derived from the public API delta against the `v0.5.0` tag.
+
+Most of what follows is a compiler error on upgrade, which makes it easy to
+work through. The dangerous part is the rest: quoted values now close at the
+first unescaped quote, the empty string round-trips, and backslashes survive
+the inline grammar — so a valid 0.5.x file can parse to something different
+without anything failing to build. Section 10 of the migration guide collects
+those.
 
 Added:
 
