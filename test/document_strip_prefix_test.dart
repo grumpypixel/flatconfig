@@ -76,16 +76,41 @@ window.size = large
       expect(clean.toMap(), equals({'mode': 'b', 'size': 'large'}));
     });
 
-    test('strip_prefix_drops_an_entry_whose_key_equals_the_prefix', () {
+    test('strip_prefix_refuses_a_key_it_cannot_rename', () {
+      // Every one of these is a valid key that strips to an invalid one: the
+      // empty key, one starting with the comment prefix, one starting with
+      // whitespace. Dropping them silently lost an entry the caller never
+      // heard about, so the operation fails instead and names the key.
+      for (final key in const ['window.', 'window.#secret', 'window. padded']) {
+        final doc = FlatDocument([
+          FlatEntry(key, 'value'),
+          FlatEntry('window.width', '800'),
+        ]);
+
+        expect(
+          () => doc.stripPrefix('window.'),
+          throwsA(
+            isA<ArgumentError>().having(
+              (e) => e.toString(),
+              'message',
+              contains(key),
+            ),
+          ),
+          reason: key,
+        );
+      }
+    });
+
+    test('strip_prefix_renames_everything_it_can', () {
       final doc = FlatDocument.parse('''
-window. = value
 window.width = 800
+window.height = 600
 ''');
 
-      // Stripping leaves an empty key, which no document can hold, so the
-      // entry goes rather than the whole operation failing.
-      final clean = doc.stripPrefix('window.');
-      expect(clean.toMap(), equals({'width': '800'}));
+      expect(doc.stripPrefix('window.').toMap(), {
+        'width': '800',
+        'height': '600',
+      });
     });
 
     test('strip_prefix_preserves_resets', () {

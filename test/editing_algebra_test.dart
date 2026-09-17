@@ -202,8 +202,16 @@ void main() {
           ..withEntry(FlatEntry(key, 'v'))
           ..concat(FlatDocument.parse('z = 9\n'))
           ..collapse()
-          ..slice('a')
-          ..stripPrefix('a');
+          ..slice('a');
+
+        // stripPrefix refuses a key it cannot rename, which a document whose
+        // key is exactly `a` has. An operation that throws has to leave the
+        // original alone just as one that returns does.
+        try {
+          doc.stripPrefix('a');
+        } on ArgumentError {
+          // Expected for that corpus member.
+        }
 
         expect(doc.entries, before);
       });

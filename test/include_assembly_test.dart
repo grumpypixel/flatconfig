@@ -13,9 +13,9 @@ void main() {
 
       final collected = collectIncludes(doc, const FlatIncludeOptions());
 
-      expect(collected.seenAnyInclude, isFalse);
       expect(collected.includeTargets, isEmpty);
       expect(collected.preIncludeEntries, doc.entries);
+      expect(collected.postIncludeEntries, isEmpty);
     });
 
     test('targets are trimmed and kept in document order', () {
@@ -30,20 +30,31 @@ void main() {
 
       expect(collected.includeTargets, ['inc1', 'inc2']);
       expect(collected.preIncludeEntries, [FlatEntry('x', 'root')]);
+      expect(collected.postIncludeEntries, [FlatEntry('y', 'tail')]);
     });
 
-    test('a directive with no value names nothing and is not a target', () {
-      final doc = FlatDocument([
-        FlatEntry.reset('config-file'),
-        FlatEntry('config-file', '   '),
-        FlatEntry('a', '1'),
-      ]);
+    test('a directive that names nothing is neither target nor boundary', () {
+      // All four spellings have to agree, and they have to agree with the
+      // boundary: a line that resolves nothing must not start the tail, or
+      // the entries after it belong to the head and the tail at once.
+      for (final spelling in const ['', '   ', '?', '""', '?""', '? ""']) {
+        final doc = FlatDocument([
+          FlatEntry('config-file', spelling.isEmpty ? null : spelling),
+          FlatEntry('a', '1'),
+        ]);
 
-      final collected = collectIncludes(doc, const FlatIncludeOptions());
+        final collected = collectIncludes(doc, const FlatIncludeOptions());
 
-      expect(collected.includeTargets, isEmpty);
-      expect(collected.seenAnyInclude, isFalse);
-      expect(collected.preIncludeEntries, [FlatEntry('a', '1')]);
+        expect(collected.includeTargets, isEmpty, reason: 'for «$spelling»');
+        expect(collected.preIncludeEntries, [
+          FlatEntry('a', '1'),
+        ], reason: 'for «$spelling»');
+        expect(
+          collected.postIncludeEntries,
+          isEmpty,
+          reason: 'for «$spelling»',
+        );
+      }
     });
   });
 

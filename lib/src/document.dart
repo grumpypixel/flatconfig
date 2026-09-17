@@ -775,12 +775,10 @@ class FlatDocument {
       }
 
       if (ignoreResets && e.value == null) {
-        // If ignoreResets is active and the entry is a "Reset" (key =),
-        // then the previous value is retained and no update to null is performed.
-        // Nevertheless, the position (lastIndex) is updated, so that subsequent values can correctly
-        // overwrite the anchor.
-        anchorIndex.putIfAbsent(e.key, () => i);
-        lastIndex[e.key] = i;
+        // Ignored has to mean absent. Setting an anchor here kept a key whose
+        // only entries were resets alive as a reset, and updating lastIndex
+        // moved the retained value to the ignored entry's position under
+        // CollapseOrder.lastWrite.
         continue;
       }
 
@@ -888,6 +886,8 @@ class FlatDocument {
 
     final buf = StringBuffer();
     for (final e in entries) {
+      checkKeyAgainstCommentPrefix(e.key, options.commentPrefix);
+
       final v = e.value;
       buf.writeln(v == null ? '${e.key} =' : '${e.key} = ${quoteIfNeeded(v)}');
     }
@@ -1149,6 +1149,12 @@ class FlatDocument {
   ///
   /// When [prefix] is empty, this returns a clone of the current document
   /// (including duplicates) without rewriting.
+  ///
+  /// Throws an [ArgumentError] when removing [prefix] would leave a key the
+  /// format cannot hold — an empty one for a key equal to the prefix, or one
+  /// starting with `#` or whitespace for a key such as `window.#secret`. Those
+  /// are valid source keys, so dropping them would lose an entry the caller
+  /// never heard about.
   FlatDocument stripPrefix(String prefix) {
     if (prefix.isEmpty) {
       // Clone original entries unchanged.
@@ -1156,14 +1162,23 @@ class FlatDocument {
     }
 
     final out = <FlatEntry>[];
-    final pLen = prefix.length;
-    for (final k in toMap().keys) {
-      if (!k.startsWith(prefix)) continue;
-      // Stripping can leave nothing behind, as for key == prefix. There is no
-      // entry to keep then, so drop it rather than build an unwritable one.
-      final newKey = k.substring(pLen);
-      if (invalidKeyReason(newKey) != null) continue;
-      out.add(FlatEntry(newKey, this[k]));
+    for (final key in toMap().keys) {
+      if (!key.startsWith(prefix)) {
+        continue;
+      }
+
+      final stripped = key.substring(prefix.length);
+      final reason = invalidKeyReason(stripped);
+      if (reason != null) {
+        throw ArgumentError.value(
+          key,
+          'prefix',
+          "Removing '$prefix' leaves a key that $reason; the entry cannot be "
+              'renamed',
+        );
+      }
+
+      out.add(FlatEntry(stripped, this[key]));
     }
 
     return FlatDocument(out);

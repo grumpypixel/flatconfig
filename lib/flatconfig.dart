@@ -37,7 +37,6 @@ export 'src/from_map_data.dart'
         FlatUnsupportedListItem,
         FlatValueEncoder,
         KeyEscaper,
-        flatDocumentFromMapData,
         rfc4180CsvItemEncoder,
         rfc4180Quote;
 export 'src/issue.dart' show FlatIssue, FlatIssueKind, OnIssue;

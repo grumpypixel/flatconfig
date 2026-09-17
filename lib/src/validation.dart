@@ -123,3 +123,23 @@ void checkKey(String key, [String name = 'key']) {
     throw ArgumentError.value(key, name, 'Key $reason');
   }
 }
+
+/// Throws an [ArgumentError] if [key] would read back as a comment.
+///
+/// Key validity is judged against the default `#`, so that a document does not
+/// become invalid because of the options of whoever parses it (SPEC.md 3). A
+/// configured prefix therefore escapes that check, and `;secret = value`
+/// encodes cleanly and re-parses as a comment — the entry gone without a
+/// trace. SPEC.md 3 puts the check here instead, at the one point where the
+/// prefix in force is known.
+void checkKeyAgainstCommentPrefix(String key, String commentPrefix) {
+  if (commentPrefix.isEmpty || !key.startsWith(commentPrefix)) {
+    return;
+  }
+
+  throw ArgumentError.value(
+    key,
+    'key',
+    "Key must not begin with the comment prefix '$commentPrefix'",
+  );
+}

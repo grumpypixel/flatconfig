@@ -40,7 +40,7 @@ void main() {
       FlatDocument.fromEnvironment(const {'A': '1'}, options: env)['A'],
       '1',
     );
-    expect(flatDocumentFromMapData(const {'a': 1}, options: data)['a'], '1');
+    expect(FlatDocument.fromData(const {'a': 1}, options: data)['a'], '1');
     expect(splitRespectingQuotes('a,b', ','), ['a', 'b']);
     expect(indexOfUnquoted('a,b', ','), 1);
     expect(doc.encode(options: encode).trim(), 'a = 1');

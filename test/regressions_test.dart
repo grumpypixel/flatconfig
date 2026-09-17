@@ -17,6 +17,85 @@ import 'package:test/test.dart';
 /// guard that existed only as one.
 
 void main() {
+  group('an ignored reset is absent, not merely unread', () {
+    // An ignored reset still claimed an anchor and still updated the last-write
+    // position. The existing tests missed both shapes because each of their
+    // keys ended on a real value, where the stale anchor is overwritten again.
+
+    test('a key written only as a reset does not survive', () {
+      final doc = FlatDocument([FlatEntry('a', null)]);
+
+      expect(doc.collapse(ignoreResets: true).entries, isEmpty);
+    });
+
+    test('a trailing reset does not move the value it left alone', () {
+      final doc = FlatDocument([
+        FlatEntry('a', '1'),
+        FlatEntry('b', '2'),
+        FlatEntry('a', null),
+      ]);
+
+      for (final order in CollapseOrder.values) {
+        expect(doc.collapse(ignoreResets: true, order: order).entries, [
+          FlatEntry('a', '1'),
+          FlatEntry('b', '2'),
+        ], reason: 'with $order');
+      }
+    });
+
+    test('a reset between two values still changes nothing', () {
+      final doc = FlatDocument([
+        FlatEntry('a', '1'),
+        FlatEntry('a', null),
+        FlatEntry('a', '3'),
+      ]);
+
+      expect(doc.collapse(ignoreResets: true).entries, [FlatEntry('a', '3')]);
+    });
+
+    test('without the flag a reset is an ordinary last write', () {
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('a', null)]);
+
+      expect(doc.collapse().entries, [FlatEntry('a', null)]);
+      expect(doc.collapse(dropNulls: true).entries, isEmpty);
+    });
+  });
+
+  group('a configured comment prefix reaches the encoder', () {
+    // Key validity is judged against the default `#` so that a document does
+    // not become invalid because of the options of whoever parses it. That
+    // left `;secret` valid at construction, encoding to `;secret = value` and
+    // re-parsing to nothing at all — the entry gone without a trace.
+    for (final prefix in const [';', '//', '--']) {
+      test('a key beginning with «$prefix» is refused at encode time', () {
+        final doc = FlatDocument([FlatEntry('${prefix}secret', 'value')]);
+
+        expect(
+          () => doc.encode(options: FlatEncodeOptions(commentPrefix: prefix)),
+          throwsArgumentError,
+        );
+        // Only against the prefix in force. The same document is fine with the
+        // default, where `;secret` is an ordinary key.
+        expect(doc.encode(), '${prefix}secret = value\n');
+      });
+    }
+
+    test('the default prefix needs no encode-time check', () {
+      // A key beginning with `#` cannot be built, so the guard never fires for
+      // the common case.
+      expect(() => FlatEntry('#secret', 'value'), throwsArgumentError);
+    });
+
+    test('an empty prefix disables the check with comments', () {
+      final doc = FlatDocument([FlatEntry(';secret', 'value')]);
+
+      expect(
+        doc.encode(options: const FlatEncodeOptions(commentPrefix: '')),
+        ';secret = value\n',
+      );
+    });
+  });
+
   group('a byte stream is whatever the caller happens to hold', () {
     // Both entry points transformed the stream with a decoder, which is a
     // StreamTransformer<List<int>, String> and throws when bound to a
@@ -168,9 +247,51 @@ void main() {
         );
 
         expect(doc.toMap(), {'k': 'v'}, reason: directive);
+        // Asserting toMap() alone is what hid the duplicate below for a
+        // release: a key repeated with the same value resolves identically.
+        expect(doc.entries, [FlatEntry('k', 'v')], reason: directive);
       }
 
       expect(counting.requested, isEmpty);
+    });
+
+    test('a directive that names nothing does not start the tail', () {
+      // The head stopped at the first line using the include key, while the
+      // tail started there too, so an entry after an empty directive was
+      // collected as both and appeared twice.
+      for (final directive in const [
+        'config-file =',
+        'config-file = ?',
+        'config-file = ""',
+        'config-file = ?""',
+      ]) {
+        final doc = parseWithIncludesSync(
+          'a = 1\n$directive\nb = 2\n',
+          resolver: _CountingResolver(),
+        );
+
+        expect(doc.entries, [
+          FlatEntry('a', '1'),
+          FlatEntry('b', '2'),
+        ], reason: directive);
+      }
+    });
+
+    test('an empty directive does not shield a key from a real include', () {
+      // The boundary decides which local entries an include may drop. With the
+      // empty directive counted as one, `b` sat in the tail and lost to the
+      // include; it belongs to the head, where it survives and loses only the
+      // lookup.
+      final doc = parseWithIncludesSync(
+        'config-file =\nb = local\nconfig-file = theme.conf\n',
+        resolver: MemoryIncludeResolver(const {'theme.conf': 'b = included'}),
+      );
+
+      expect(doc.entries, [
+        FlatEntry('b', 'local'),
+        FlatEntry('b', 'included'),
+      ]);
+      expect(doc['b'], 'included');
     });
   });
 }

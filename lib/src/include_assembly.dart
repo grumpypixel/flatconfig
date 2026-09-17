@@ -3,6 +3,7 @@
 // so it lives in one place rather than in each parse path.
 
 import 'document.dart';
+import 'include_path_utils.dart';
 import 'options.dart';
 
 /// What a document's own entries and its includes' entries were found to be.
@@ -15,49 +16,74 @@ final class CollectedIncludes {
   const CollectedIncludes({
     required this.includeTargets,
     required this.preIncludeEntries,
-    required this.seenAnyInclude,
+    required this.postIncludeEntries,
   });
 
   /// The include values found in the document, in order.
   final List<String> includeTargets;
 
-  /// Entries that appeared before the first include directive.
+  /// Entries that appeared before the first directive.
   final List<FlatEntry> preIncludeEntries;
 
-  /// Whether any include directive named something.
-  final bool seenAnyInclude;
+  /// Entries that appeared after the first directive.
+  final List<FlatEntry> postIncludeEntries;
 }
 
-/// Collects include targets and the entries preceding the first directive.
+/// The target [entry] names, or `null` when it is not an include directive.
+///
+/// A line that uses the include key but names nothing — `config-file =`,
+/// `config-file = ?`, `config-file = ""`, `config-file = ?""` — is not a
+/// directive. It asks no resolver anything, and it must not act as the
+/// boundary the tail is measured from either, or a line that does nothing
+/// would change what the document means.
+String? _directiveTarget(FlatEntry entry, FlatIncludeOptions options) {
+  if (entry.key != options.includeKey) {
+    return null;
+  }
+
+  final raw = entry.value?.trim();
+  if (raw == null || raw.isEmpty) {
+    return null;
+  }
+
+  return processIncludePath(raw).isEmpty ? null : raw;
+}
+
+/// Splits [doc] into its include targets and the entries around them.
+///
+/// One pass, because the two halves have to agree on where the first directive
+/// is. Deciding that twice is what let an empty directive start the tail
+/// without ending the head, which duplicated every entry after it.
 CollectedIncludes collectIncludes(
   FlatDocument doc,
   FlatIncludeOptions options,
 ) {
   final includeTargets = <String>[];
   final preIncludeEntries = <FlatEntry>[];
-  var seenAnyInclude = false;
+  final postIncludeEntries = <FlatEntry>[];
 
   for (final entry in doc.entries) {
-    if (entry.key != options.includeKey) {
-      if (!seenAnyInclude) {
-        preIncludeEntries.add(entry);
+    if (entry.key == options.includeKey) {
+      // A directive line never survives as an entry, whether it names
+      // something or not.
+      final target = _directiveTarget(entry, options);
+      if (target != null) {
+        includeTargets.add(target);
       }
       continue;
     }
 
-    final target = entry.value?.trim();
-    if (target == null || target.isEmpty) {
-      continue;
+    if (includeTargets.isEmpty) {
+      preIncludeEntries.add(entry);
+    } else {
+      postIncludeEntries.add(entry);
     }
-
-    includeTargets.add(target);
-    seenAnyInclude = true;
   }
 
   return CollectedIncludes(
     includeTargets: includeTargets,
     preIncludeEntries: preIncludeEntries,
-    seenAnyInclude: seenAnyInclude,
+    postIncludeEntries: postIncludeEntries,
   );
 }
 
@@ -86,13 +112,16 @@ FlatDocument _assembleGhostty(
   FlatIncludeOptions options,
   List<List<FlatEntry>> groups,
 ) {
+  final collected = collectIncludes(doc, options);
   final includeEntries = [for (final group in groups) ...group];
   final keysFromIncludes = {for (final entry in includeEntries) entry.key};
 
   return FlatDocument([
-    ...collectIncludes(doc, options).preIncludeEntries,
+    ...collected.preIncludeEntries,
     ...includeEntries,
-    ..._tailEntries(doc, options, keysFromIncludes),
+    ...collected.postIncludeEntries.where(
+      (entry) => !keysFromIncludes.contains(entry.key),
+    ),
   ]);
 }
 
@@ -114,40 +143,10 @@ FlatDocument _assembleLastWins(
       continue;
     }
 
-    final target = entry.value?.trim();
-    if (target == null || target.isEmpty) {
-      continue;
-    }
-
-    if (nextGroup < groups.length) {
+    if (_directiveTarget(entry, options) != null && nextGroup < groups.length) {
       entries.addAll(groups[nextGroup++]);
     }
   }
 
   return FlatDocument(entries);
-}
-
-/// Entries after the first include directive that no include already set.
-List<FlatEntry> _tailEntries(
-  FlatDocument doc,
-  FlatIncludeOptions options,
-  Set<String> keysFromIncludes,
-) {
-  final tail = <FlatEntry>[];
-  var afterFirstInclude = false;
-
-  for (final entry in doc.entries) {
-    if (entry.key == options.includeKey) {
-      afterFirstInclude = true;
-      continue;
-    }
-
-    if (!afterFirstInclude || keysFromIncludes.contains(entry.key)) {
-      continue;
-    }
-
-    tail.add(entry);
-  }
-
-  return tail;
 }
