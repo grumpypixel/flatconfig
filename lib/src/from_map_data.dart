@@ -2,6 +2,7 @@ import 'dart:convert' as convert;
 
 import 'constants.dart';
 import 'document.dart';
+import 'validation.dart';
 
 /// Controls how nested Map/List data are flattened into FlatEntries.
 final class FlatDataOptions {
@@ -12,14 +13,25 @@ final class FlatDataOptions {
     this.csvSeparator = ', ',
     this.csvNullToken = '',
     this.dropNulls = false,
+    this.maxDepth = 64,
     this.valueEncoder,
     this.csvItemEncoder,
     this.keyEscaper,
     this.onUnsupportedListItem = FlatUnsupportedListItem.encodeJson,
-  });
+  }) : assert(maxDepth >= 0, 'maxDepth must not be negative');
 
   /// Path separator between nested keys, e.g. `a.b.c`.
   final String separator;
+
+  /// How deep nesting may go before flattening gives up.
+  ///
+  /// Cycle detection catches a structure that reaches itself, which is the
+  /// unbounded case. A deep but finite one still recurses once per level and
+  /// runs out of stack somewhere past a few thousand — as a `StackOverflowError`,
+  /// which nothing can usefully catch. This turns it into an `ArgumentError`
+  /// naming the key path instead. Defaults to 64, well past what hand-written
+  /// or API-shaped data reaches.
+  final int maxDepth;
 
   /// How lists are encoded: multiple entries or a single CSV string.
   final FlatListMode listMode;
@@ -59,6 +71,7 @@ final class FlatDataOptions {
     String? csvSeparator,
     String? csvNullToken,
     bool? dropNulls,
+    int? maxDepth,
     FlatValueEncoder? valueEncoder = _unsetValueEncoder,
     CsvItemEncoder? csvItemEncoder = _unsetCsvItemEncoder,
     KeyEscaper? keyEscaper = _unsetKeyEscaper,
@@ -69,6 +82,7 @@ final class FlatDataOptions {
     csvSeparator: csvSeparator ?? this.csvSeparator,
     csvNullToken: csvNullToken ?? this.csvNullToken,
     dropNulls: dropNulls ?? this.dropNulls,
+    maxDepth: maxDepth ?? this.maxDepth,
     valueEncoder: identical(valueEncoder, _unsetValueEncoder)
         ? this.valueEncoder
         : valueEncoder,
@@ -85,7 +99,7 @@ final class FlatDataOptions {
   String toString() =>
       'FlatDataOptions(separator: $separator, listMode: ${listMode.name}, '
       'csvSeparator: $csvSeparator, csvNullToken: $csvNullToken, '
-      'dropNulls: $dropNulls, '
+      'dropNulls: $dropNulls, maxDepth: $maxDepth, '
       'onUnsupportedListItem: ${onUnsupportedListItem.name})';
 
   @override
@@ -96,6 +110,7 @@ final class FlatDataOptions {
       other.csvSeparator == csvSeparator &&
       other.csvNullToken == csvNullToken &&
       other.dropNulls == dropNulls &&
+      other.maxDepth == maxDepth &&
       other.valueEncoder == valueEncoder &&
       other.csvItemEncoder == csvItemEncoder &&
       other.keyEscaper == keyEscaper &&
@@ -108,6 +123,7 @@ final class FlatDataOptions {
     csvSeparator,
     csvNullToken,
     dropNulls,
+    maxDepth,
     valueEncoder,
     csvItemEncoder,
     keyEscaper,
@@ -159,6 +175,8 @@ FlatDocument flatDocumentFromMapData(
   Map<String, Object?> data, {
   FlatDataOptions options = const FlatDataOptions(),
 }) {
+  checkNonNegative(options.maxDepth, 'maxDepth');
+
   final entries = <FlatEntry>[];
   final active = Set<Object>.identity();
 
@@ -185,12 +203,15 @@ FlatDocument flatDocumentFromMapData(
 ///
 /// `active` holds the maps on the path from the root to `value`, so that a map
 /// reaching itself is reported instead of recursing until the stack runs out.
+/// `depth` bounds the other way of running out: nesting that is finite but
+/// deeper than the stack.
 void flattenValue({
   required String keyPath,
   required Object? value,
   required FlatDataOptions options,
   required List<FlatEntry> out,
   required Set<Object> active,
+  int depth = 0,
 }) {
   // Highest priority: user-supplied encoder may force a specific representation for ANY value.
   final forced = _tryValueOverride(
@@ -240,6 +261,14 @@ void flattenValue({
       );
     }
 
+    if (depth >= options.maxDepth) {
+      throw ArgumentError.value(
+        keyPath,
+        'data',
+        'Nested deeper than maxDepth (${options.maxDepth})',
+      );
+    }
+
     for (final entry in map.entries) {
       final rawChild = entry.key.toString();
       final childKey = _toChildPath(
@@ -254,6 +283,7 @@ void flattenValue({
         options: options,
         out: out,
         active: active,
+        depth: depth + 1,
       );
     }
 

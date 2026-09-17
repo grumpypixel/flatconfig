@@ -173,12 +173,14 @@ class FlatIncludeOptions {
 
   /// Maximum number of include directives one traversal may follow.
   ///
-  /// Bounds the work of reaching documents: for a resolver backed by a
-  /// network or a database, this is the number of requests a single parse can
-  /// make. Counts every directive followed, including repeats of a target the
-  /// traversal has already read.
+  /// Bounds the work of reaching documents: for a resolver backed by a network
+  /// or a database, this is the number of requests a single parse can make.
+  /// Charged before the request goes out, so a directive counts whether or not
+  /// anything answers it — an optional include that is not there costs a
+  /// lookup all the same. Repeats of a target already read count too.
   ///
-  /// Exceeding it raises `IncludeBudgetExceededException`. Defaults to 256.
+  /// Zero disallows includes: the first directive naming something raises
+  /// `IncludeBudgetExceededException`, and nothing is asked. Defaults to 256.
   final int maxIncludes;
 
   /// Maximum number of entries all of a traversal's includes may contribute.

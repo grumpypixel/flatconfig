@@ -148,6 +148,8 @@ extension FlatConfigIncludes on FlatDocument {
         continue;
       }
 
+      traversal.chargeInclude(processed.path);
+
       final includedFile = _resolveChild(baseDir, processed.path);
 
       final FlatDocument subDoc;
@@ -192,6 +194,8 @@ extension FlatConfigIncludes on FlatDocument {
         groups.add(const []);
         continue;
       }
+
+      traversal.chargeInclude(processed.path);
 
       final includedFile = _resolveChild(baseDir, processed.path);
 

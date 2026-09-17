@@ -36,7 +36,9 @@ final doc = parseWithIncludesSync(
 - **A directive naming nothing contributes nothing.** `config-file =`,
   `config-file = ?` and `config-file = ""` ask no resolver anything.
 - **Quoted paths work**, and escapes for quotes and backslashes are decoded in
-  them. That is independent of `decodeEscapesInQuoted`, which governs values.
+  them, subject to `decodeEscapesInQuoted` like any other quoted value. The
+  quotes wrap the name; a name that contains quote characters of its own keeps
+  them.
 - **The key is configurable** through `FlatIncludeOptions(includeKey: 'include')`.
 
 ## Where the entries land

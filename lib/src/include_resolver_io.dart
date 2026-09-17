@@ -27,10 +27,7 @@ class FileIncludeResolver extends SyncIncludeResolver {
 
   @override
   IncludeUnit? resolveSync(IncludeRequest request) {
-    final fromId = request.fromId;
-    final Directory baseDir = (fromId != null && fromId.isNotEmpty)
-        ? File(fromId).parent
-        : Directory.current;
+    final baseDir = _baseDirectoryFor(request.fromId);
 
     final absPath = p.isAbsolute(request.target)
         ? request.target
@@ -57,6 +54,30 @@ class FileIncludeResolver extends SyncIncludeResolver {
     }
 
     return IncludeUnit(id: normalizeCanonicalPath(canonical), content: content);
+  }
+
+  /// The directory a relative target is resolved against.
+  ///
+  /// Symbolic links are followed first, so that a unit reached through a link
+  /// looks for its neighbours where it really lives. The `File` API resolves
+  /// the including unit the same way, and the two produced different documents
+  /// for a symlinked root while only this side skipped the step.
+  ///
+  /// [fromId] is not always a path — a caller may pass `mem:main.conf` or
+  /// leave it out — so a name that does not resolve falls back to its lexical
+  /// directory.
+  Directory _baseDirectoryFor(String? fromId) {
+    if (fromId == null || fromId.isEmpty) {
+      return Directory.current;
+    }
+
+    final origin = File(fromId);
+
+    try {
+      return File(resolveCanonicalPath(origin)).parent;
+    } catch (_) {
+      return origin.parent;
+    }
   }
 
   /// Resolves the canonical path for a file.

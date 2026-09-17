@@ -77,15 +77,30 @@ void main() {
       );
     });
 
-    test('a path that does not exist falls back to the platform', () {
-      // Nothing to probe. Everywhere but Windows the harmless answer wins:
-      // two spellings stay distinct rather than collapsing onto one file.
+    test('a path that does not exist keeps its spelling', () {
+      // Nothing to probe, so the harmless answer wins on every platform: two
+      // spellings stay distinct rather than collapsing onto one file. Folding
+      // a file that is really two serves the wrong content and invents cycles;
+      // failing to fold one file reached twice only reads it twice.
       const input = '/no/such/File.CONF';
-      final expected = Platform.isWindows ? input.toLowerCase() : input;
 
       expect(
         normalizeCanonicalPath(input, folding: FilesystemCaseFolding()),
-        equals(expected),
+        equals(input),
+      );
+    });
+
+    test('the undecided answer is the caller\'s to choose', () {
+      // The inconclusive branch is otherwise reachable only on a filesystem
+      // the test happens to run on.
+      const input = '/no/such/File.CONF';
+
+      expect(
+        normalizeCanonicalPath(
+          input,
+          folding: FilesystemCaseFolding(whenUndecided: true),
+        ),
+        equals(input.toLowerCase()),
       );
     });
 
@@ -451,7 +466,7 @@ include = theme.conf
       final baseFile = File('${tempDir.path}/base.conf');
 
       final entries = inc.FlatConfigIncludes.processIncludesSync(
-        ['"included.conf"'],
+        ['?"included.conf"'],
         baseFile.parent,
         baseFile.absolute.path,
         traversal: IncludeTraversal(
@@ -1454,7 +1469,7 @@ theme = light
 
       // Test with quoted path
       final entries = await inc.FlatConfigIncludes.processIncludes(
-        ['"included.conf"'], // quoted path
+        ['?"included.conf"'], // quoted path
         baseFile.parent,
         baseFile.absolute.path,
         traversal: IncludeTraversal(

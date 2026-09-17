@@ -115,18 +115,22 @@ void main() {
   });
 
   group('maxIncludes', () {
-    test('it bounds how many directives a traversal follows', () {
-      // Distinct targets, so the cache never spares a read. This is the shape
-      // that costs a network resolver a request per directive.
-      final units = {for (var i = 0; i < 40; i++) 'u$i.conf': 'k$i = v'};
-      final source = [
-        for (var i = 0; i < 40; i++) 'config-file = u$i.conf',
-      ].join('\n');
-      final resolver = _CountingMemoryResolver(units);
+    /// A source naming [count] distinct targets, so the cache spares no
+    /// request. This is the shape that costs a network resolver one round trip
+    /// per directive.
+    String directives(int count, {bool optional = false}) => [
+      for (var i = 0; i < count; i++)
+        'config-file = ${optional ? '?' : ''}u$i.conf',
+    ].join('\n');
+
+    test('it bounds how many requests a traversal makes', () {
+      final resolver = _CountingMemoryResolver({
+        for (var i = 0; i < 40; i++) 'u$i.conf': 'k$i = v',
+      });
 
       expect(
         () => parseWithIncludesSync(
-          source,
+          directives(40),
           resolver: resolver,
           includeOptions: const FlatIncludeOptions(maxIncludes: 10),
           originId: 'main.conf',
@@ -139,7 +143,58 @@ void main() {
           ),
         ),
       );
-      expect(resolver.calls, 11);
+      // Ten, not eleven: the budget is charged before the request, so the one
+      // that breaches it is never made.
+      expect(resolver.calls, 10);
+    });
+
+    test('a directive nobody answers still costs its request', () {
+      // Charging on the way into the resolved unit let every unanswered
+      // directive through for free, so this resolver was asked fifty times
+      // under a limit of zero.
+      final resolver = _CountingMemoryResolver(const {});
+
+      expect(
+        () => parseWithIncludesSync(
+          directives(50, optional: true),
+          resolver: resolver,
+          includeOptions: const FlatIncludeOptions(maxIncludes: 0),
+          originId: 'main.conf',
+        ),
+        throwsA(isA<IncludeBudgetExceededException>()),
+      );
+      expect(resolver.calls, isZero);
+    });
+
+    test('an optional include inside the budget is still skipped quietly', () {
+      final resolver = _CountingMemoryResolver(const {});
+
+      expect(
+        parseWithIncludesSync(
+          'a = 1\n${directives(3, optional: true)}',
+          resolver: resolver,
+          includeOptions: const FlatIncludeOptions(maxIncludes: 3),
+          originId: 'main.conf',
+        ).toMap(),
+        {'a': '1'},
+      );
+      expect(resolver.calls, 3);
+    });
+
+    test('a directive naming nothing is free', () {
+      // It reaches no resolver, so there is no request to charge for.
+      final resolver = _CountingMemoryResolver(const {});
+
+      expect(
+        parseWithIncludesSync(
+          'a = 1\nconfig-file =\nconfig-file = ?""',
+          resolver: resolver,
+          includeOptions: const FlatIncludeOptions(maxIncludes: 0),
+          originId: 'main.conf',
+        ).toMap(),
+        {'a': '1'},
+      );
+      expect(resolver.calls, isZero);
     });
 
     test('the root document is not counted as an include', () {
@@ -218,6 +273,66 @@ void main() {
           originId: tree.main.path,
         ).toMap(),
         expected,
+      );
+    });
+
+    test('the rule holds when the root itself is the link', () {
+      // The first fix only followed links for included children. A symlinked
+      // root still parted ways: the File API resolved it, while the resolver
+      // took the directory straight off the lexical originId.
+      final root = Directory.systemTemp.createTempSync('flatconfig_root_link_');
+      addTearDown(() => root.deleteSync(recursive: true));
+
+      final real = Directory(p.join(root.path, 'real'))..createSync();
+      final linked = Directory(p.join(root.path, 'linked'))..createSync();
+
+      File(
+        p.join(real.path, 'main.conf'),
+      ).writeAsStringSync('config-file = colors.conf\n');
+      File(
+        p.join(real.path, 'colors.conf'),
+      ).writeAsStringSync('from = target directory\n');
+      File(
+        p.join(linked.path, 'colors.conf'),
+      ).writeAsStringSync('from = link directory\n');
+
+      final linkedMain = File(p.join(linked.path, 'main.conf'));
+      try {
+        Link(linkedMain.path).createSync(p.join(real.path, 'main.conf'));
+      } on FileSystemException {
+        markTestSkipped('this platform does not allow creating symlinks');
+
+        return;
+      }
+
+      const expected = {'from': 'target directory'};
+
+      expect(linkedMain.parseWithIncludesSync().toMap(), expected);
+      expect(
+        parseWithIncludesSync(
+          linkedMain.readAsStringSync(),
+          resolver: FileIncludeResolver(),
+          originId: linkedMain.path,
+        ).toMap(),
+        expected,
+      );
+    });
+
+    test('an origin that is not a path falls back to its lexical form', () {
+      // A resolver origin may be anything the caller chose, so resolving it
+      // must not be a precondition for resolving relative targets.
+      final dir = Directory.systemTemp.createTempSync('flatconfig_origin_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      File(p.join(dir.path, 'theme.conf')).writeAsStringSync('a = 1\n');
+
+      expect(
+        parseWithIncludesSync(
+          'config-file = theme.conf',
+          resolver: FileIncludeResolver(),
+          originId: p.join(dir.path, 'no-such-main.conf'),
+        ).toMap(),
+        {'a': '1'},
       );
     });
   });
@@ -352,6 +467,21 @@ void main() {
         target(r'"\\server\share\x.conf"', decodeEscapes: false),
         r'\\server\share\x.conf',
       );
+    });
+
+    test('a filename that really contains quotes keeps them', () {
+      // Without a marker the parser has already removed the outer layer and
+      // decoded \" to ", leaving a name whose first and last characters are
+      // quotes. Deciding by appearance took a second layer off and asked for a
+      // different file. The helper above adds a marker, so this goes direct.
+      echo.seen.clear();
+      parseWithIncludesSync(
+        r'config-file = "\"quoted path.conf\""',
+        resolver: echo,
+        originId: 'main.conf',
+      );
+
+      expect(echo.seen.single, '"quoted path.conf"');
     });
 
     test('the marker does not change what a quoted path means', () {

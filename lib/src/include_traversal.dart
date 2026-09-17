@@ -23,9 +23,9 @@ final class IncludeTraversal {
     required this.includeOptions,
     required this.readOptions,
   }) {
-    checkIncludeDepth(includeOptions.maxIncludeDepth);
-    checkIncludeBudget(includeOptions.maxIncludes, 'maxIncludes');
-    checkIncludeBudget(includeOptions.maxIncludedEntries, 'maxIncludedEntries');
+    checkNonNegative(includeOptions.maxIncludeDepth, 'maxIncludeDepth');
+    checkNonNegative(includeOptions.maxIncludes, 'maxIncludes');
+    checkNonNegative(includeOptions.maxIncludedEntries, 'maxIncludedEntries');
   }
 
   /// How each unit is parsed.
@@ -55,10 +55,8 @@ final class IncludeTraversal {
   /// as written rather than the canonical one. [includedFrom] names the unit
   /// holding the directive, and is null at the root.
   ///
-  /// Throws [MaxIncludeDepthExceededException] past the configured depth,
-  /// [CircularIncludeException] if [id] is already on the stack, and
-  /// [IncludeBudgetExceededException] once the traversal has followed more
-  /// directives than [FlatIncludeOptions.maxIncludes] allows.
+  /// Throws [MaxIncludeDepthExceededException] past the configured depth and
+  /// [CircularIncludeException] if [id] is already on the stack.
   FlatDocument? begin(
     String id, {
     required String reportedAs,
@@ -68,17 +66,6 @@ final class IncludeTraversal {
     final maxDepth = includeOptions.maxIncludeDepth;
     if (depth > maxDepth) {
       throw MaxIncludeDepthExceededException(reportedAs, depth, maxDepth);
-    }
-
-    // Counted before the cache is consulted: a repeated unit is parsed once,
-    // but its entries are copied into every parent that names it, which is
-    // the cost this bounds.
-    if (depth > 0 && ++_includesFollowed > includeOptions.maxIncludes) {
-      throw IncludeBudgetExceededException(
-        reportedAs,
-        'maxIncludes',
-        includeOptions.maxIncludes,
-      );
     }
 
     if (!_onStack.add(id)) {
@@ -100,6 +87,27 @@ final class IncludeTraversal {
     _finished[id] = document;
 
     return document;
+  }
+
+  /// Charges one directive against [FlatIncludeOptions.maxIncludes].
+  ///
+  /// Call this before asking a resolver or touching the filesystem, because
+  /// the request is what this budget bounds. Charging on the way into the
+  /// resolved unit instead let every directive the resolver could not answer
+  /// through for free, so a limit of zero still permitted any number of
+  /// requests for optional includes that were not there.
+  ///
+  /// [reportedAs] names the target that pushed the traversal over.
+  ///
+  /// Throws [IncludeBudgetExceededException] past the limit.
+  void chargeInclude(String reportedAs) {
+    if (++_includesFollowed > includeOptions.maxIncludes) {
+      throw IncludeBudgetExceededException(
+        reportedAs,
+        'maxIncludes',
+        includeOptions.maxIncludes,
+      );
+    }
   }
 
   /// Charges [count] entries contributed by an include against the budget.

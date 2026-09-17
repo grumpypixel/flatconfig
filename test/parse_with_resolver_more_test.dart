@@ -118,22 +118,45 @@ void main() {
       );
     });
 
-    test('quoted include path with quotes is properly unquoted', () {
+    test('a name that really contains quotes keeps them', () {
+      // The parser removes the outer layer and decodes \" to ", so the value
+      // is a filename whose first and last characters are quotes. Stripping
+      // those too asked for a different file, and this test used to expect it.
       final mem = MemoryIncludeResolver({
-        'mem:quoted path.conf': 'k = v\n',
+        'mem:"quoted path.conf"': 'k = v\n',
       }, prefix: 'mem:');
 
-      // Double quoted path - parser strips outer quotes, leaving inner quotes
-      // This triggers line 175 in parse_with_resolver.dart
-      final text = 'config-file = "\\"quoted path.conf\\""\n';
       final doc = parseWithIncludesSync(
-        text,
+        'config-file = "\\"quoted path.conf\\""\n',
         resolver: mem,
         originId: 'mem:root',
         options: const FlatParseOptions(decodeEscapesInQuoted: true),
       );
 
       expect(doc['k'], 'v');
+    });
+
+    test('the optional marker does not change which file is named', () {
+      // With the marker the parser sees no quoted value at all, so the quotes
+      // are this layer's to remove. Both spellings must still name one file.
+      final mem = MemoryIncludeResolver({
+        'mem:quoted path.conf': 'k = v\n',
+      }, prefix: 'mem:');
+
+      for (final directive in const [
+        'config-file = "quoted path.conf"',
+        'config-file = ?"quoted path.conf"',
+      ]) {
+        expect(
+          parseWithIncludesSync(
+            '$directive\n',
+            resolver: mem,
+            originId: 'mem:root',
+          )['k'],
+          'v',
+          reason: directive,
+        );
+      }
     });
   });
 }

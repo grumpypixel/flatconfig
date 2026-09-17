@@ -11,7 +11,7 @@ coverage/
 
 # Internal planning and tooling.
 ROADMAP_1.0.md
-PACKAGE_REVIEW.md
+REVIEW.md
 justfile
 tool/
 

@@ -101,24 +101,15 @@ void checkCommentPrefix(String prefix) {
   }
 }
 
-/// Throws an [ArgumentError] if [depth] cannot be an include depth.
+/// Throws an [ArgumentError] unless [value] is zero or more.
 ///
-/// `FlatParseOptions` asserts this too, which catches a literal at compile
-/// time, but a release build drops the assert and a computed value would reach
-/// here unchecked.
-void checkIncludeDepth(int depth) {
-  if (depth < 0) {
-    throw ArgumentError.value(depth, 'maxIncludeDepth', 'Must not be negative');
-  }
-}
-
-/// Throws an [ArgumentError] if [limit] cannot be a traversal budget.
-///
-/// Same reasoning as [checkIncludeDepth]: the options class asserts it, and a
-/// release build does not.
-void checkIncludeBudget(int limit, String name) {
-  if (limit < 0) {
-    throw ArgumentError.value(limit, name, 'Must not be negative');
+/// For the limits and budgets the options classes carry. Each asserts its own
+/// too, which catches a literal at compile time, but a release build drops the
+/// assertion and a computed value would go through unchecked — so the code
+/// that relies on the limit checks it as well.
+void checkNonNegative(int value, String name) {
+  if (value < 0) {
+    throw ArgumentError.value(value, name, 'Must not be negative');
   }
 }
 

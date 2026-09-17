@@ -30,11 +30,14 @@ class ProcessedIncludePath {
 /// - Removing surrounding quotes
 /// - Unescaping quotes and backslashes, inside quotes only
 ///
-/// [decodeEscapes] mirrors [FlatParseOptions.decodeEscapesInQuoted] and only
-/// applies to a path this function unquotes itself. A `?` marker hides the
-/// quotes from the parser — `?"a\\b"` is not a quoted value to it — so the
-/// same path reaches here already decoded without the marker and still
-/// wrapped with it. Passing the option through is what makes the two agree.
+/// Quotes are removed here only when a `?` marker was stripped first, because
+/// that marker is the reason the parser did not see them: `?"a.conf"` is not a
+/// quoted value to it, while `"a.conf"` is and has already been unquoted.
+/// Judging by appearance instead cost a second layer — a file genuinely named
+/// `"quoted path.conf"`, quote characters and all, was asked for without them.
+///
+/// [decodeEscapes] mirrors [FlatParseOptions.decodeEscapesInQuoted], so the
+/// two spellings agree on what the quotes protected.
 ///
 /// Returns a [ProcessedIncludePath] with the processed path and metadata.
 ProcessedIncludePath processIncludePath(
@@ -46,12 +49,12 @@ ProcessedIncludePath processIncludePath(
   final optional = path.startsWith(Constants.optionalIncludePrefix);
   if (optional) {
     path = path.substring(1).trim();
-  }
 
-  // An unquoted path is literal (SPEC.md 5), which unquoteToken respects.
-  // Decoding it anyway cost a bare Windows UNC path one of its two leading
-  // backslashes, turning \\server\share into \server\share.
-  path = unquoteToken(path, decodeEscapes: decodeEscapes);
+    // An unquoted path is literal (SPEC.md 5), which unquoteToken respects.
+    // Decoding it anyway cost a bare Windows UNC path one of its two leading
+    // backslashes, turning \\server\share into \server\share.
+    path = unquoteToken(path, decodeEscapes: decodeEscapes);
+  }
 
   // Emptiness is decided on what is left, so a directive that names nothing
   // after the marker and the quotes are gone asks no resolver anything.

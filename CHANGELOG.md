@@ -52,8 +52,14 @@ Added:
   level, and because a repeated unit is parsed once and then copied into every
   parent that names it, sixteen such levels stay at 32 directives while
   reaching 65,536 entries — from under a kilobyte of source, well inside the
-  default depth. The entry budget is charged as entries are handed up, so the
-  refusal happens before the allocation rather than after it.
+  default depth. Both are charged before the cost is incurred: entries as they
+  are handed up, so the refusal lands before the allocation, and a directive
+  before its request goes out, so one nobody answers still counts.
+- **`FlatDataOptions.maxDepth`** — `fromData` recursed once per level of
+  nesting and met the stack somewhere past a few thousand, as a
+  `StackOverflowError` that nothing can usefully catch. Cycle detection covers
+  the unbounded case; this covers the deep but finite one, at 64 levels by
+  default.
 - **`FlatIncludeOptions.mergePolicy`** — Ghostty precedence is a setting now
   rather than the only behaviour. `IncludeMergePolicy.lastWins` expands each
   include where it is written and lets a later entry win, which is what most
@@ -171,17 +177,17 @@ Fixed:
   directory the symlink sits in, while `FileIncludeResolver` resolved it
   against the directory the link points at, so two APIs documented as
   equivalent produced different documents from the same files. Both follow the
-  link now: a configuration file symlinked out of a dotfiles repository finds
-  its neighbours there. Identity still folds case where the filesystem does,
+  link now — the root as much as an included child — so a configuration file
+  symlinked out of a dotfiles repository finds its neighbours there. Identity still folds case where the filesystem does,
   while the directory a child is resolved against keeps the spelling the
   filesystem gave it.
 - **An include path is decoded inside quotes and nowhere else.** Every path was
   escape-decoded regardless, so a bare Windows UNC path reached the resolver
   with one leading backslash instead of two, and `decodeEscapesInQuoted` had no
   effect on include paths in any form. An unquoted value is literal (`SPEC.md`
-  §5), a quoted one is decoded exactly once, and `?"path"` now means what
-  `"path"` means — the `?` marker hides the quotes from the parser, which is
-  why the two used to part ways.
+  §5), and a quoted one is unquoted exactly once — by the parser, or here when
+  a `?` marker hid the quotes from it. Judging by appearance instead took a
+  second layer off a filename that genuinely contains quote characters.
 - **An unreadable include is no longer reported as a missing one.** The
   implementation asked whether a file existed and then read it, so a permission
   failure, a directory in the way or a symlink loop all came back as absence —
@@ -192,9 +198,10 @@ Fixed:
 - **Filesystem identity is asked for rather than inferred.** Deciding whether
   two spellings of a path were one file compared size and modification time,
   which two distinct files share as soon as they are the same length and were
-  written in the same second. It uses `FileSystemEntity.identicalSync` now, and
-  Windows is probed like everything else instead of being assumed
-  case-insensitive.
+  written in the same second. It uses `FileSystemEntity.identicalSync` now,
+  every platform is probed rather than assumed, and a probe that cannot decide
+  answers "case-sensitive" — reading one file twice is the harmless mistake,
+  serving the wrong content is not.
 - **`FileIncludeResolver` takes an encoding.** It always read UTF-8, so a
   Latin-1 include worked through the file API and failed through the resolver
   with the same read options. A resolver hands over text, so the decoding is

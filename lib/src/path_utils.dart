@@ -35,9 +35,18 @@ class FixedCaseFolding implements PathCaseFolding {
 /// per-directory case sensitivity. Assuming macOS is insensitive, as this used
 /// to, collapses `Foo.conf` and `foo.conf` on the volumes that are not.
 ///
-/// A probe that cannot decide falls back to what the platform usually does,
-/// which is the answer that was wrong least often before any probing existed.
+/// A probe that cannot decide answers [whenUndecided], which defaults to the
+/// conservative `false` this class prefers throughout. Naming the platform
+/// instead would fold `A/123` and `a/123` onto one identity in a Windows
+/// directory that is case-sensitive — the probe only ever examines the
+/// basename, and `123` has no other spelling to try.
 class FilesystemCaseFolding implements PathCaseFolding {
+  /// Creates a strategy that answers [whenUndecided] where it cannot tell.
+  FilesystemCaseFolding({this.whenUndecided = false});
+
+  /// The answer given when no probe settles the question.
+  final bool whenUndecided;
+
   final _byDirectory = <String, bool>{};
 
   @override
@@ -52,16 +61,13 @@ class FilesystemCaseFolding implements PathCaseFolding {
     if (probed == null) {
       // Inconclusive for this file, but another file in the same directory may
       // still answer it, so nothing is cached.
-      return _platformDefault;
+      return whenUndecided;
     }
 
     _byDirectory[directory] = probed;
 
     return probed;
   }
-
-  /// What to answer where the filesystem will not say.
-  static bool get _platformDefault => Platform.isWindows;
 
   /// Whether [directory] is case-insensitive, or `null` if [path] cannot tell.
   static bool? _probe(String path, String directory) {

@@ -96,13 +96,49 @@ void main() {
       });
     });
 
-    test('deep but finite nesting still flattens', () {
-      Object? node = 'leaf';
-      for (var i = 0; i < 200; i++) {
-        node = <String, Object?>{'n': node};
+    test('deep but finite nesting is bounded rather than fatal', () {
+      // Cycle detection covers the unbounded case. A finite structure still
+      // recurses once per level and dies of StackOverflowError somewhere past
+      // a few thousand — an Error, which nothing can usefully catch.
+      Map<String, Object?> nest(int levels) {
+        Object? node = 'leaf';
+        for (var i = 0; i < levels; i++) {
+          node = <String, Object?>{'n': node};
+        }
+
+        return {'root': node! as Map<String, Object?>};
       }
 
-      expect(FlatDocument.fromData({'root': node}).length, 1);
+      // The default allows 64 nested maps; the 65th is one too many.
+      expect(FlatDocument.fromData(nest(64)).length, 1);
+      expect(() => FlatDocument.fromData(nest(65)), throwsArgumentError);
+
+      expect(
+        () => FlatDocument.fromData(nest(10000)),
+        throwsArgumentError,
+        reason: 'the depth that used to take the stack with it',
+      );
+
+      expect(
+        FlatDocument.fromData(
+          nest(200),
+          options: const FlatDataOptions(maxDepth: 512),
+        ).length,
+        1,
+      );
+    });
+
+    test('a negative maxDepth is rejected where it is used', () {
+      // A literal is caught by the constructor's assertion at compile time,
+      // which a release build drops.
+      final negative = int.parse('-1');
+
+      expect(
+        () => FlatDocument.fromData(const {
+          'a': 1,
+        }, options: FlatDataOptions(maxDepth: negative)),
+        throwsA(anyOf(isA<AssertionError>(), isA<ArgumentError>())),
+      );
     });
   });
 

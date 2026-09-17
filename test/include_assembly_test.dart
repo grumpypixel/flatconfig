@@ -34,10 +34,16 @@ void main() {
     });
 
     test('a directive that names nothing is neither target nor boundary', () {
-      // All four spellings have to agree, and they have to agree with the
-      // boundary: a line that resolves nothing must not start the tail, or
-      // the entries after it belong to the head and the tail at once.
-      for (final spelling in const ['', '   ', '?', '""', '?""', '? ""']) {
+      // Every spelling has to agree, and they have to agree with the boundary:
+      // a line that resolves nothing must not start the tail, or the entries
+      // after it belong to the head and the tail at once.
+      //
+      // These are values as the parser hands them over, which is why `""` is
+      // not among them: the parser unquotes it to the empty string. A value of
+      // two literal quote characters can only be built in code, and it names a
+      // file called `""` — quotes are removed here only behind a `?` marker,
+      // which is the one case the parser cannot see through.
+      for (final spelling in const ['', '   ', '?', '?""', '? ""']) {
         final doc = FlatDocument([
           FlatEntry('config-file', spelling.isEmpty ? null : spelling),
           FlatEntry('a', '1'),

@@ -111,6 +111,8 @@ Future<FlatDocument> _resolveUnit(
       continue;
     }
 
+    traversal.chargeInclude(processed.path);
+
     final included = await resolver.resolve(
       IncludeRequest(processed.path, fromId: unit.id),
     );
@@ -163,6 +165,8 @@ FlatDocument _resolveUnitSync(
       groups.add(const []);
       continue;
     }
+
+    traversal.chargeInclude(processed.path);
 
     final included = resolver.resolveSync(
       IncludeRequest(processed.path, fromId: unit.id),
