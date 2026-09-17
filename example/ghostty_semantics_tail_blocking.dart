@@ -7,8 +7,11 @@ void main() {
 
   final text = '''
 config-file = mem:i.conf
-key = from-tail     # ignored, cannot override
-new = ok            # allowed
+# Ignored: an include already set this key.
+key = from-tail
+
+# Allowed: no include mentions it.
+new = ok
 ''';
 
   final doc = parseWithIncludesSync(text, resolver: mem, originId: 'mem:root');

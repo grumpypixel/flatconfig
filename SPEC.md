@@ -203,7 +203,8 @@ entry. Last write wins, including when the last entry is a reset:
 ```
 a = 1
 a = 2
-a =        # resolved: a -> null
+a =
+# resolved: a -> null
 ```
 
 Includes are directives, not keys. A line whose key equals the include key

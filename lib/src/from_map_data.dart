@@ -14,11 +14,13 @@ final class FlatDataOptions {
     this.csvNullToken = '',
     this.dropNulls = false,
     this.maxDepth = 64,
+    this.maxEncodedNodes = 1 << 20,
     this.valueEncoder,
     this.csvItemEncoder,
     this.keyEscaper,
     this.onUnsupportedListItem = FlatUnsupportedListItem.encodeJson,
-  }) : assert(maxDepth >= 0, 'maxDepth must not be negative');
+  }) : assert(maxDepth >= 0, 'maxDepth must not be negative'),
+       assert(maxEncodedNodes >= 0, 'maxEncodedNodes must not be negative');
 
   /// Path separator between nested keys, e.g. `a.b.c`.
   final String separator;
@@ -32,6 +34,17 @@ final class FlatDataOptions {
   /// naming the key path instead. Defaults to 64, well past what hand-written
   /// or API-shaped data reaches.
   final int maxDepth;
+
+  /// How many values a composite may expand to once written out.
+  ///
+  /// JSON has no sharing, so a value two parents point at appears under both.
+  /// A node holding the same child twice doubles per level: forty levels is
+  /// eighty objects in memory and a trillion in the output. Depth does not see
+  /// that, and neither does the size of the input.
+  ///
+  /// Exceeding it raises an `ArgumentError` naming the key path. Defaults to
+  /// 1,048,576, which no configuration value reaches without meaning to.
+  final int maxEncodedNodes;
 
   /// How lists are encoded: multiple entries or a single CSV string.
   final FlatListMode listMode;
@@ -72,6 +85,7 @@ final class FlatDataOptions {
     String? csvNullToken,
     bool? dropNulls,
     int? maxDepth,
+    int? maxEncodedNodes,
     FlatValueEncoder? valueEncoder = _unsetValueEncoder,
     CsvItemEncoder? csvItemEncoder = _unsetCsvItemEncoder,
     KeyEscaper? keyEscaper = _unsetKeyEscaper,
@@ -83,6 +97,7 @@ final class FlatDataOptions {
     csvNullToken: csvNullToken ?? this.csvNullToken,
     dropNulls: dropNulls ?? this.dropNulls,
     maxDepth: maxDepth ?? this.maxDepth,
+    maxEncodedNodes: maxEncodedNodes ?? this.maxEncodedNodes,
     valueEncoder: identical(valueEncoder, _unsetValueEncoder)
         ? this.valueEncoder
         : valueEncoder,
@@ -100,6 +115,7 @@ final class FlatDataOptions {
       'FlatDataOptions(separator: $separator, listMode: ${listMode.name}, '
       'csvSeparator: $csvSeparator, csvNullToken: $csvNullToken, '
       'dropNulls: $dropNulls, maxDepth: $maxDepth, '
+      'maxEncodedNodes: $maxEncodedNodes, '
       'onUnsupportedListItem: ${onUnsupportedListItem.name})';
 
   @override
@@ -111,6 +127,7 @@ final class FlatDataOptions {
       other.csvNullToken == csvNullToken &&
       other.dropNulls == dropNulls &&
       other.maxDepth == maxDepth &&
+      other.maxEncodedNodes == maxEncodedNodes &&
       other.valueEncoder == valueEncoder &&
       other.csvItemEncoder == csvItemEncoder &&
       other.keyEscaper == keyEscaper &&
@@ -124,6 +141,7 @@ final class FlatDataOptions {
     csvNullToken,
     dropNulls,
     maxDepth,
+    maxEncodedNodes,
     valueEncoder,
     csvItemEncoder,
     keyEscaper,
@@ -176,6 +194,7 @@ FlatDocument flatDocumentFromMapData(
   FlatDataOptions options = const FlatDataOptions(),
 }) {
   checkNonNegative(options.maxDepth, 'maxDepth');
+  checkNonNegative(options.maxEncodedNodes, 'maxEncodedNodes');
 
   final entries = <FlatEntry>[];
   final active = Set<Object>.identity();
@@ -292,8 +311,11 @@ void flattenValue({
     return;
   }
 
-  // List handling.
+  // List handling. Nothing below descends through this function again, so the
+  // depth left over from the walk so far has to be checked here in one go.
   if (value is List) {
+    checkEncodableValue(value, options.maxDepth - depth, keyPath, options);
+
     final list = value.cast<Object?>();
 
     if (options.listMode == FlatListMode.multi) {
@@ -315,8 +337,8 @@ void flattenValue({
   }
 
   // Fallback for anything else → JSON string.
-  final json = encodeJson(value);
-  out.add(FlatEntry(keyPath, json));
+  checkEncodableValue(value, options.maxDepth - depth, keyPath, options);
+  out.add(FlatEntry(keyPath, encodeJson(value)));
 }
 
 /// Encodes a single value to string according to the rules and options.
@@ -374,6 +396,70 @@ String joinAsCsv({
   }
 
   return buffer.toString();
+}
+
+/// Throws an [ArgumentError] unless [value] is within [options]' budgets.
+///
+/// Two ways a composite value can be more than the encoder can take, and
+/// neither is visible from its size in memory.
+///
+/// It can be too **deep**: the flattener bounds its own recursion, but it does
+/// not descend into a list — a composite item goes to [encodeJson], and
+/// `jsonEncode` walks it recursively, so ten thousand nested lists reach the
+/// end of the stack inside the encoder as a `StackOverflowError` that nothing
+/// can usefully catch.
+///
+/// It can also be too **wide**: JSON has no notion of sharing, so a value that
+/// two parents point at is written out under each of them. Forty levels of a
+/// node holding the same child twice is eighty objects in memory and 2^40 in
+/// the output.
+///
+/// Measured level by level rather than by recursing, so the check cannot be
+/// the thing that overflows, and each level keeps only distinct nodes, so a
+/// shared subtree is walked once however often it is pointed at. A structure
+/// that contains itself never runs out of levels and is caught by the depth
+/// limit.
+void checkEncodableValue(
+  Object? value,
+  int remainingDepth,
+  String keyPath,
+  FlatDataOptions options,
+) {
+  var frontier = <Object?, int>{if (value is Map || value is List) value: 1};
+  var emitted = 0;
+
+  for (var depth = 0; frontier.isNotEmpty; depth++) {
+    if (depth >= remainingDepth) {
+      throw ArgumentError.value(keyPath, 'data', 'Nested deeper than maxDepth');
+    }
+
+    final next = Map<Object?, int>.identity();
+
+    frontier.forEach((node, paths) {
+      final children = node is Map ? node.values : (node! as List);
+
+      // Every child is written once per path that reaches its parent, which is
+      // what turns sharing into duplication.
+      emitted += children.length * paths;
+
+      for (final child in children) {
+        if (child is Map || child is List) {
+          next[child] = (next[child] ?? 0) + paths;
+        }
+      }
+    });
+
+    if (emitted > options.maxEncodedNodes) {
+      throw ArgumentError.value(
+        keyPath,
+        'data',
+        'Expands to more than maxEncodedNodes (${options.maxEncodedNodes}) '
+            'values once written out',
+      );
+    }
+
+    frontier = next;
+  }
 }
 
 /// Returns a JSON-encoded representation of the object (null-safe).

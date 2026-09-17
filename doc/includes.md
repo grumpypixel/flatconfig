@@ -8,7 +8,9 @@ Flutter asset, an HTTP endpoint, a row in a database.
 app-name = MyApp
 
 config-file = theme.conf
-config-file = ?user.conf    # optional: missing is fine
+
+# A leading ? marks the include optional.
+config-file = ?user.conf
 ```
 
 Reading includes from disk needs `dart:io` and is on the
@@ -53,7 +55,9 @@ include therefore cannot override a key that include sets.
 ```conf
 # main.conf
 config-file = theme.conf
-theme = custom            # has no effect if theme.conf sets `theme`
+
+# No effect if theme.conf sets `theme`.
+theme = custom
 ```
 
 ```conf
@@ -106,9 +110,14 @@ locking it. A later include can set it again.
 
 ```conf
 # main.conf
-config-file = theme.conf    # background = 343028
-config-file = reset.conf    # background =
-config-file = late.conf     # background = 101010  ← wins
+# theme.conf sets background = 343028
+config-file = theme.conf
+
+# reset.conf contains a bare `background =`
+config-file = reset.conf
+
+# late.conf sets background = 101010, and wins
+config-file = late.conf
 ```
 
 A reset is a value like any other, so it wins over an earlier include and loses
@@ -229,7 +238,19 @@ optional one that does not exist, and the tests cover both.
 |---|---|---|
 | `includeKey` | `'config-file'` | the directive key |
 | `maxIncludeDepth` | `64` | recursion limit; the root is depth 0 |
+| `maxIncludes` | `256` | how many directives one traversal may follow |
+| `maxIncludedEntries` | `100000` | how much the includes may amount to |
 | `mergePolicy` | `ghostty` | where an include's entries land |
+
+The two budgets bound different resources, and depth bounds neither. For a
+resolver backed by a network or a database, `maxIncludes` is the number of
+requests one parse can make; it is charged before each request, so a directive
+nobody answers counts too. `maxIncludedEntries` bounds the result, which is the
+half that runs away: a document whose includes each pull in the previous one
+twice doubles per level, and because a repeated unit is parsed once and then
+copied into every parent naming it, sixteen such levels stay at 32 directives
+while reaching 65,536 entries. Exceeding either raises
+`IncludeBudgetExceededException`.
 
 These live on `FlatIncludeOptions` rather than `FlatParseOptions`, because
 parsing a string never follows an include — only the entry points that take a

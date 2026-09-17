@@ -55,11 +55,16 @@ Added:
   default depth. Both are charged before the cost is incurred: entries as they
   are handed up, so the refusal lands before the allocation, and a directive
   before its request goes out, so one nobody answers still counts.
-- **`FlatDataOptions.maxDepth`** — `fromData` recursed once per level of
-  nesting and met the stack somewhere past a few thousand, as a
-  `StackOverflowError` that nothing can usefully catch. Cycle detection covers
-  the unbounded case; this covers the deep but finite one, at 64 levels by
-  default.
+- **`FlatDataOptions.maxDepth` and `maxEncodedNodes`** — two ways a value
+  handed to `fromData` costs more than it looks, and neither is visible from
+  its size in memory. Too **deep**: the JSON encoder walks a composite
+  recursively, so ten thousand nested lists met the end of the stack inside it
+  as a `StackOverflowError` that nothing can usefully catch. Too **wide**: JSON
+  has no sharing, so a node holding the same child twice doubles per level, and
+  forty levels of that is eighty objects in memory and 2^40 written out. Both
+  are checked level by level, so the check cannot be what overflows, and both
+  raise an `ArgumentError` naming the key path. Neither is reached by data that
+  came from parsing JSON, which is always a tree.
 - **`FlatIncludeOptions.mergePolicy`** — Ghostty precedence is a setting now
   rather than the only behaviour. `IncludeMergePolicy.lastWins` expands each
   include where it is written and lets a later entry win, which is what most
@@ -165,6 +170,11 @@ Changed:
 
 Fixed:
 
+- **The published examples no longer use inline comments.** This format has
+  whole-line comments only, so `config-file = ?user.conf  # optional` asked for
+  a file whose name ended in the annotation, and the quoted examples in the
+  README and `example/io.dart` raised a `trailingAfterQuote` issue. Every
+  annotation now sits on a comment line of its own.
 - **`getList` respects quotes.** It split on every occurrence of the separator,
   so `a,"b,c",d` came back as four fragments, two of them carrying a stray
   quote, while the guide promised the three items the format's inline grammar

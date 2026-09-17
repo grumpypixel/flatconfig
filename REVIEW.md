@@ -1,24 +1,24 @@
 # Pre-1.0 review, and what came of it
 
-Two external reviews of the 1.0.0 candidate, and the resolution of every
-finding. This supersedes `PACKAGE_REVIEW.md` and `tool/FIX_VERIFICATION.md`,
-which are gone; their findings are all listed below with their identifiers
-intact, because the remediation commits refer to them.
+Three external reviews of the 1.0.0 candidate, and the disposition of every
+finding. This supersedes the review documents themselves, which are gone; their
+findings are listed below with their identifiers intact, because the
+remediation commits refer to them.
 
 | | |
 |---|---|
-| Reviewed | `17dd7cdf` — the commit that was going to be 1.0.0 |
-| Re-reviewed | `0813492a` — after the first round of fixes |
-| Findings | 29 original (1 high, 12 medium, 16 low), 5 follow-up |
-| Closed | every high and medium, and the two low ones the guides got wrong |
-| Open | 14 low, listed at the end |
+| Reviewed | `17dd7cdf` — the commit that was going to be 1.0.0, at 839 tests |
+| Re-reviewed | `0813492a` after the first round, `f945525d` after the second |
+| Findings | 29 original (1 high, 12 medium, 16 low), 5 follow-up, 1 found while testing |
+| Closed | every high and medium, and the low ones the guides got wrong |
+| Open | 13 low, listed at the end |
 
 The candidate was never published. pub.dev served 0.5.0 throughout, and the
 premature `v1.0.0` tag was removed from both the local repository and origin.
 
 ## What the exercise was worth
 
-All 894 tests and all seven CI jobs were green on `17dd7cdf`. The review found
+All 839 tests and all seven CI jobs were green on `17dd7cdf`. The review found
 thirteen high and medium defects in it, including one that turned under a
 kilobyte of configuration into a million entries, and three that lost data
 without a word.
@@ -39,6 +39,11 @@ layer short of the contract — most tellingly, the include budget was charged
 where the recursion entered rather than where the request went out, and the
 regression test written alongside it pinned the off-by-one as if it were the
 intent.
+
+A third round found that the depth limit added for one of those five covered
+maps and not lists, which reach the JSON encoder instead of recursing. Writing
+the test for that turned up the last one, **V-06**, which no review had named:
+depth bounds how far a value nests, not how much it expands.
 
 ## High
 
@@ -82,7 +87,17 @@ path. Detection is by identity, so the same map used twice as a sibling is
 sharing rather than recursion.
 
 Follow-up **V-02**: deep but finite nesting still recursed until the stack ran
-out. `FlatDataOptions.maxDepth` (64) bounds it.
+out. `FlatDataOptions.maxDepth` (64) bounds it — for maps at first, and then
+for lists too, which never recurse through the flattener at all: a composite
+item goes to the JSON encoder, and that walks it recursively. Both are checked
+level by level now, so the check itself cannot be what overflows.
+
+**V-06**, found while testing V-02 and named in no review: depth bounds how far
+a value nests, not how much it expands. JSON has no sharing, so a node holding
+the same child twice doubles per level — forty levels is eighty objects in
+memory and 2^40 written out, which hung the test suite for four minutes.
+`FlatDataOptions.maxEncodedNodes` (1,048,576) bounds the output, counted as the
+walk goes rather than by trying every path.
 
 ### F-05 — Filesystem case probing could merge distinct files — closed
 
@@ -161,21 +176,33 @@ Closed, because a guide claimed something the code did not do:
 
 - **F-19** — `getList` split on every separator while the guide promised the
   format's inline grammar. It reads that grammar now and unquotes each item.
-- **F-22** — `doc/parsing.md` claimed `"a\nb"` holds a line break and that
-  "`\"`, `\\` and friends" are decoded. There are exactly two escapes, and a
-  value cannot hold a line break at all.
+- **F-22** — two separate problems. `doc/parsing.md` claimed `"a\nb"` holds a
+  line break and that "`\"`, `\\` and friends" are decoded; there are exactly
+  two escapes, and a value cannot hold a line break at all. Separately, the
+  published examples annotated configuration lines with inline comments, which
+  this format does not have: `config-file = ?user.conf  # optional` asked for a
+  file whose name ends in the annotation, and the quoted examples in `README.md`
+  and `example/io.dart` raised `trailingAfterQuote`. Every annotation now sits
+  on a comment line of its own.
 
 Also handled in passing:
 
 - **F-26** — `.pubignore` now excludes `doc/api/`, which `dart doc` fills and
   which tripled the archive.
 
-Still open, to be assessed before the tag: **F-14** through **F-18**, **F-20**,
-**F-21**, **F-23** through **F-25**, **F-27** through **F-29**. Two of them are
-specification deviations and matter most: a BOM is stripped from every line
-rather than only at the start of the document, and an empty comment prefix is
-accepted although the specification requires a non-empty one. Until those are
-settled, no claim of complete conformance belongs in the changelog.
+Still open, thirteen of them, to be assessed before the tag: **F-14** through
+**F-18**, **F-20**, **F-21**, **F-23** through **F-25**, **F-27** through
+**F-29**. Two are specification deviations and matter most: a BOM is stripped
+from every line rather than only at the start of the document, and an empty
+comment prefix is accepted although the specification requires a non-empty one.
+Until those are settled, no claim of complete conformance belongs in the
+changelog.
+
+**F-19** counts as closed above, but on a narrowed contract: `getList` reads
+the format's single-character inline grammar, where it used to take any
+separator and split on every occurrence. The alternatives — RFC 4180, or a
+plainer list grammar — were not chosen, and that decision is worth recording
+rather than rediscovering.
 
 `dart doc --validate-links` reports 34 warnings (**F-25**), and every CI job
 runs on Ubuntu while the path code branches on Windows and on case-insensitive

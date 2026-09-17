@@ -128,6 +128,89 @@ void main() {
       );
     });
 
+    test('a deeply nested list is bounded too', () {
+      // The depth parameter bounds the flattener's own recursion, and nothing
+      // descends through it for a list: a composite item goes to jsonEncode,
+      // which walks it recursively and met the end of the stack there.
+      Object? node = <Object?>['leaf'];
+      for (var i = 0; i < 10000; i++) {
+        node = <Object?>[node];
+      }
+
+      for (final mode in FlatListMode.values) {
+        expect(
+          () => FlatDocument.fromData({
+            'root': node,
+          }, options: FlatDataOptions(listMode: mode)),
+          throwsArgumentError,
+          reason: 'in $mode',
+        );
+      }
+    });
+
+    test('maps and lists alternating are bounded as one depth', () {
+      Object? node = 'leaf';
+      for (var i = 0; i < 5000; i++) {
+        node = i.isEven ? <Object?>[node] : <String, Object?>{'n': node};
+      }
+
+      expect(() => FlatDocument.fromData({'root': node}), throwsArgumentError);
+    });
+
+    test('a list inside the budget still encodes', () {
+      Object? node = <Object?>['leaf'];
+      for (var i = 0; i < 8; i++) {
+        node = <Object?>[node];
+      }
+
+      expect(
+        FlatDocument.fromData({
+          'root': node,
+        }, options: const FlatDataOptions(maxDepth: 32)).length,
+        1,
+      );
+    });
+
+    test('a shared subtree is refused for what it expands to', () {
+      // Depth does not see this one, and neither does the size in memory.
+      // JSON has no sharing, so a node holding the same child twice doubles
+      // per level: forty levels is eighty objects here and 2^40 written out.
+      // Walking it is what made this test hang for four minutes.
+      Object? shared = <Object?>['leaf'];
+      for (var i = 0; i < 40; i++) {
+        shared = <Object?>[shared, shared];
+      }
+
+      expect(
+        () => FlatDocument.fromData({'root': shared}),
+        throwsArgumentError,
+      );
+    });
+
+    test('sharing within the budget still encodes', () {
+      Object? shared = <Object?>['leaf'];
+      for (var i = 0; i < 10; i++) {
+        shared = <Object?>[shared, shared];
+      }
+
+      // Two, because the default list mode writes one entry per item and the
+      // outer list has two — the same subtree under each.
+      expect(FlatDocument.fromData({'root': shared}).length, 2);
+    });
+
+    test('a long flat list is not mistaken for an expansion', () {
+      // A million scalars is a big value, not an amplified one: the output is
+      // the size of the input. The budget is about what sharing multiplies.
+      final flat = [for (var i = 0; i < 100000; i++) i];
+
+      expect(
+        FlatDocument.fromData({
+          'root': flat,
+        }, options: const FlatDataOptions(listMode: FlatListMode.csv)).length,
+        1,
+      );
+    });
+
     test('a negative maxDepth is rejected where it is used', () {
       // A literal is caught by the constructor's assertion at compile time,
       // which a release build drops.

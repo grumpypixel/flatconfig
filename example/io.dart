@@ -14,7 +14,8 @@ Future<void> main() async {
   const sample = '''
 # App settings
 fullscreen = true
-size = " 1280x720 "   # quoted keeps inner spaces
+# Quoted, so the inner spaces survive.
+size = " 1280x720 "
 theme = dark
 volume = 75
 colors.primary = #336699

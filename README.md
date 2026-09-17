@@ -110,7 +110,9 @@ await File('out.conf').writeFlat(doc.withValue('font-size', '16'));
 # Whitespace around "=" is ignored.
 
 background = 343028
-font-family = "FiraCode Nerd Font"   # quotes preserve spaces, "=" and "#"
+# Quotes preserve spaces, "=" and "#". They are not inline comments:
+# this format has whole-line comments only.
+font-family = "FiraCode Nerd Font"
 
 # A key may appear more than once. The last one wins,
 # and every value stays readable through allValues().

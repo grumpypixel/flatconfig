@@ -67,7 +67,8 @@ app-name = MyApp
 version 1.0.0    # missing equals - ignored
 = 2.0.0          # empty key - ignored
 debug = true
-theme = "dark" extra  # trailing chars - treated as unquoted
+# Trailing characters after a closing quote.
+theme = "dark" extra
 ''');
 
   print('   Parsed successfully with ${doc.length} entries:');

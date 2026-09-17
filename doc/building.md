@@ -110,6 +110,8 @@ Switch to `FlatListMode.csv` for a single entry instead.
 | `csvSeparator` | `', '` | separator in CSV mode |
 | `csvNullToken` | `''` | how `null` appears in a CSV list |
 | `dropNulls` | `false` | omit `null` values entirely |
+| `maxDepth` | `64` | how deep nesting may go |
+| `maxEncodedNodes` | `1048576` | how much a composite may expand to |
 | `valueEncoder` | `null` | override for any value; highest priority |
 | `onUnsupportedListItem` | `encodeJson` | composite list items: `encodeJson`, `skip` or `error` |
 | `keyEscaper` | `null` | escapes a key containing the separator |
@@ -144,6 +146,21 @@ into the three items again.
 
 `rfc4180Quote` and `rfc4180CsvItemEncoder` are exported for this: they escape a
 quote as `""` and wrap any item containing the separator, a quote or a newline.
+
+### The two budgets
+
+`fromData` walks whatever you hand it, and two shapes cost more than they look.
+A structure that reaches itself is refused outright; one that is merely deeper
+than `maxDepth` is refused as well, because the JSON encoder walks it
+recursively and would otherwise run out of stack — as a `StackOverflowError`,
+which nothing can usefully catch.
+
+`maxEncodedNodes` covers the other direction. JSON has no sharing, so a value
+two parents point at is written out under each. A node holding the same child
+twice doubles per level: forty levels of that is eighty objects in memory and a
+trillion in the output. Both limits raise an `ArgumentError` naming the key
+path, and neither is reached by data that came from parsing JSON, which is
+always a tree.
 
 ## Encoding
 
