@@ -21,14 +21,7 @@ library;
 
 export 'src/document.dart'
     show CollapseOrder, FlatConverter, FlatDocument, FlatEntry;
-export 'src/exceptions.dart'
-    show
-        EmptyKeyException,
-        FlatParseException,
-        InvalidKeyException,
-        MissingEqualsException,
-        TrailingCharactersAfterQuoteException,
-        UnterminatedQuoteException;
+export 'src/exceptions.dart' show FlatParseException;
 export 'src/from_map_data.dart'
     show
         CsvItemEncoder,

@@ -75,10 +75,21 @@ FlatDocument.parse(broken);                                   // 1 entry, no err
 FlatDocument.parse(broken, options: FlatParseOptions(strict: true));  // throws
 ```
 
-Strict mode throws a `FlatParseException` subclass: `MissingEqualsException`,
-`EmptyKeyException`, `InvalidKeyException`, `UnterminatedQuoteException` or
-`TrailingCharactersAfterQuoteException`. All five share that base class, so
-catching "any parse problem" is one `on FlatParseException`.
+Strict mode throws a `FlatParseException` carrying the same `FlatIssue` a
+lenient parse would have reported, so what went wrong is `e.kind` rather than
+the runtime type:
+
+```dart
+try {
+  FlatDocument.parse(source, options: const FlatParseOptions(strict: true));
+} on FlatParseException catch (e) {
+  print('${e.issue.line}:${e.issue.column} ${e.kind.name}');
+}
+```
+
+One type and one position for both modes. There used to be five subclasses
+saying what `kind` says, and they drifted: for `  key = "open` the exception
+named column 2 while the issue named column 7, because each computed its own.
 
 ## Reporting problems in lenient mode
 

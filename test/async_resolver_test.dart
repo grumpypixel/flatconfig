@@ -251,7 +251,13 @@ void main() {
           resolver: _AsyncResolver({'broken.conf': 'no-equals-here\n'}),
           options: const FlatParseOptions(strict: true),
         ),
-        throwsA(isA<MissingEqualsException>()),
+        throwsA(
+          isA<FlatParseException>().having(
+            (e) => e.kind,
+            'kind',
+            FlatIssueKind.missingEquals,
+          ),
+        ),
       );
     });
 

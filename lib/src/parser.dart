@@ -4,7 +4,6 @@ import 'package:meta/meta.dart';
 
 import 'constants.dart';
 import 'document.dart';
-import 'exceptions.dart';
 import 'issue.dart';
 import 'options.dart';
 import 'parser_utils.dart';
@@ -491,16 +490,15 @@ FlatEntry? parseLine(
   final sep = Constants.pairSeparator;
   final idx = line.indexOf(sep);
   if (idx < 0) {
-    if (strict) {
-      throw MissingEqualsException(ln, raw, column: line.length);
-    }
-    onIssue?.call(
+    reportIssue(
       FlatIssue(
         kind: FlatIssueKind.missingEquals,
         line: ln,
         column: line.length,
         rawLine: raw,
       ),
+      strict: strict,
+      onIssue: onIssue,
     );
 
     return null;
@@ -509,16 +507,15 @@ FlatEntry? parseLine(
   // Key left of separator, right trimRight
   final trimmedKey = line.substring(0, idx).trimRight();
   if (trimmedKey.isEmpty) {
-    if (strict) {
-      throw EmptyKeyException(ln, raw, column: idx + 1);
-    }
-    onIssue?.call(
+    reportIssue(
       FlatIssue(
         kind: FlatIssueKind.emptyKey,
         line: ln,
         column: idx + 1,
         rawLine: raw,
       ),
+      strict: strict,
+      onIssue: onIssue,
     );
 
     return null;
@@ -527,10 +524,7 @@ FlatEntry? parseLine(
   // A key the encoder could not write back out is not a key (SPEC.md 3).
   final keyProblem = invalidKeyReason(trimmedKey);
   if (keyProblem != null) {
-    if (strict) {
-      throw InvalidKeyException(trimmedKey, keyProblem, ln, raw);
-    }
-    onIssue?.call(
+    reportIssue(
       FlatIssue(
         kind: FlatIssueKind.invalidKey,
         line: ln,
@@ -538,6 +532,8 @@ FlatEntry? parseLine(
         rawLine: raw,
         detail: keyProblem,
       ),
+      strict: strict,
+      onIssue: onIssue,
     );
 
     return null;

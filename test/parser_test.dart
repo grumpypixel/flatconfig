@@ -158,7 +158,7 @@ mode = c
       expect(
         () => FlatDocument.parse(
           src,
-          options: const FlatParseOptions().copyWith(strict: true),
+          options: const FlatParseOptions(strict: true),
         ),
         throwsFormatException,
       );
@@ -1031,66 +1031,6 @@ shader = vignette=soft
     );
   });
 
-  group('Options copyWith coverage', () {
-    test('FlatParserOptions.copyWith fallback and overrides', () {
-      var missing = 0;
-      var empty = 0;
-      final base = FlatParseOptions(
-        commentPrefix: ';',
-        decodeEscapesInQuoted: true,
-        strict: true,
-        onIssue: (i) => i.kind == FlatIssueKind.emptyKey ? empty++ : missing++,
-      );
-
-      final fallback = base.copyWith();
-      expect(fallback.commentPrefix, ';');
-      expect(fallback.decodeEscapesInQuoted, isTrue);
-      expect(fallback.strict, isTrue);
-
-      final overridden = base.copyWith(
-        commentPrefix: '#',
-        decodeEscapesInQuoted: false,
-        strict: false,
-        onIssue: (i) =>
-            i.kind == FlatIssueKind.emptyKey ? empty += 10 : missing += 10,
-      );
-      expect(overridden.commentPrefix, '#');
-      expect(overridden.decodeEscapesInQuoted, isFalse);
-      expect(overridden.strict, isFalse);
-
-      // sanity: callbacks are callable
-      const where = FlatIssue(
-        kind: FlatIssueKind.missingEquals,
-        line: 1,
-        column: 1,
-        rawLine: 'x',
-      );
-      overridden.onIssue?.call(where);
-      overridden.onIssue?.call(
-        FlatIssue(
-          kind: FlatIssueKind.emptyKey,
-          line: where.line,
-          column: where.column,
-          rawLine: where.rawLine,
-        ),
-      );
-      expect(missing, 10);
-      expect(empty, 10);
-    });
-
-    test('FlatStreamReadOptions.copyWith for encoding and splitter', () {
-      final base = const FlatStreamReadOptions();
-
-      final changedEnc = base.copyWith(encoding: latin1);
-      expect(changedEnc.encoding, latin1);
-      expect(changedEnc.lineSplitter, isA<LineSplitter>());
-
-      final changedSplit = base.copyWith(lineSplitter: const LineSplitter());
-      expect(changedSplit.encoding, utf8);
-      expect(changedSplit.lineSplitter, isA<LineSplitter>());
-    });
-  });
-
   group('parseEntriesFromStringStream BOM handling', () {
     test('strips BOM on first string line', () async {
       final lines = Stream<String>.fromIterable(const [
@@ -1316,7 +1256,13 @@ shader = vignette=soft
               decodeEscapesInQuoted: false,
             ),
           ),
-          throwsA(isA<MissingEqualsException>()),
+          throwsA(
+            isA<FlatParseException>().having(
+              (e) => e.kind,
+              'kind',
+              FlatIssueKind.missingEquals,
+            ),
+          ),
         );
       });
 
@@ -1352,7 +1298,13 @@ shader = vignette=soft
               decodeEscapesInQuoted: false,
             ),
           ),
-          throwsA(isA<EmptyKeyException>()),
+          throwsA(
+            isA<FlatParseException>().having(
+              (e) => e.kind,
+              'kind',
+              FlatIssueKind.emptyKey,
+            ),
+          ),
         );
       });
 

@@ -96,11 +96,11 @@ void main() {
 
   group('strict mode throws where lenient mode reports', () {
     const cases = {
-      'justakey': MissingEqualsException,
-      ' = orphan': EmptyKeyException,
-      'bad"key = 2': InvalidKeyException,
-      'k = "unterminated': UnterminatedQuoteException,
-      'k = "one" junk': TrailingCharactersAfterQuoteException,
+      'justakey': FlatParseException,
+      ' = orphan': FlatParseException,
+      'bad"key = 2': FlatParseException,
+      'k = "unterminated': FlatParseException,
+      'k = "one" junk': FlatParseException,
     };
 
     for (final entry in cases.entries) {

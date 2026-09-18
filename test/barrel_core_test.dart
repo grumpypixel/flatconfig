@@ -87,23 +87,53 @@ void main() {
 
     expect(
       () => FlatDocument.parse('no equals\n', options: strict),
-      throwsA(isA<MissingEqualsException>()),
+      throwsA(
+        isA<FlatParseException>().having(
+          (e) => e.kind,
+          'kind',
+          FlatIssueKind.missingEquals,
+        ),
+      ),
     );
     expect(
       () => FlatDocument.parse(' = v\n', options: strict),
-      throwsA(isA<EmptyKeyException>()),
+      throwsA(
+        isA<FlatParseException>().having(
+          (e) => e.kind,
+          'kind',
+          FlatIssueKind.emptyKey,
+        ),
+      ),
     );
     expect(
       () => FlatDocument.parse('a = "open\n', options: strict),
-      throwsA(isA<UnterminatedQuoteException>()),
+      throwsA(
+        isA<FlatParseException>().having(
+          (e) => e.kind,
+          'kind',
+          FlatIssueKind.unterminatedQuote,
+        ),
+      ),
     );
     expect(
       () => FlatDocument.parse('a = "v" junk\n', options: strict),
-      throwsA(isA<TrailingCharactersAfterQuoteException>()),
+      throwsA(
+        isA<FlatParseException>().having(
+          (e) => e.kind,
+          'kind',
+          FlatIssueKind.trailingAfterQuote,
+        ),
+      ),
     );
     expect(
       () => FlatDocument.parse('a"b = v\n', options: strict),
-      throwsA(isA<InvalidKeyException>()),
+      throwsA(
+        isA<FlatParseException>().having(
+          (e) => e.kind,
+          'kind',
+          FlatIssueKind.invalidKey,
+        ),
+      ),
     );
     expect(
       () => FlatDocument.parse('no equals\n', options: strict),

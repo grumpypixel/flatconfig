@@ -9,45 +9,11 @@ import 'package:test/test.dart';
 
 /// Tests for the options classes as value types.
 ///
-/// They used to be bags of fields: `copyWith` could not clear a nullable one,
+/// They used to be bags of fields:
 /// two identical configurations compared unequal, printing one said
 /// `Instance of 'FlatEnvOptions'`, and the two maps stayed owned by the caller.
 
 void main() {
-  group('copyWith can clear a nullable field, not just set it', () {
-    test('onIssue survives an unrelated copyWith', () {
-      void handler(FlatIssue _) {}
-      final base = FlatParseOptions(onIssue: handler);
-
-      expect(base.copyWith(strict: true).onIssue, same(handler));
-    });
-
-    test('passing null clears it', () {
-      // `onIssue ?? this.onIssue` could not express this: null meant "absent".
-      final base = FlatParseOptions(onIssue: (_) {});
-
-      expect(base.copyWith(onIssue: null).onIssue, isNull);
-    });
-
-    test('the same holds for FlatEnvOptions.prefix', () {
-      final base = FlatEnvOptions(prefix: 'APP_');
-
-      expect(base.copyWith(caseSensitive: false).prefix, 'APP_');
-      expect(base.copyWith(prefix: null).prefix, isNull);
-      expect(base.copyWith(prefix: 'OTHER_').prefix, 'OTHER_');
-    });
-
-    test('a handler lambda still infers its argument type', () {
-      // The sentinel has to keep the parameter's function type, or this stops
-      // compiling and every caller has to write (FlatIssue i).
-      final copied = const FlatParseOptions().copyWith(
-        onIssue: (i) => expect(i.line, greaterThanOrEqualTo(0)),
-      );
-
-      expect(copied.onIssue, isNotNull);
-    });
-  });
-
   group('options hold their own copy of what they were given', () {
     test('mutating the caller\'s map does not change the options', () {
       final defaults = {'HOST': 'localhost'};
@@ -113,15 +79,6 @@ void main() {
         const FlatParseOptions(commentPrefix: ';').hashCode,
         const FlatParseOptions(commentPrefix: ';').hashCode,
       );
-    });
-
-    test('copyWith with no arguments returns an equal object', () {
-      const base = FlatParseOptions(strict: true, commentPrefix: ';');
-      expect(base.copyWith(), base);
-
-      const include = FlatIncludeOptions(includeKey: 'source');
-      expect(include.copyWith(), include);
-      expect(include.copyWith(maxIncludeDepth: 1).includeKey, 'source');
     });
   });
 

@@ -73,43 +73,6 @@ final class FlatDataOptions {
   /// Behavior when a list contains composite items (Map/List).
   final FlatUnsupportedListItem onUnsupportedListItem;
 
-  /// A copy with the given fields replaced.
-  ///
-  /// The three encoders are nullable, so each takes a sentinel default rather
-  /// than `null`: passing `null` explicitly clears one, and omitting it keeps
-  /// what is there.
-  FlatDataOptions copyWith({
-    String? separator,
-    FlatListMode? listMode,
-    String? csvSeparator,
-    String? csvNullToken,
-    bool? dropNulls,
-    int? maxDepth,
-    int? maxEncodedNodes,
-    FlatValueEncoder? valueEncoder = _unsetValueEncoder,
-    CsvItemEncoder? csvItemEncoder = _unsetCsvItemEncoder,
-    KeyEscaper? keyEscaper = _unsetKeyEscaper,
-    FlatUnsupportedListItem? onUnsupportedListItem,
-  }) => FlatDataOptions(
-    separator: separator ?? this.separator,
-    listMode: listMode ?? this.listMode,
-    csvSeparator: csvSeparator ?? this.csvSeparator,
-    csvNullToken: csvNullToken ?? this.csvNullToken,
-    dropNulls: dropNulls ?? this.dropNulls,
-    maxDepth: maxDepth ?? this.maxDepth,
-    maxEncodedNodes: maxEncodedNodes ?? this.maxEncodedNodes,
-    valueEncoder: identical(valueEncoder, _unsetValueEncoder)
-        ? this.valueEncoder
-        : valueEncoder,
-    csvItemEncoder: identical(csvItemEncoder, _unsetCsvItemEncoder)
-        ? this.csvItemEncoder
-        : csvItemEncoder,
-    keyEscaper: identical(keyEscaper, _unsetKeyEscaper)
-        ? this.keyEscaper
-        : keyEscaper,
-    onUnsupportedListItem: onUnsupportedListItem ?? this.onUnsupportedListItem,
-  );
-
   @override
   String toString() =>
       'FlatDataOptions(separator: $separator, listMode: ${listMode.name}, '
@@ -148,15 +111,6 @@ final class FlatDataOptions {
     onUnsupportedListItem,
   );
 }
-
-/// Sentinels marking a nullable `copyWith` parameter as "not passed". Typed
-/// rather than `Object?`, so a lambda written at the call site keeps its
-/// inferred argument types.
-String? _unsetValueEncoder(Object? value, String keyPath) => null;
-
-String _unsetCsvItemEncoder(String item, String keyPath) => item;
-
-String _unsetKeyEscaper(String segment) => segment;
 
 /// List encoding mode: multi-value entries vs CSV string.
 enum FlatListMode {

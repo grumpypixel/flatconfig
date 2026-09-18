@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'constants.dart';
-import 'exceptions.dart';
 import 'issue.dart';
 import 'validation.dart';
 
@@ -72,21 +71,17 @@ String? parseValue(
 
     if (endIdxInSlice <= 0) {
       // No closing quote in the slice
-      if (strict) {
-        throw UnterminatedQuoteException(
-          lineNumber ?? 0,
-          (rawLine ?? raw),
-          column: start + 1, // Position of the opening quote
-        );
-      }
-
-      onIssue?.call(
+      // One position for both modes. Strict used to leave out columnOffset
+      // and so named a different character than the issue did.
+      reportIssue(
         FlatIssue(
           kind: FlatIssueKind.unterminatedQuote,
           line: lineNumber ?? 0,
           column: columnOffset + start + 1,
           rawLine: rawLine ?? raw,
         ),
+        strict: strict,
+        onIssue: onIssue,
       );
 
       // lax: treat as unquoted, returning the trimmed token
@@ -100,21 +95,15 @@ String? parseValue(
       final c = slice.codeUnitAt(j);
       if (!isWhitespace(c)) {
         // trailing non-ws
-        if (strict) {
-          throw TrailingCharactersAfterQuoteException(
-            lineNumber ?? 0,
-            (rawLine ?? raw),
-            column: start + j + 1, // Position of the trailing character
-          );
-        }
-
-        onIssue?.call(
+        reportIssue(
           FlatIssue(
             kind: FlatIssueKind.trailingAfterQuote,
             line: lineNumber ?? 0,
             column: columnOffset + start + j + 1,
             rawLine: rawLine ?? raw,
           ),
+          strict: strict,
+          onIssue: onIssue,
         );
 
         // lax: return the entire trimmed token

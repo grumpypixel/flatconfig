@@ -56,9 +56,14 @@ void main() {
           options: const FlatParseOptions(strict: true),
         ),
         throwsA(
-          isA<InvalidKeyException>()
-              .having((e) => e.key, 'key', '"a b"')
-              .having((e) => e.reason, 'reason', contains('double quote')),
+          isA<FlatParseException>()
+              .having((e) => e.kind, 'kind', FlatIssueKind.invalidKey)
+              .having((e) => e.rawLine, 'rawLine', '"a b" = v')
+              .having(
+                (e) => e.issue.detail,
+                'detail',
+                contains('double quote'),
+              ),
         ),
       );
     });
@@ -95,7 +100,13 @@ void main() {
           'a = "one" junk "two"',
           options: const FlatParseOptions(strict: true),
         ),
-        throwsA(isA<TrailingCharactersAfterQuoteException>()),
+        throwsA(
+          isA<FlatParseException>().having(
+            (e) => e.kind,
+            'kind',
+            FlatIssueKind.trailingAfterQuote,
+          ),
+        ),
       );
     });
 
@@ -106,7 +117,13 @@ void main() {
           'a = "one"x',
           options: const FlatParseOptions(strict: true),
         ),
-        throwsA(isA<TrailingCharactersAfterQuoteException>()),
+        throwsA(
+          isA<FlatParseException>().having(
+            (e) => e.kind,
+            'kind',
+            FlatIssueKind.trailingAfterQuote,
+          ),
+        ),
       );
     });
 
@@ -117,7 +134,13 @@ void main() {
           'a = "open',
           options: const FlatParseOptions(strict: true),
         ),
-        throwsA(isA<UnterminatedQuoteException>()),
+        throwsA(
+          isA<FlatParseException>().having(
+            (e) => e.kind,
+            'kind',
+            FlatIssueKind.unterminatedQuote,
+          ),
+        ),
       );
     });
 

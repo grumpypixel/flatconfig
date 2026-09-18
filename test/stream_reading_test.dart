@@ -139,7 +139,13 @@ void main() {
           Stream.value(utf8.encode(broken)),
           options: const FlatParseOptions(strict: true),
         ),
-        throwsA(isA<MissingEqualsException>()),
+        throwsA(
+          isA<FlatParseException>().having(
+            (e) => e.kind,
+            'kind',
+            FlatIssueKind.missingEquals,
+          ),
+        ),
       );
     });
 

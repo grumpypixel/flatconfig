@@ -1,44 +1,37 @@
 import 'package:flatconfig/src/exceptions.dart';
+import 'package:flatconfig/src/issue.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('FlatParseException', () {
-    test('UnterminatedQuoteException creates with correct message', () {
-      final ex = UnterminatedQuoteException(5, 'key = "unclosed');
-      expect(ex.lineNumber, 5);
-      expect(ex.rawLine, 'key = "unclosed');
-      expect(ex.message, contains('Unterminated quoted value'));
-      expect(ex.message, contains('line 5'));
-    });
+    // One type carrying the issue, so the message, the line, the column and
+    // the kind all come from the same place the lenient path reports.
+    const cases = <FlatIssueKind, String>{
+      FlatIssueKind.unterminatedQuote: 'key = "unclosed',
+      FlatIssueKind.trailingAfterQuote: 'key = "value" extra',
+      FlatIssueKind.missingEquals: 'just a key',
+      FlatIssueKind.emptyKey: ' = value',
+      FlatIssueKind.invalidKey: 'a"b = v',
+    };
 
-    test(
-      'TrailingCharactersAfterQuoteException creates with correct message',
-      () {
-        final ex = TrailingCharactersAfterQuoteException(
-          3,
-          'key = "value" extra',
-        );
-        expect(ex.lineNumber, 3);
-        expect(ex.rawLine, 'key = "value" extra');
-        expect(ex.message, contains('Trailing characters after quoted value'));
-        expect(ex.message, contains('line 3'));
-      },
-    );
+    var line = 1;
+    cases.forEach((kind, raw) {
+      final at = line++;
 
-    test('MissingEqualsException creates with correct message', () {
-      final ex = MissingEqualsException(2, 'just a key');
-      expect(ex.lineNumber, 2);
-      expect(ex.rawLine, 'just a key');
-      expect(ex.message, contains("Missing '='"));
-      expect(ex.message, contains('line 2'));
-    });
+      test('it reports a ${kind.name} where the issue says', () {
+        final issue = FlatIssue(kind: kind, line: at, column: 7, rawLine: raw);
+        final ex = FlatParseException(issue);
 
-    test('EmptyKeyException creates with correct message', () {
-      final ex = EmptyKeyException(1, ' = value');
-      expect(ex.lineNumber, 1);
-      expect(ex.rawLine, ' = value');
-      expect(ex.message, contains('Empty key'));
-      expect(ex.message, contains('line 1'));
+        expect(ex.kind, kind);
+        expect(ex.issue, issue);
+        expect(ex.lineNumber, at);
+        expect(ex.rawLine, raw);
+        expect(ex.message, contains(issue.message));
+        expect(ex.message, contains('line $at'));
+        // FormatException counts from zero, the displayed column from one.
+        expect(ex.offset, 6);
+        expect(ex.source, raw);
+      });
     });
   });
 

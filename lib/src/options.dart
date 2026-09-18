@@ -12,19 +12,6 @@ import 'validation.dart';
 /// occurred, and [line] contains the raw line content that caused the error.
 // Issue reporting lives in issue.dart; see FlatIssue and OnIssue.
 
-/// Marks a `copyWith` parameter as "not passed".
-///
-/// `field ?? this.field` cannot tell `null` from absent, so a nullable field
-/// could be set but never cleared. Nullable `copyWith` parameters take this as
-/// their default and are compared with [identical].
-const Object _unset = #unset;
-
-/// The [OnIssue]-typed counterpart of [_unset].
-///
-/// A handler parameter has to keep its function type, or the lambda a caller
-/// writes at the call site loses its inferred argument type.
-void _unsetOnIssue(FlatIssue issue) {}
-
 /// Options that control how configuration files are parsed.
 ///
 /// These options allow you to customize the parsing behavior, including comment
@@ -77,23 +64,6 @@ class FlatParseOptions {
   /// )
   /// ```
   final OnIssue? onIssue;
-
-  /// Returns a copy of these options with selectively replaced fields.
-  ///
-  /// Only the provided parameters will be changed; all others will remain
-  /// the same as in the original options object.
-  /// Pass [onIssue] as `null` to clear it; omitting it keeps the current one.
-  FlatParseOptions copyWith({
-    String? commentPrefix,
-    bool? decodeEscapesInQuoted,
-    bool? strict,
-    OnIssue? onIssue = _unsetOnIssue,
-  }) => FlatParseOptions(
-    commentPrefix: commentPrefix ?? this.commentPrefix,
-    decodeEscapesInQuoted: decodeEscapesInQuoted ?? this.decodeEscapesInQuoted,
-    strict: strict ?? this.strict,
-    onIssue: identical(onIssue, _unsetOnIssue) ? this.onIssue : onIssue,
-  );
 
   @override
   String toString() =>
@@ -219,21 +189,6 @@ class FlatIncludeOptions {
     checkNonNegative(maxIncludedEntries, 'maxIncludedEntries');
   }
 
-  /// Returns a copy of these options with selectively replaced fields.
-  FlatIncludeOptions copyWith({
-    String? includeKey,
-    int? maxIncludeDepth,
-    int? maxIncludes,
-    int? maxIncludedEntries,
-    IncludeMergePolicy? mergePolicy,
-  }) => FlatIncludeOptions(
-    includeKey: includeKey ?? this.includeKey,
-    maxIncludeDepth: maxIncludeDepth ?? this.maxIncludeDepth,
-    maxIncludes: maxIncludes ?? this.maxIncludes,
-    maxIncludedEntries: maxIncludedEntries ?? this.maxIncludedEntries,
-    mergePolicy: mergePolicy ?? this.mergePolicy,
-  );
-
   @override
   String toString() =>
       'FlatIncludeOptions(includeKey: $includeKey, '
@@ -282,18 +237,6 @@ class FlatStreamReadOptions {
   /// (CRLF, LF, CR).
   final LineSplitter lineSplitter;
 
-  /// Returns a copy of these options with selectively replaced fields.
-  ///
-  /// Only the provided parameters will be changed; all others will remain
-  /// the same as in the original options object.
-  FlatStreamReadOptions copyWith({
-    Encoding? encoding,
-    LineSplitter? lineSplitter,
-  }) => FlatStreamReadOptions(
-    encoding: encoding ?? this.encoding,
-    lineSplitter: lineSplitter ?? this.lineSplitter,
-  );
-
   @override
   String toString() => 'FlatStreamReadOptions(encoding: ${encoding.name})';
 
@@ -328,18 +271,6 @@ class FlatStreamWriteOptions {
   /// Defaults to `\n` (Unix-style line endings). You can use `\r\n` for
   /// Windows-style line endings or `\r` for classic Mac-style line endings.
   final String lineTerminator;
-
-  /// Returns a copy of these options with selectively replaced fields.
-  ///
-  /// Only the provided parameters will be changed; all others will remain
-  /// the same as in the original options object.
-  FlatStreamWriteOptions copyWith({
-    Encoding? encoding,
-    String? lineTerminator,
-  }) => FlatStreamWriteOptions(
-    encoding: encoding ?? this.encoding,
-    lineTerminator: lineTerminator ?? this.lineTerminator,
-  );
 
   @override
   String toString() =>
@@ -396,22 +327,6 @@ class FlatEncodeOptions {
   /// This is used to determine if a value starts with a comment and should be quoted.
   /// Defaults to `#`.
   final String commentPrefix;
-
-  /// Returns a copy of these options with selectively replaced fields.
-  ///
-  /// Only the provided parameters will be changed; all others will remain
-  /// the same as in the original options object.
-  FlatEncodeOptions copyWith({
-    bool? escapeQuoted,
-    bool? quoteIfWhitespace,
-    bool? alwaysQuote,
-    String? commentPrefix,
-  }) => FlatEncodeOptions(
-    escapeQuoted: escapeQuoted ?? this.escapeQuoted,
-    quoteIfWhitespace: quoteIfWhitespace ?? this.quoteIfWhitespace,
-    alwaysQuote: alwaysQuote ?? this.alwaysQuote,
-    commentPrefix: commentPrefix ?? this.commentPrefix,
-  );
 
   @override
   String toString() =>
@@ -725,47 +640,6 @@ class FlatEnvOptions {
   /// print(doc.toMap()); // {PORT: 9000}
   /// ```
   final Map<String, String> merge;
-
-  /// Returns a copy of these options with selectively replaced fields.
-  ///
-  /// Only the provided parameters will be changed; all others will remain
-  /// the same as in the original options object.
-  /// Pass [prefix] as `null` to clear it; omitting it keeps the current one.
-  /// Pass [prefix], [keySplitOn] or [keyJoinWith] as `null` to clear one;
-  /// omitting it keeps the current value.
-  FlatEnvOptions copyWith({
-    Object? prefix = _unset,
-    bool? caseSensitive,
-    bool? interpolate,
-    MissingVariablePolicy? missingVariable,
-    MultilineValuePolicy? multilineValue,
-    bool? keepEmptyValues,
-    String? varPattern,
-    bool? stripMatchedPrefix,
-    Object? keySplitOn = _unset,
-    Object? keyJoinWith = _unset,
-    bool? lowercaseKeys,
-    Map<String, String>? defaults,
-    Map<String, String>? merge,
-  }) => FlatEnvOptions(
-    prefix: identical(prefix, _unset) ? this.prefix : prefix as String?,
-    caseSensitive: caseSensitive ?? this.caseSensitive,
-    interpolate: interpolate ?? this.interpolate,
-    missingVariable: missingVariable ?? this.missingVariable,
-    multilineValue: multilineValue ?? this.multilineValue,
-    keepEmptyValues: keepEmptyValues ?? this.keepEmptyValues,
-    varPattern: varPattern ?? this.varPattern,
-    stripMatchedPrefix: stripMatchedPrefix ?? this.stripMatchedPrefix,
-    keySplitOn: identical(keySplitOn, _unset)
-        ? this.keySplitOn
-        : keySplitOn as String?,
-    keyJoinWith: identical(keyJoinWith, _unset)
-        ? this.keyJoinWith
-        : keyJoinWith as String?,
-    lowercaseKeys: lowercaseKeys ?? this.lowercaseKeys,
-    defaults: defaults ?? this.defaults,
-    merge: merge ?? this.merge,
-  );
 
   @override
   String toString() =>

@@ -1,3 +1,5 @@
+import 'exceptions.dart';
+
 /// The kinds of problem a parser can find in a line.
 ///
 /// New kinds are added over time. Handle the ones you care about and let the
@@ -85,3 +87,18 @@ final class FlatIssue {
 /// handler aborts the parse, which is one way to build a policy stricter than
 /// [FlatParseOptions.strict] without being all-or-nothing.
 typedef OnIssue = void Function(FlatIssue issue);
+
+/// Delivers [issue] the way [strict] asks for.
+///
+/// Strict mode throws a [FlatParseException] carrying it; lenient mode hands
+/// it to [onIssue], if there is one, and returns so the caller can skip the
+/// line. One construction site for both, which is what keeps the two modes
+/// naming the same character: they used to build their own positions and
+/// disagreed by however much whitespace had been trimmed.
+void reportIssue(FlatIssue issue, {required bool strict, OnIssue? onIssue}) {
+  if (strict) {
+    throw FlatParseException(issue);
+  }
+
+  onIssue?.call(issue);
+}

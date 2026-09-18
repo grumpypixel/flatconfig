@@ -1,121 +1,47 @@
 import 'package:meta/meta.dart';
 
-/// Base class for all parser-related exceptions with consistent message format.
-///
-/// This abstract class extends [FormatException] and provides a consistent
-/// format for all parsing errors, including line and column information for
-/// better error reporting and debugging.
-abstract class FlatParseException extends FormatException {
-  /// Creates a new [FlatParseException] with the specified details.
-  ///
-  /// The [message] describes the type of error that occurred, [lineNumber]
-  /// indicates the 1-based line number where the error was found, and [rawLine]
-  /// contains the actual line content that caused the error.
-  FlatParseException(
-    String message,
-    this.lineNumber,
-    this.rawLine, {
-    int? column,
-  }) : super(
-         _composeMessage(message, lineNumber, rawLine, column ?? 0),
-         rawLine,
-         column ?? 0,
-       );
+import 'issue.dart';
 
-  /// The 1-based line number where the error occurred.
-  ///
-  /// This helps identify the exact location of the parsing error in the
-  /// configuration file.
-  final int lineNumber;
+/// Thrown in strict mode for a line the format cannot read.
+///
+/// One type for every way a line can be malformed, carrying the same
+/// [FlatIssue] a lenient parse would have reported. Five subclasses used to
+/// say what [FlatIssue.kind] says, so the two modes described the same five
+/// conditions in two vocabularies — and drifted, reporting different columns
+/// for the same character.
+///
+/// ```dart
+/// try {
+///   FlatDocument.parse(source, options: const FlatParseOptions(strict: true));
+/// } on FlatParseException catch (e) {
+///   if (e.issue.kind == FlatIssueKind.invalidKey) {
+///     // ...
+///   }
+/// }
+/// ```
+class FlatParseException extends FormatException {
+  /// Creates an exception reporting [issue].
+  FlatParseException(this.issue)
+    : super(
+        '${issue.message} at line ${issue.line}, '
+        'column ${issue.column}: ${issue.rawLine}',
+        issue.rawLine,
+        // FormatException counts an offset from zero; a displayed column
+        // counts from one.
+        issue.column > 0 ? issue.column - 1 : 0,
+      );
 
-  /// The raw line content that caused the exception.
-  ///
-  /// This contains the actual text that was being parsed when the error occurred,
-  /// which is useful for debugging and error reporting.
-  final String rawLine;
+  /// What went wrong, where, and in which line.
+  final FlatIssue issue;
 
-  static String _composeMessage(
-    String base,
-    int line,
-    String raw,
-    int column,
-  ) => '$base at line $line, column $column: $raw';
-}
+  /// What went wrong. Shorthand for `issue.kind`.
+  FlatIssueKind get kind => issue.kind;
 
-/// Thrown when a key-value pair is missing a separator (e.g., '=').
-///
-/// This exception is thrown when a line that should contain a configuration
-/// entry doesn't have the required `=` separator between the key and value.
-///
-/// Example of invalid line: `background 343028` (missing `=`)
-class MissingEqualsException extends FlatParseException {
-  /// Creates a new [MissingEqualsException].
-  MissingEqualsException(int lineNumber, String rawLine, {int? column})
-    : super(errorMissingEquals, lineNumber, rawLine, column: column);
-}
+  /// The 1-based line the problem was found on. Shorthand for `issue.line`.
+  int get lineNumber => issue.line;
 
-/// Thrown when a key is empty (e.g., '= value').
-///
-/// This exception is thrown when a configuration line has a value but no key,
-/// which is not allowed in flat configuration files.
-///
-/// Example of invalid line: `= 343028` (empty key)
-class EmptyKeyException extends FlatParseException {
-  /// Creates a new [EmptyKeyException].
-  EmptyKeyException(int lineNumber, String rawLine, {int? column})
-    : super(errorEmptyKey, lineNumber, rawLine, column: column);
-}
-
-/// Thrown when a key breaks one of the rules in SPEC.md 3.
-///
-/// Distinct from [EmptyKeyException], which covers the one case a reader is
-/// most likely to hit. This covers the rest: a key that would not survive
-/// being written out and read back, such as one containing a double quote or
-/// beginning with `#`.
-///
-/// Example of an invalid line: `"a b" = v` (the key would keep its quotes)
-class InvalidKeyException extends FlatParseException {
-  /// Creates a new [InvalidKeyException] for [key], which [reason] describes.
-  InvalidKeyException(
-    this.key,
-    this.reason,
-    int lineNumber,
-    String rawLine, {
-    super.column,
-  }) : super('Key "$key" $reason', lineNumber, rawLine);
-
-  /// The offending key, exactly as it appeared.
-  final String key;
-
-  /// The rule that was broken, phrased to follow the key.
-  final String reason;
-}
-
-/// Thrown when a quoted value is not properly closed.
-///
-/// This exception is thrown when a line contains a quoted value that doesn't
-/// have a matching closing quote, which makes the line invalid.
-///
-/// Example of invalid line: `title = "My Application` (missing closing quote)
-class UnterminatedQuoteException extends FlatParseException {
-  /// Creates a new [UnterminatedQuoteException].
-  UnterminatedQuoteException(int lineNumber, String rawLine, {int? column})
-    : super(errorUnterminatedQuote, lineNumber, rawLine, column: column);
-}
-
-/// Thrown when characters appear after a properly closed quoted value.
-///
-/// This exception is thrown when a quoted value is properly closed but there
-/// are additional characters after the closing quote, which is not allowed.
-///
-/// Example of invalid line: `title = "My App" extra text` (trailing characters)
-class TrailingCharactersAfterQuoteException extends FlatParseException {
-  /// Creates a new [TrailingCharactersAfterQuoteException].
-  TrailingCharactersAfterQuoteException(
-    int lineNumber,
-    String rawLine, {
-    int? column,
-  }) : super(errorTrailingAfterQuote, lineNumber, rawLine, column: column);
+  /// The line as it appeared in the source. Shorthand for `issue.rawLine`.
+  String get rawLine => issue.rawLine;
 }
 
 /// Thrown when a config file include fails.

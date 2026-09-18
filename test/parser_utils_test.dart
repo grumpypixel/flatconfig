@@ -13,7 +13,13 @@ void main() {
           lineNumber: 1,
           rawLine: 'key = "unterminated',
         ),
-        throwsA(isA<UnterminatedQuoteException>()),
+        throwsA(
+          isA<FlatParseException>().having(
+            (e) => e.kind,
+            'kind',
+            FlatIssueKind.unterminatedQuote,
+          ),
+        ),
       );
     });
 
@@ -27,7 +33,13 @@ void main() {
             lineNumber: 2,
             rawLine: 'key = "value" extra',
           ),
-          throwsA(isA<TrailingCharactersAfterQuoteException>()),
+          throwsA(
+            isA<FlatParseException>().having(
+              (e) => e.kind,
+              'kind',
+              FlatIssueKind.trailingAfterQuote,
+            ),
+          ),
         );
       },
     );

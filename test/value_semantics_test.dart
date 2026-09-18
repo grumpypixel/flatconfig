@@ -124,32 +124,13 @@ void main() {
     });
 
     test('FlatDataOptions', () {
-      // Built through copyWith so the two are distinct instances: const
-      // canonicalization would make identity alone look like equality, which
-      // is how this class went without an == for as long as it did.
+      // Deliberately not const: canonicalization would make identity alone
+      // look like equality, which is how this class went without an == for as
+      // long as it did.
       _behavesLikeAValue(
-        const FlatDataOptions().copyWith(separator: '/'),
-        const FlatDataOptions().copyWith(separator: '/'),
-        const FlatDataOptions(),
-      );
-    });
-
-    test('copyWith clears a nullable encoder only when asked', () {
-      String? encoder(Object? value, String keyPath) => 'x';
-      final withEncoder = const FlatDataOptions().copyWith(
-        valueEncoder: encoder,
-      );
-
-      expect(withEncoder.valueEncoder, isNotNull);
-      expect(
-        withEncoder.copyWith(separator: '/').valueEncoder,
-        isNotNull,
-        reason: 'omitting it must keep it',
-      );
-      expect(
-        withEncoder.copyWith(valueEncoder: null).valueEncoder,
-        isNull,
-        reason: 'passing null must clear it',
+        FlatDataOptions(separator: '/'),
+        FlatDataOptions(separator: '/'),
+        FlatDataOptions(),
       );
     });
   });

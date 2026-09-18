@@ -297,6 +297,46 @@ void main() {
     });
   });
 
+  group('strict and lenient name the same character', () {
+    // They built their own positions from their own vocabularies, and drifted:
+    // for a quoted value the strict path left out the offset of everything
+    // trimmed from the left, so `  key = "open` was column 2 to one of them
+    // and column 7 to the other. One issue, two ways of delivering it.
+    const malformed = [
+      'no equals here',
+      '  no equals with indent',
+      ' = orphan value',
+      '\t= orphan after a tab',
+      'a"b = quoted key',
+      '  key = "open',
+      '\t key = "closed" junk',
+    ];
+
+    for (final line in malformed) {
+      test('«${line.replaceAll('\t', '\\t')}»', () {
+        final reported = <FlatIssue>[];
+        FlatDocument.parse(
+          '$line\n',
+          options: FlatParseOptions(onIssue: reported.add),
+        );
+
+        expect(reported, hasLength(1), reason: 'lenient found nothing');
+
+        try {
+          FlatDocument.parse(
+            '$line\n',
+            options: const FlatParseOptions(strict: true),
+          );
+          fail('strict mode accepted it');
+        } on FlatParseException catch (e) {
+          expect(e.issue, reported.single);
+          // FormatException counts from zero, the displayed column from one.
+          expect(e.offset, e.issue.column - 1);
+        }
+      });
+    }
+  });
+
   group('a configured comment prefix reaches the encoder', () {
     // Key validity is judged against the default `#` so that a document does
     // not become invalid because of the options of whoever parses it. That

@@ -88,13 +88,24 @@ Added:
   already had two of the three.
 - **`SPEC.md`** — the format is now specified rather than implied. Appendix A
   tracks where the implementation still deviates.
-- **`InvalidKeyException`** — raised in strict mode for a key that breaks
-  `SPEC.md` §3.
+- **`FlatIssueKind.invalidKey`** — strict mode reports a key that breaks
+  `SPEC.md` §3, which nothing did before.
 - **`FlatDocument.fromEnvironment()`** — build a document from environment
   variables.
 
 Changed:
 
+- **One parse exception instead of six.** `FlatParseException` is concrete now
+  and carries the `FlatIssue` a lenient parse would have reported, so what went
+  wrong is `e.kind`. The five subclasses said exactly what `FlatIssueKind`
+  says, which left the two modes describing the same five conditions in two
+  vocabularies — and they had drifted: for `  key = "open` the exception named
+  column 2 while the issue named column 7. `FormatException.offset` is now the
+  0-based counterpart of the 1-based column rather than the same number.
+- **The options classes lost `copyWith`.** Seven methods and their sentinel
+  machinery, with no caller anywhere in the package, the examples or the
+  tooling — only tests that tested them. Options are small and built at the
+  call site; constructing a fresh one says more than mutating a copy.
 - **`SPEC.md` §8 is policy-aware.** It described in-place expansion with
   ordinary last-write-wins — which is `IncludeMergePolicy.lastWins`, not the
   `ghostty` default the API ships. The section now defines both, names
