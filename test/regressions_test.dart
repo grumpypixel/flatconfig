@@ -211,6 +211,34 @@ void main() {
       );
     });
 
+    test('a custom object cannot smuggle a structure past the budgets', () {
+      // The budgets only looked at maps and lists, so an ordinary object
+      // passed as a leaf. jsonEncode then called its toJson, which may return
+      // anything at all: the deep one died in the encoder, the wide one hung.
+      expect(
+        () => FlatDocument.fromData({'root': _DeepToJson()}),
+        throwsArgumentError,
+      );
+      expect(
+        () => FlatDocument.fromData({'root': _WideToJson()}),
+        throwsArgumentError,
+      );
+      // Nested behind a map of its own, which is how it usually arrives.
+      expect(
+        () => FlatDocument.fromData({
+          'root': {'inner': _DeepToJson()},
+        }),
+        throwsArgumentError,
+      );
+    });
+
+    test('an ordinary custom object still encodes', () {
+      expect(
+        FlatDocument.fromData({'root': _SmallToJson()})['root'],
+        '{"a":1}',
+      );
+    });
+
     test('a negative maxDepth is rejected where it is used', () {
       // A literal is caught by the constructor's assertion at compile time,
       // which a release build drops.
@@ -514,4 +542,33 @@ final class _CountingResolver extends SyncIncludeResolver {
 
     return null;
   }
+}
+
+/// A value whose JSON form is far deeper than the value itself.
+class _DeepToJson {
+  Object? toJson() {
+    Object? node = <Object?>['leaf'];
+    for (var i = 0; i < 10000; i++) {
+      node = <Object?>[node];
+    }
+
+    return node;
+  }
+}
+
+/// A value that is shallow in memory and exponential once written out.
+class _WideToJson {
+  Object? toJson() {
+    Object? shared = <Object?>['leaf'];
+    for (var i = 0; i < 40; i++) {
+      shared = <Object?>[shared, shared];
+    }
+
+    return shared;
+  }
+}
+
+/// The ordinary case, which must keep working.
+class _SmallToJson {
+  Object? toJson() => {'a': 1};
 }

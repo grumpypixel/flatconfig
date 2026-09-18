@@ -128,7 +128,6 @@ Future<FlatDocument> _resolveUnit(
       traversal: traversal,
       depth: depth + 1,
     );
-    traversal.chargeEntries(subDoc.length, included.id);
     groups.add(subDoc.entries);
   }
 
@@ -183,7 +182,6 @@ FlatDocument _resolveUnitSync(
       traversal: traversal,
       depth: depth + 1,
     );
-    traversal.chargeEntries(subDoc.length, included.id);
     groups.add(subDoc.entries);
   }
 
@@ -202,10 +200,14 @@ FlatDocument _assemble(
   String unitId,
   List<List<FlatEntry>> groups,
   IncludeTraversal traversal,
-) => traversal.finish(
-  unitId,
-  assembleIncludedDocument(doc, traversal.includeOptions, groups),
-);
+) {
+  traversal.checkAssembledSize(doc.length, groups, unitId);
+
+  return traversal.finish(
+    unitId,
+    assembleIncludedDocument(doc, traversal.includeOptions, groups),
+  );
+}
 
 /// An unresolved include contributes nothing when optional, and throws
 /// otherwise.

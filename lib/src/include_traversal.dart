@@ -39,7 +39,6 @@ final class IncludeTraversal {
   final Map<String, FlatDocument> _finished = <String, FlatDocument>{};
 
   var _includesFollowed = 0;
-  var _entriesIncluded = 0;
 
   /// Claims [id] for resolution, and returns the document if this traversal
   /// already built it.
@@ -107,18 +106,31 @@ final class IncludeTraversal {
     }
   }
 
-  /// Charges [count] entries contributed by an include against the budget.
+  /// Checks the size a unit's result will have, before it is built.
   ///
-  /// Call this before the entries are copied into a parent, so that a graph
-  /// which doubles per level is stopped while it is still small. [reportedAs]
-  /// names the unit that pushed the traversal over.
+  /// [own] is how many entries the unit contributed itself and [groups] holds
+  /// what each of its includes resolved to, so the sum is the length of the
+  /// list about to be allocated — known in full while none of it exists yet.
+  ///
+  /// Measuring here rather than charging each hand-off is what makes the limit
+  /// mean the size of the result. A running total counts a unit again at every
+  /// ancestor it passes through, so a graph that doubles over sixteen levels
+  /// accumulated 131,070 charges for a result of 65,536 entries and was
+  /// refused under a limit of 100,000 that it never came near.
   ///
   /// Throws [IncludeBudgetExceededException] past
   /// [FlatIncludeOptions.maxIncludedEntries].
-  void chargeEntries(int count, String reportedAs) {
-    _entriesIncluded += count;
+  void checkAssembledSize(
+    int own,
+    List<List<FlatEntry>> groups,
+    String reportedAs,
+  ) {
+    var included = 0;
+    for (final group in groups) {
+      included += group.length;
+    }
 
-    if (_entriesIncluded > includeOptions.maxIncludedEntries) {
+    if (included > includeOptions.maxIncludedEntries) {
       throw IncludeBudgetExceededException(
         reportedAs,
         'maxIncludedEntries',

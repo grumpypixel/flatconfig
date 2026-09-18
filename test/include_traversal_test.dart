@@ -20,6 +20,26 @@ Map<String, String> _doublingGraph(int levels) => {
     'l$n.conf': 'config-file = l${n - 1}.conf\nconfig-file = l${n - 1}.conf',
 };
 
+/// A file resolver that records which half of its contract was used.
+final class _WatchingFileResolver extends FileIncludeResolver {
+  var asyncCalls = 0;
+  var syncCalls = 0;
+
+  @override
+  Future<IncludeUnit?> resolve(IncludeRequest request) {
+    asyncCalls++;
+
+    return super.resolve(request);
+  }
+
+  @override
+  IncludeUnit? resolveSync(IncludeRequest request) {
+    syncCalls++;
+
+    return super.resolveSync(request);
+  }
+}
+
 /// A resolver that answers nothing and records the targets it was handed.
 final class _EchoResolver extends SyncIncludeResolver {
   final seen = <String>[];
@@ -70,9 +90,37 @@ void main() {
       );
     });
 
-    test('it is charged as entries are handed up, not at the end', () {
-      // The point of the budget is to refuse before the allocation, so a limit
-      // of 1 must stop at the first include rather than after expansion.
+    test('the limit is the size of the result, not the work to build it', () {
+      // A running total charged at each hand-off counts a unit again at every
+      // ancestor it passes through. Sixteen levels of doubling assemble to
+      // 65,536 entries and accumulated 131,070 charges, so a limit of 100,000
+      // refused a result that never came near it.
+      final resolver = _CountingMemoryResolver(_doublingGraph(16));
+
+      expect(
+        parseWithIncludesSync(
+          'config-file = l16.conf',
+          resolver: resolver,
+          originId: 'main.conf',
+        ).length,
+        65536,
+      );
+    });
+
+    test('one level further is refused', () {
+      expect(
+        () => parseWithIncludesSync(
+          'config-file = l17.conf',
+          resolver: _CountingMemoryResolver(_doublingGraph(17)),
+          originId: 'main.conf',
+        ),
+        throwsA(isA<IncludeBudgetExceededException>()),
+      );
+    });
+
+    test('it refuses before the allocation, not after it', () {
+      // A limit of 1 must stop at the first include rather than after
+      // expansion.
       final resolver = _CountingMemoryResolver(_doublingGraph(20));
 
       expect(
@@ -502,6 +550,75 @@ void main() {
           reason: 'with decodeEscapesInQuoted: $decode',
         );
       }
+    });
+  });
+
+  group('an awaited parse does not block on its includes', () {
+    // FileIncludeResolver extends SyncIncludeResolver, whose asynchronous
+    // method is derived from the synchronous one. Inheriting that made every
+    // include of an awaited File.parseWithIncludes a blocking read, which an
+    // event loop notices and no test noticed. Both halves are genuine now.
+
+    test('the async entry point uses the async resolver method', () async {
+      final dir = Directory.systemTemp.createTempSync('flatconfig_async_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      File(p.join(dir.path, 'theme.conf')).writeAsStringSync('a = 1\n');
+      final main = File(p.join(dir.path, 'main.conf'))
+        ..writeAsStringSync('config-file = theme.conf\n');
+
+      final watcher = _WatchingFileResolver();
+
+      expect(
+        (await parseWithIncludes(
+          main.readAsStringSync(),
+          resolver: watcher,
+          originId: main.path,
+        )).toMap(),
+        {'a': '1'},
+      );
+      expect(watcher.syncCalls, isZero, reason: 'resolveSync was used');
+      expect(watcher.asyncCalls, 1);
+    });
+
+    test('the sync entry point still uses the sync one', () {
+      final dir = Directory.systemTemp.createTempSync('flatconfig_sync_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      File(p.join(dir.path, 'theme.conf')).writeAsStringSync('a = 1\n');
+      final main = File(p.join(dir.path, 'main.conf'))
+        ..writeAsStringSync('config-file = theme.conf\n');
+
+      final watcher = _WatchingFileResolver();
+
+      expect(
+        parseWithIncludesSync(
+          main.readAsStringSync(),
+          resolver: watcher,
+          originId: main.path,
+        ).toMap(),
+        {'a': '1'},
+      );
+      expect(watcher.asyncCalls, isZero);
+      expect(watcher.syncCalls, 1);
+    });
+
+    test('both halves resolve to the same unit', () async {
+      final dir = Directory.systemTemp.createTempSync('flatconfig_both_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      File(p.join(dir.path, 'theme.conf')).writeAsStringSync('a = 1\n');
+      final main = File(p.join(dir.path, 'main.conf'))
+        ..writeAsStringSync('config-file = theme.conf\n');
+
+      final request = IncludeRequest('theme.conf', fromId: main.path);
+      final resolver = FileIncludeResolver();
+
+      final viaAsync = await resolver.resolve(request);
+      final viaSync = resolver.resolveSync(request);
+
+      expect(viaAsync!.id, viaSync!.id);
+      expect(viaAsync.content, viaSync.content);
     });
   });
 

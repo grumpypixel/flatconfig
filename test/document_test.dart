@@ -50,7 +50,7 @@ void main() {
         FlatEntry('b', '2'),
         FlatEntry('a', '3'),
       ]);
-      final _ = doc.toMap; // trigger computation
+      doc.toMap(); // the point of the test: it has to run
       expect(doc.entries.map((e) => e.key).toList(), ['a', 'b', 'a']);
     });
 

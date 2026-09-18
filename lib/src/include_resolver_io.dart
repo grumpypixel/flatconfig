@@ -12,6 +12,11 @@ import 'path_utils.dart';
 ///
 /// A relative target is resolved against the directory of the unit holding the
 /// directive; an absolute one is used as it is.
+///
+/// Both halves are genuine: [resolve] reads and canonicalizes without blocking,
+/// [resolveSync] does neither. Inheriting the asynchronous method from
+/// [SyncIncludeResolver] would have made every include of an awaited parse a
+/// blocking read, which is what an event loop notices.
 class FileIncludeResolver extends SyncIncludeResolver {
   /// Creates a resolver that decodes the files it reads with [encoding].
   ///
@@ -26,14 +31,8 @@ class FileIncludeResolver extends SyncIncludeResolver {
   final Encoding encoding;
 
   @override
-  IncludeUnit? resolveSync(IncludeRequest request) {
-    final baseDir = _baseDirectoryFor(request.fromId);
-
-    final absPath = p.isAbsolute(request.target)
-        ? request.target
-        : p.normalize(p.join(baseDir.path, request.target));
-
-    final file = File(absPath);
+  Future<IncludeUnit?> resolve(IncludeRequest request) async {
+    final file = _target(request, await _asyncBase(request.fromId));
 
     // Read first. Asking whether the file exists and then reading it answers
     // for a moment that has passed by the time of the read, and reports every
@@ -41,20 +40,34 @@ class FileIncludeResolver extends SyncIncludeResolver {
     // include", which an optional directive then skips in silence.
     final String content;
     try {
+      content = await file.readAsString(encoding: encoding);
+    } on PathNotFoundException {
+      return null;
+    }
+
+    return IncludeUnit(id: await _asyncId(file), content: content);
+  }
+
+  @override
+  IncludeUnit? resolveSync(IncludeRequest request) {
+    final file = _target(request, _syncBase(request.fromId));
+
+    final String content;
+    try {
       content = file.readAsStringSync(encoding: encoding);
     } on PathNotFoundException {
       return null;
     }
 
-    String canonical;
-    try {
-      canonical = resolveCanonicalPath(file);
-    } catch (_) {
-      canonical = file.absolute.path;
-    }
-
-    return IncludeUnit(id: normalizeCanonicalPath(canonical), content: content);
+    return IncludeUnit(id: _syncId(file), content: content);
   }
+
+  /// The file [request] names, relative to [baseDir] unless it is absolute.
+  File _target(IncludeRequest request, Directory baseDir) => File(
+    p.isAbsolute(request.target)
+        ? request.target
+        : p.normalize(p.join(baseDir.path, request.target)),
+  );
 
   /// The directory a relative target is resolved against.
   ///
@@ -66,7 +79,7 @@ class FileIncludeResolver extends SyncIncludeResolver {
   /// [fromId] is not always a path — a caller may pass `mem:main.conf` or
   /// leave it out — so a name that does not resolve falls back to its lexical
   /// directory.
-  Directory _baseDirectoryFor(String? fromId) {
+  Directory _syncBase(String? fromId) {
     if (fromId == null || fromId.isEmpty) {
       return Directory.current;
     }
@@ -75,8 +88,42 @@ class FileIncludeResolver extends SyncIncludeResolver {
 
     try {
       return File(resolveCanonicalPath(origin)).parent;
-    } catch (_) {
+    } on FileSystemException {
       return origin.parent;
+    }
+  }
+
+  /// The asynchronous counterpart to [_syncBase].
+  Future<Directory> _asyncBase(String? fromId) async {
+    if (fromId == null || fromId.isEmpty) {
+      return Directory.current;
+    }
+
+    final origin = File(fromId);
+
+    try {
+      return File(await origin.resolveSymbolicLinks()).parent;
+    } on FileSystemException {
+      return origin.parent;
+    }
+  }
+
+  /// The identity a unit is known by: its real path, case-folded where the
+  /// filesystem folds case.
+  String _syncId(File file) {
+    try {
+      return normalizeCanonicalPath(resolveCanonicalPath(file));
+    } on FileSystemException {
+      return normalizeCanonicalPath(file.absolute.path);
+    }
+  }
+
+  /// The asynchronous counterpart to [_syncId].
+  Future<String> _asyncId(File file) async {
+    try {
+      return normalizeCanonicalPath(await file.resolveSymbolicLinks());
+    } on FileSystemException {
+      return normalizeCanonicalPath(file.absolute.path);
     }
   }
 

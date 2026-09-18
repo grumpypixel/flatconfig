@@ -137,14 +137,6 @@ void main() {
   });
 
   group('FormatException extensions', () {
-    test('copyWithMessage preserves source and offset', () {
-      final original = FormatException('original', 'source', 10);
-      final copy = original.copyWithMessage('new message');
-      expect(copy.message, 'new message');
-      expect(copy.source, 'source');
-      expect(copy.offset, 10);
-    });
-
     test('explain adds key context', () {
       final original = FormatException('Expected int', 'source', 5);
       final explained = original.explain(key: 'age', got: 'abc');

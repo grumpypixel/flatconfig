@@ -71,7 +71,7 @@ extension FlatConfigIO on File {
     return resolver.parseWithIncludes(
       await _readRoot(() async => readAsString(encoding: readOptions.encoding)),
       resolver: FileIncludeResolver(encoding: readOptions.encoding),
-      originId: _rootId(),
+      originId: await _rootIdAsync(),
       options: options,
       includeOptions: includeOptions,
       readOptions: readOptions,
@@ -104,6 +104,15 @@ extension FlatConfigIO on File {
   String _rootId() {
     try {
       return normalizeCanonicalPath(resolveSymbolicLinksSync());
+    } on FileSystemException {
+      return normalizeCanonicalPath(absolute.path);
+    }
+  }
+
+  /// The asynchronous counterpart to [_rootId].
+  Future<String> _rootIdAsync() async {
+    try {
+      return normalizeCanonicalPath(await resolveSymbolicLinks());
     } on FileSystemException {
       return normalizeCanonicalPath(absolute.path);
     }

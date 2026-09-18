@@ -52,9 +52,9 @@ Added:
   level, and because a repeated unit is parsed once and then copied into every
   parent that names it, sixteen such levels stay at 32 directives while
   reaching 65,536 entries — from under a kilobyte of source, well inside the
-  default depth. Both are charged before the cost is incurred: entries as they
-  are handed up, so the refusal lands before the allocation, and a directive
-  before its request goes out, so one nobody answers still counts.
+  default depth. `maxIncludedEntries` is the size of the assembled result,
+  checked before the list is allocated; `maxIncludes` is charged before a
+  request goes out, so a directive nobody answers still counts.
 - **`FlatDataOptions.maxDepth` and `maxEncodedNodes`** — two ways a value
   handed to `fromData` costs more than it looks, and neither is visible from
   its size in memory. Too **deep**: the JSON encoder walks a composite
@@ -181,6 +181,22 @@ Changed:
 
 Fixed:
 
+- **An awaited file parse no longer blocks on its includes.**
+  `File.parseWithIncludes` reads the root asynchronously and then resolved
+  every include with `readAsStringSync`, because `FileIncludeResolver` derived
+  its asynchronous method from its synchronous one. Both halves are genuine
+  now, canonicalization included, so the awaited API stays off the event loop.
+- **`maxIncludedEntries` means the size of the result.** It was charged at each
+  hand-off, which counts a unit again at every ancestor it passes through: a
+  graph that doubles over sixteen levels assembles to 65,536 entries and
+  accumulated 131,070 charges, so the default of 100,000 refused a result that
+  never came near it. The check now measures what is about to be built.
+- **A custom object cannot carry a structure past the budgets.** Depth and
+  expansion were measured only for maps and lists, so an ordinary object
+  passed as a leaf and `jsonEncode` then called its `toJson`, which may return
+  anything: a deep result died inside the encoder, a shared one did not finish
+  at all. `toJson` is now part of what the budgets look at, nested objects
+  included.
 - **A BOM is stripped only at the very start of the input.** It was removed
   from the start of every line, so a U+FEFF that a later line legitimately
   began with was edited away in silence. `SPEC.md` §1 calls one anywhere but

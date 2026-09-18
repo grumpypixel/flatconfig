@@ -233,17 +233,6 @@ class IncludeBudgetExceededException extends ConfigIncludeException {
 }
 
 @internal
-extension FormatExceptionCopyWith on FormatException {
-  /// Creates a new [FormatException] with a custom message,
-  /// preserving the original source and offset for IDE highlighting.
-  ///
-  /// This is useful for creating more specific error messages while maintaining
-  /// the original error location information for debugging.
-  FormatException copyWithMessage(String newMessage) =>
-      FormatException(newMessage, source, offset);
-}
-
-@internal
 extension FormatExceptionExplain on FormatException {
   /// Adds context information (e.g., key and actual value)
   /// to an existing [FormatException] message.

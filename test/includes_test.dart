@@ -1178,26 +1178,21 @@ config-file = "?optional.conf"
       expect(result2, equals(expected2));
     });
 
-    test('quoted include paths with escape decoding for quotes', () async {
-      // Create main config file with quoted include path containing escaped quotes
+    test('a file whose name contains quotes is included', () async {
+      // This used to write two files, assert nothing, and explain in a comment
+      // that the behaviour was correct. The escapes make the name, so the file
+      // on disk really is theme"dark".conf, and the include has to find it.
       final mainFile = File('${tempDir.path}/main.conf');
-      await mainFile.writeAsString('''
-background = 343028
-config-file = "theme\\"dark\\".conf"
-''');
+      await mainFile.writeAsString(
+        'background = 343028\nconfig-file = "theme\\"dark\\".conf"\n',
+      );
 
-      // Create file with the decoded path (after escape processing)
-      // Note: This test demonstrates that escape decoding works for quotes
-      // The actual file inclusion will fail because quotes in filenames are problematic
-      // but the escape decoding itself is working correctly
-      final escapedFile = File('${tempDir.path}/theme"dark".conf');
-      await escapedFile.writeAsString('''
-foreground = f3d735
-''');
+      await File(
+        '${tempDir.path}/theme"dark".conf',
+      ).writeAsString('foreground = f3d735\n');
 
-      // The escape decoding is working correctly - the path "theme\"dark\".conf"
-      // becomes "theme"dark".conf" after processing, which is the expected behavior
-      // This test verifies the escape decoding functionality works as intended
+      expect((await mainFile.parseWithIncludes())['foreground'], 'f3d735');
+      expect(mainFile.parseWithIncludesSync()['foreground'], 'f3d735');
     });
 
     test(

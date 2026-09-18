@@ -425,7 +425,7 @@ void checkEncodableValue(
   String keyPath,
   FlatDataOptions options,
 ) {
-  var frontier = <Object?, int>{if (value is Map || value is List) value: 1};
+  var frontier = <Object?, int>{if (_hasChildren(value)) _expand(value): 1};
   var emitted = 0;
 
   for (var depth = 0; frontier.isNotEmpty; depth++) {
@@ -443,8 +443,9 @@ void checkEncodableValue(
       emitted += children.length * paths;
 
       for (final child in children) {
-        if (child is Map || child is List) {
-          next[child] = (next[child] ?? 0) + paths;
+        if (_hasChildren(child)) {
+          final node = _expand(child);
+          next[node] = (next[node] ?? 0) + paths;
         }
       }
     });
@@ -459,6 +460,43 @@ void checkEncodableValue(
     }
 
     frontier = next;
+  }
+}
+
+/// Whether [value] is something the JSON encoder will walk into.
+///
+/// A map, a list, or an object with a `toJson` that returns one. The last case
+/// is the reason this is a function rather than a type test: the encoder calls
+/// `toJson` itself, so an object that looks like a leaf here can hand it a
+/// structure of any shape, and both budgets would have been measured against
+/// the wrong thing.
+bool _hasChildren(Object? value) {
+  final expanded = _expand(value);
+
+  return expanded is Map || expanded is List;
+}
+
+/// [value] as the encoder will see it: its `toJson()` result, or itself.
+///
+/// Anything but a `Map`, `List` or JSON scalar gets one `toJson` call, the same
+/// one `jsonEncode` will make. A type without that method, or one that throws
+/// from it, is returned unchanged and left for the encoder to reject.
+Object? _expand(Object? value) {
+  if (value == null ||
+      value is Map ||
+      value is List ||
+      value is String ||
+      value is num ||
+      value is bool) {
+    return value;
+  }
+
+  try {
+    return (value as dynamic).toJson() as Object?;
+  } on NoSuchMethodError {
+    return value;
+  } on Object {
+    return value;
   }
 }
 
