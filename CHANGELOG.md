@@ -95,6 +95,26 @@ Added:
 
 Changed:
 
+- **`quoteInlineItem` and `inlineItemEncoder` replace `rfc4180Quote` and
+  `rfc4180CsvItemEncoder`.** The CSV helpers doubled quotes, which is valid
+  RFC-4180 and unreadable to this package: `getList` decodes a backslash
+  escape, so an item written `""quote""` came back with the doubling intact.
+  The replacements write what `getList` reads.
+- **A duration too large for an `int` reads as unreadable.** The scaled double
+  is past what an `int` holds, `round()` wrapped, and `999999999999999999999d`
+  came back as minus one millisecond — a plausible value with nothing to
+  signal it. Now `null`, the fallback, or a `FormatException`, as the three
+  shapes of the accessor promise.
+- **Three options can no longer be set to something unusable.** A `varPattern`
+  whose only parenthesis is a non-capturing group or an escape passed a text
+  check and then failed at `group(1)` with a `RangeError`; a `lineTerminator`
+  of `'|'` wrote every entry onto one line, which reads back as one entry; an
+  `includeKey` no entry can carry matched nothing and turned include
+  processing into a silent no-op. All three are refused where they are set.
+- **Every entry point reads the same grammar.** `parse` short-circuited on
+  `String.trim`, which removes every Unicode space, while the line grammar
+  counts four. A line of U+00A0 was an empty document through one door and a
+  missing separator through the others.
 - **One parse exception instead of six.** `FlatParseException` is concrete now
   and carries the `FlatIssue` a lenient parse would have reported, so what went
   wrong is `e.kind`. The five subclasses said exactly what `FlatIssueKind`

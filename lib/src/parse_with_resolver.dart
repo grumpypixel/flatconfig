@@ -80,13 +80,24 @@ FlatDocument parseWithIncludesSync(
 
 const String _rootId = 'mem:<root>';
 
-Future<FlatDocument> _resolveUnit(
+/// What following a unit's includes needs, or the answer if it is already in.
+typedef _Prepared = ({
+  FlatDocument? cached,
+  FlatDocument doc,
+  List<String> targets,
+});
+
+/// Claims [unit] for this traversal and parses it, unless it is already done.
+///
+/// Shared so that the two resolver loops cannot disagree about the cache, the
+/// cycle check, the depth or how a unit is parsed — they differ only in
+/// awaiting the resolver, and everything else they had in common was a copy.
+_Prepared _prepareUnit(
   IncludeUnit unit, {
   required String? fromUnitId,
-  required IncludeResolver resolver,
   required IncludeTraversal traversal,
   required int depth,
-}) async {
+}) {
   final done = traversal.begin(
     unit.id,
     reportedAs: unit.id,
@@ -94,30 +105,77 @@ Future<FlatDocument> _resolveUnit(
     depth: depth,
   );
   if (done != null) {
-    return done;
+    return (cached: done, doc: done, targets: const []);
   }
 
   final doc = _parseUnit(unit, traversal);
-  final collected = collectIncludes(doc, traversal.includeOptions);
+
+  return (
+    cached: null,
+    doc: doc,
+    targets: collectIncludes(doc, traversal.includeOptions).includeTargets,
+  );
+}
+
+/// The request [target] makes, or `null` when it names nothing.
+///
+/// A directive that names nothing contributes an empty group, which this
+/// records itself so neither caller has to remember to.
+({IncludeRequest request, ProcessedIncludePath processed})? _requestFor(
+  String target,
+  IncludeUnit unit,
+  IncludeTraversal traversal,
+  List<List<FlatEntry>> groups,
+) {
+  final processed = processIncludePath(
+    target,
+    decodeEscapes: traversal.options.decodeEscapesInQuoted,
+  );
+
+  if (processed.isEmpty) {
+    groups.add(const []);
+
+    return null;
+  }
+
+  // Before the request goes out: an answer nobody gives still costs one.
+  traversal.chargeInclude(processed.path);
+
+  return (
+    request: IncludeRequest(processed.path, fromId: unit.id),
+    processed: processed,
+  );
+}
+
+Future<FlatDocument> _resolveUnit(
+  IncludeUnit unit, {
+  required String? fromUnitId,
+  required IncludeResolver resolver,
+  required IncludeTraversal traversal,
+  required int depth,
+}) async {
+  final prepared = _prepareUnit(
+    unit,
+    fromUnitId: fromUnitId,
+    traversal: traversal,
+    depth: depth,
+  );
+  final cached = prepared.cached;
+  if (cached != null) {
+    return cached;
+  }
+
   final groups = <List<FlatEntry>>[];
 
-  for (final target in collected.includeTargets) {
-    final processed = processIncludePath(
-      target,
-      decodeEscapes: traversal.options.decodeEscapesInQuoted,
-    );
-    if (processed.isEmpty) {
-      groups.add(const []);
+  for (final target in prepared.targets) {
+    final next = _requestFor(target, unit, traversal, groups);
+    if (next == null) {
       continue;
     }
 
-    traversal.chargeInclude(processed.path);
-
-    final included = await resolver.resolve(
-      IncludeRequest(processed.path, fromId: unit.id),
-    );
+    final included = await resolver.resolve(next.request);
     if (included == null) {
-      groups.add(_missingOrThrow(processed, unit.id));
+      groups.add(_missingOrThrow(next.processed, unit.id));
       continue;
     }
 
@@ -131,7 +189,7 @@ Future<FlatDocument> _resolveUnit(
     groups.add(subDoc.entries);
   }
 
-  return _assemble(doc, unit.id, groups, traversal);
+  return _assemble(prepared.doc, unit.id, groups, traversal);
 }
 
 FlatDocument _resolveUnitSync(
@@ -141,37 +199,28 @@ FlatDocument _resolveUnitSync(
   required IncludeTraversal traversal,
   required int depth,
 }) {
-  final done = traversal.begin(
-    unit.id,
-    reportedAs: unit.id,
-    includedFrom: fromUnitId,
+  final prepared = _prepareUnit(
+    unit,
+    fromUnitId: fromUnitId,
+    traversal: traversal,
     depth: depth,
   );
-  if (done != null) {
-    return done;
+  final cached = prepared.cached;
+  if (cached != null) {
+    return cached;
   }
 
-  final doc = _parseUnit(unit, traversal);
-  final collected = collectIncludes(doc, traversal.includeOptions);
   final groups = <List<FlatEntry>>[];
 
-  for (final target in collected.includeTargets) {
-    final processed = processIncludePath(
-      target,
-      decodeEscapes: traversal.options.decodeEscapesInQuoted,
-    );
-    if (processed.isEmpty) {
-      groups.add(const []);
+  for (final target in prepared.targets) {
+    final next = _requestFor(target, unit, traversal, groups);
+    if (next == null) {
       continue;
     }
 
-    traversal.chargeInclude(processed.path);
-
-    final included = resolver.resolveSync(
-      IncludeRequest(processed.path, fromId: unit.id),
-    );
+    final included = resolver.resolveSync(next.request);
     if (included == null) {
-      groups.add(_missingOrThrow(processed, unit.id));
+      groups.add(_missingOrThrow(next.processed, unit.id));
       continue;
     }
 
@@ -185,7 +234,7 @@ FlatDocument _resolveUnitSync(
     groups.add(subDoc.entries);
   }
 
-  return _assemble(doc, unit.id, groups, traversal);
+  return _assemble(prepared.doc, unit.id, groups, traversal);
 }
 
 FlatDocument _parseUnit(IncludeUnit unit, IncludeTraversal traversal) =>

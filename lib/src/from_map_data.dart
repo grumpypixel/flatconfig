@@ -272,22 +272,26 @@ void flattenValue({
 
     final list = value.cast<Object?>();
 
-    if (options.listMode == FlatListMode.multi) {
-      _emitListAsMulti(
-        keyPath: keyPath,
-        list: list,
-        options: options,
-        out: out,
-      );
-
-      return;
+    // Exhaustive, so a future list mode is a compile error here rather than a
+    // list quietly falling through to whole-value JSON below.
+    switch (options.listMode) {
+      case FlatListMode.multi:
+        _emitListAsMulti(
+          keyPath: keyPath,
+          list: list,
+          options: options,
+          out: out,
+        );
+      case FlatListMode.csv:
+        _emitListAsCsv(
+          keyPath: keyPath,
+          list: list,
+          options: options,
+          out: out,
+        );
     }
 
-    if (options.listMode == FlatListMode.csv) {
-      _emitListAsCsv(keyPath: keyPath, list: list, options: options, out: out);
-
-      return;
-    }
+    return;
   }
 
   // Fallback for anything else → JSON string.
@@ -508,6 +512,72 @@ String _toChildPath({
   return parent + options.separator + safeChild;
 }
 
+/// What one list item becomes, decided once for both list modes.
+///
+/// The two emitters used to repeat this: the override, the null, the scalar,
+/// the unsupported-item policy and the JSON fallback, in the same order, with
+/// only the output differing. Five chances for the two modes to disagree.
+sealed class _ItemOutcome {
+  const _ItemOutcome();
+}
+
+/// The item became text.
+final class _ItemText extends _ItemOutcome {
+  const _ItemText(this.text);
+
+  final String text;
+}
+
+/// The item is a null the caller wants kept.
+final class _ItemNull extends _ItemOutcome {
+  const _ItemNull();
+}
+
+/// The item contributes nothing.
+final class _ItemSkipped extends _ItemOutcome {
+  const _ItemSkipped();
+}
+
+/// Decides what [item] becomes, for a list rendered as [mode].
+///
+/// [mode] names the list mode in the error the `error` policy raises, and is
+/// the only thing the two callers pass differently.
+_ItemOutcome _classifyItem(
+  Object? item,
+  String keyPath,
+  FlatDataOptions options,
+  String mode,
+) {
+  final forced = _tryValueOverride(
+    value: item,
+    keyPath: keyPath,
+    options: options,
+  );
+  if (forced != null) {
+    return _ItemText(forced);
+  }
+
+  if (item == null) {
+    return options.dropNulls ? const _ItemSkipped() : const _ItemNull();
+  }
+
+  if (_isScalar(item)) {
+    return _ItemText(
+      encodeValue(value: item, keyPath: keyPath, options: options),
+    );
+  }
+
+  // Exhaustive, so adding a policy is a compile error here rather than a
+  // silent fall through to JSON.
+  return switch (options.onUnsupportedListItem) {
+    FlatUnsupportedListItem.skip => const _ItemSkipped(),
+    FlatUnsupportedListItem.error => throw FormatException(
+      'Composite item in list not supported in $mode mode',
+    ),
+    FlatUnsupportedListItem.encodeJson => _ItemText(encodeJson(item)),
+  };
+}
+
 void _emitListAsMulti({
   required String keyPath,
   required List<Object?> list,
@@ -515,48 +585,14 @@ void _emitListAsMulti({
   required List<FlatEntry> out,
 }) {
   for (final item in list) {
-    final forced = _tryValueOverride(
-      value: item,
-      keyPath: keyPath,
-      options: options,
-    );
-    if (forced != null) {
-      out.add(FlatEntry(keyPath, forced));
-
-      continue;
-    }
-
-    if (item == null) {
-      if (!options.dropNulls) {
+    switch (_classifyItem(item, keyPath, options, 'multi')) {
+      case _ItemText(:final text):
+        out.add(FlatEntry(keyPath, text));
+      case _ItemNull():
         out.add(FlatEntry(keyPath, null));
-      }
-
-      continue;
+      case _ItemSkipped():
+        break;
     }
-
-    if (_isScalar(item)) {
-      final encoded = encodeValue(
-        value: item,
-        keyPath: keyPath,
-        options: options,
-      );
-      out.add(FlatEntry(keyPath, encoded));
-
-      continue;
-    }
-
-    if (options.onUnsupportedListItem == FlatUnsupportedListItem.skip) {
-      continue;
-    }
-
-    if (options.onUnsupportedListItem == FlatUnsupportedListItem.error) {
-      throw const FormatException(
-        'Composite item in list not supported in multi mode',
-      );
-    }
-
-    final json = encodeJson(item);
-    out.add(FlatEntry(keyPath, json));
   }
 }
 
@@ -569,52 +605,22 @@ void _emitListAsCsv({
   final items = <String>[];
 
   for (final item in list) {
-    final forced = _tryValueOverride(
-      value: item,
-      keyPath: keyPath,
-      options: options,
-    );
-    if (forced != null) {
-      items.add(forced);
-
-      continue;
-    }
-
-    if (item == null) {
-      if (!options.dropNulls) {
+    switch (_classifyItem(item, keyPath, options, 'csv')) {
+      case _ItemText(:final text):
+        items.add(text);
+      case _ItemNull():
         items.add(options.csvNullToken);
-      }
-
-      continue;
+      case _ItemSkipped():
+        break;
     }
-
-    if (_isScalar(item)) {
-      final encoded = encodeValue(
-        value: item,
-        keyPath: keyPath,
-        options: options,
-      );
-      items.add(encoded);
-
-      continue;
-    }
-
-    if (options.onUnsupportedListItem == FlatUnsupportedListItem.skip) {
-      continue;
-    }
-
-    if (options.onUnsupportedListItem == FlatUnsupportedListItem.error) {
-      throw const FormatException(
-        'Composite item in list not supported in csv mode',
-      );
-    }
-
-    final json = encodeJson(item);
-    items.add(json);
   }
 
-  final joined = joinAsCsv(items: items, keyPath: keyPath, options: options);
-  out.add(FlatEntry(keyPath, joined));
+  out.add(
+    FlatEntry(
+      keyPath,
+      joinAsCsv(items: items, keyPath: keyPath, options: options),
+    ),
+  );
 }
 
 String? _tryValueOverride({

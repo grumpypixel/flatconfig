@@ -258,8 +258,15 @@ resolver or a path do. They take `includeOptions:` alongside `options:`.
 
 ## Caching
 
-A document reached twice within one call is read once. That cache lives for the
-length of the call and cannot be passed in, because its correctness depends on
-the parse options, the encoding, the include key, the merge policy and what the
-resolver answered — none of which a path-keyed map you hold across calls would
-notice changing. An include edited between two calls is seen by the second.
+A document reached twice within one call is **parsed and expanded** once, not
+fetched once. The cache is keyed by the id a resolver returns, so the resolver
+has to answer before there is anything to look up: two directives naming the
+same target cost two calls to `resolve` and one parse of what comes back. For
+a file that is a second read from the page cache; for a network resolver it is
+a second request, and a resolver that minds should memoize its own answers.
+
+The cache lives for the length of the call and cannot be passed in, because its
+correctness depends on the parse options, the encoding, the include key, the
+merge policy and what the resolver answered — none of which a path-keyed map
+you hold across calls would notice changing. An include edited between two
+calls is seen by the second.

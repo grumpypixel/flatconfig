@@ -173,3 +173,42 @@ jobs:
       - name: Test
         run: flutter test
         working-directory: example/flatconfig_flutter
+
+  # Everything above runs on Linux, where paths are case-sensitive, separators
+  # are slashes and there are no drive letters. The include and path code
+  # branches on all three, so those tests run where the branches are real:
+  # macOS is case-insensitive by default, Windows has its own spelling of a
+  # path and per-directory case sensitivity.
+  platforms:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    name: Paths (${{ matrix.os }})
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Run the path and include tests
+        run: >
+          dart test
+          test/includes_test.dart
+          test/include_traversal_test.dart
+          test/include_assembly_test.dart
+          test/include_resolver_io_test.dart
+          test/include_resolver_extras_test.dart
+          test/io_test.dart
+          test/spec_conformance_test.dart
+          test/regressions_test.dart

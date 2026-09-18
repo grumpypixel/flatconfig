@@ -11,7 +11,7 @@ remediation commits refer to them.
 | Re-reviewed | `0813492a` after the first round, `f945525d` after the second |
 | Findings | 29 original (1 high, 12 medium, 16 low), 5 follow-up, 1 found while testing |
 | Closed | every high and medium, and the low ones the guides got wrong |
-| Open | 8 low, listed at the end; none blocks the release |
+| Open | none |
 
 The candidate was never published. pub.dev served 0.5.0 throughout, and the
 premature `v1.0.0` tag was removed from both the local repository and origin.
@@ -213,9 +213,35 @@ Three more that were published and misleading are closed as well:
 - **F-25** — `dart doc --validate-links` reported 35 warnings; 21 were real and
   are fixed. See below for the fourteen that remain and why they stay.
 
-Still open, eight of them: **F-14** through **F-18**, **F-27** through **F-29**.
-None is a correctness defect in the common path; each is a narrow edge, a
-diagnostic, or a gap in the test matrix.
+The rest went too, and three of them were worth more than their severity:
+
+- **F-15** returned minus one millisecond for a very large duration — the
+  scaled double is past what an int holds, `round()` wrapped, and a plausible
+  value came back with nothing to signal it. Filed as low; it was silent
+  corruption.
+- **F-14**, **F-17** and **F-29** are one shape: a public option accepted a
+  value the package could not honour. A `varPattern` without a real capture
+  group, a line terminator that produced output the parser cannot read, an
+  include key no entry can carry and which therefore turned includes into a
+  silent no-op. After a release none of these can be forbidden without a major
+  version, which is why they were worth doing before the tag rather than after.
+- **F-16**: `parse` short-circuited on `String.trim`, which knows every Unicode
+  space, while the line grammar knows four. A line of U+00A0 was an empty
+  document through one entry point and a missing separator through the others.
+
+**F-18** closed on its own when the five parse exceptions became one: both
+modes now build the same `FlatIssue`, so they cannot name different columns.
+**F-27** added macOS and Windows runners for the path, include and symlink
+tests — the branches they exercise do not exist on Linux. **F-28** was a
+documentation claim: the cache is keyed by the id a resolver returns, so a
+repeated include is parsed once but fetched twice, and the guide says so now.
+
+From the code review: the RFC-4180 CSV helpers are replaced by ones that write
+what `getList` reads, since two public helpers that do not compose are worse
+than one; the two list-item classifiers became one with exhaustive switches;
+and the shared half of the two resolver loops moved into `_prepareUnit` and
+`_requestFor`, leaving them differing only in the two calls that must be
+awaited.
 
 **F-19** counts as closed above, but on a narrowed contract: `getList` reads
 the format's single-character inline grammar, where it used to take any
