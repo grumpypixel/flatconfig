@@ -1182,6 +1182,14 @@ config-file = "?optional.conf"
       // This used to write two files, assert nothing, and explain in a comment
       // that the behaviour was correct. The escapes make the name, so the file
       // on disk really is theme"dark".conf, and the include has to find it.
+      if (Platform.isWindows) {
+        // A quote is not a legal character in a Windows filename: the OS
+        // refuses it with errno 123 before any of this is exercised.
+        markTestSkipped('Windows filenames cannot contain a quote');
+
+        return;
+      }
+
       final mainFile = File('${tempDir.path}/main.conf');
       await mainFile.writeAsString(
         'background = 343028\nconfig-file = "theme\\"dark\\".conf"\n',
