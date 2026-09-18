@@ -109,6 +109,17 @@ Changed:
   a library that writes config files should not hand its users something they
   have to strip. Parsing is unaffected in both directions, so a file written by
   0.5.x still reads identically.
+- **One include traversal instead of four.** Following includes from disk and
+  following them through a resolver were separate implementations, each in an
+  asynchronous and a synchronous copy, so every rule of the format had four to
+  six call sites: `_missingOrThrow` had six, `processIncludePath` six, the
+  budget charges five each. That is why several fixes in this cycle had to be
+  applied four times, and why one of them was applied three times — a symlinked
+  include resolved differently depending on which entry point a caller used.
+  `File.parseWithIncludes` now reads the root and hands it to the resolver
+  traversal with a `FileIncludeResolver`, which is what it always was. The
+  behaviour is unchanged, 517 lines are gone, and the encoding is symmetrical
+  by construction rather than by remembering to set it in two places.
 - **The package is four libraries instead of one.**
   `package:flatconfig/flatconfig.dart` is the web-safe core;
   `flatconfig_includes.dart` adds resolver-based includes,

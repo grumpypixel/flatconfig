@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:meta/meta.dart';
+
 import 'constants.dart';
 import 'issue.dart';
 import 'validation.dart';
@@ -203,6 +205,19 @@ class FlatIncludeOptions {
   /// Defaults to [IncludeMergePolicy.ghostty], which is what this package has
   /// always done; it is a setting now rather than the only behaviour.
   final IncludeMergePolicy mergePolicy;
+
+  /// Throws an [ArgumentError] if any limit here cannot be used.
+  ///
+  /// The constructor asserts the same three, which catches a literal at
+  /// compile time and nothing at all in a release build. Callers check before
+  /// they act on the options — before reading a file, in particular, so that a
+  /// missing file does not report itself instead of the bad argument.
+  @internal
+  void checkUsable() {
+    checkNonNegative(maxIncludeDepth, 'maxIncludeDepth');
+    checkNonNegative(maxIncludes, 'maxIncludes');
+    checkNonNegative(maxIncludedEntries, 'maxIncludedEntries');
+  }
 
   /// Returns a copy of these options with selectively replaced fields.
   FlatIncludeOptions copyWith({

@@ -3,7 +3,6 @@ import 'package:meta/meta.dart';
 import 'document.dart';
 import 'exceptions.dart';
 import 'options.dart';
-import 'validation.dart';
 
 /// The state of a single include traversal: the options every unit is read
 /// with, the units currently on the stack, and the units already finished.
@@ -23,9 +22,7 @@ final class IncludeTraversal {
     required this.includeOptions,
     required this.readOptions,
   }) {
-    checkNonNegative(includeOptions.maxIncludeDepth, 'maxIncludeDepth');
-    checkNonNegative(includeOptions.maxIncludes, 'maxIncludes');
-    checkNonNegative(includeOptions.maxIncludedEntries, 'maxIncludedEntries');
+    includeOptions.checkUsable();
   }
 
   /// How each unit is parsed.

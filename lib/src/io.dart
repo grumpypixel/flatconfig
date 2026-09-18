@@ -1,9 +1,12 @@
 import 'dart:io';
 
 import 'document.dart';
-import 'includes.dart';
+import 'exceptions.dart';
+import 'include_resolver_io.dart';
 import 'options.dart';
+import 'parse_with_resolver.dart' as resolver;
 import 'parser.dart';
+import 'path_utils.dart';
 
 /// Reading and writing flat configuration files.
 ///
@@ -60,24 +63,73 @@ extension FlatConfigIO on File {
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) => FlatConfigIncludes.parseWithIncludes(
-    this,
-    options: options,
-    includeOptions: includeOptions,
-    readOptions: readOptions,
-  );
+  }) async {
+    // Before the read, so that a file that is not there cannot report itself
+    // instead of the argument that was wrong.
+    includeOptions.checkUsable();
+
+    return resolver.parseWithIncludes(
+      await _readRoot(() async => readAsString(encoding: readOptions.encoding)),
+      resolver: FileIncludeResolver(encoding: readOptions.encoding),
+      originId: _rootId(),
+      options: options,
+      includeOptions: includeOptions,
+      readOptions: readOptions,
+    );
+  }
 
   /// Parses this file and follows every include it names, synchronously.
   FlatDocument parseWithIncludesSync({
     FlatParseOptions options = const FlatParseOptions(),
     FlatIncludeOptions includeOptions = const FlatIncludeOptions(),
     FlatStreamReadOptions readOptions = const FlatStreamReadOptions(),
-  }) => FlatConfigIncludes.parseWithIncludesSync(
-    this,
-    options: options,
-    includeOptions: includeOptions,
-    readOptions: readOptions,
-  );
+  }) {
+    includeOptions.checkUsable();
+
+    return resolver.parseWithIncludesSync(
+      _readRootSync(() => readAsStringSync(encoding: readOptions.encoding)),
+      resolver: FileIncludeResolver(encoding: readOptions.encoding),
+      originId: _rootId(),
+      options: options,
+      includeOptions: includeOptions,
+      readOptions: readOptions,
+    );
+  }
+
+  /// The identity the traversal knows this file by.
+  ///
+  /// The same one [FileIncludeResolver] gives a unit, so an include that leads
+  /// back here is recognised as the cycle it is. Symbolic links are followed,
+  /// which also makes it the directory relative includes resolve against.
+  String _rootId() {
+    try {
+      return normalizeCanonicalPath(resolveSymbolicLinksSync());
+    } on FileSystemException {
+      return normalizeCanonicalPath(absolute.path);
+    }
+  }
+
+  /// Reads the root, reporting its absence the way an include's would be.
+  ///
+  /// Nothing can mark the file a caller named optional, so a missing root is
+  /// always an error — but it is the same error an unfindable include raises,
+  /// rather than a bare filesystem exception from one entry point and a
+  /// [MissingIncludeException] from the other.
+  Future<String> _readRoot(Future<String> Function() read) async {
+    try {
+      return await read();
+    } on PathNotFoundException {
+      throw MissingIncludeException(path, path);
+    }
+  }
+
+  String _readRootSync(String Function() read) {
+    try {
+      return read();
+    } on PathNotFoundException {
+      throw MissingIncludeException(path, path);
+    }
+  }
 
   /// Writes [doc] to this file, replacing whatever was there.
   ///
