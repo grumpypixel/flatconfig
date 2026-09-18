@@ -79,10 +79,25 @@ void checkSingleCharacter(String value, String name) {
   }
 }
 
-/// Throws an [ArgumentError] unless [value] can serve as a line terminator.
+/// Throws an [ArgumentError] unless [value] is a line terminator.
+///
+/// The three the parser recognises, and no others. Rejecting only the empty
+/// string let `lineTerminator: '|'` write every entry onto one physical line,
+/// which reads back as a single entry: an option that quietly produced a
+/// document the package cannot parse.
 void checkLineTerminator(String value) {
-  if (value.isEmpty) {
-    throw ArgumentError.value(value, 'lineTerminator', 'Must not be empty');
+  const accepted = [
+    Constants.newline,
+    Constants.carriageReturn,
+    '${Constants.carriageReturn}${Constants.newline}',
+  ];
+
+  if (!accepted.contains(value)) {
+    throw ArgumentError.value(
+      value,
+      'lineTerminator',
+      r'Must be one of "\n", "\r" or "\r\n"',
+    );
   }
 }
 

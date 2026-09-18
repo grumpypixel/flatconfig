@@ -377,9 +377,14 @@ Map<String, String?> _interpolate(
     }
 
     out[e.key] = raw.replaceAllMapped(pattern, (m) {
-      // FlatEnvOptions rejects a varPattern without a capture group, so group
-      // one is always there to name the variable.
-      final name = m.group(1)!;
+      // FlatEnvOptions rejects a pattern without a first capture group, but
+      // an optional one can still match without participating. A match that
+      // names nothing cannot be looked up, so it stays as it was written.
+      final name = m.group(1);
+      if (name == null) {
+        return m[0]!;
+      }
+
       final value = snapshot[name];
       if (value != null) {
         return value;

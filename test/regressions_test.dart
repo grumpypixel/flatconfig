@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flatconfig/flatconfig_accessors.dart';
 import 'package:flatconfig/flatconfig_includes.dart';
 import 'package:test/test.dart';
 
@@ -294,6 +295,114 @@ void main() {
 
       expect(doc.collapse().entries, [FlatEntry('a', null)]);
       expect(doc.collapse(dropNulls: true).entries, isEmpty);
+    });
+  });
+
+  group('an option cannot be set to something the package cannot honour', () {
+    // Four variations on one shape: a public option accepted a value the rest
+    // of the package could not use, and said nothing until something else
+    // broke. After a release these become impossible to forbid.
+
+    test('a duration too large for an int is unreadable, not wrong', () {
+      // round() wrapped, so 1e21 days came back as minus one millisecond —
+      // a plausible-looking value with nothing to signal it.
+      final doc = FlatDocument.parse('t = 999999999999999999999d\n');
+
+      expect(doc.getDuration('t'), isNull);
+      expect(
+        doc.getDurationOr('t', const Duration(seconds: 1)),
+        const Duration(seconds: 1),
+      );
+      expect(() => doc.requireDuration('t'), throwsFormatException);
+    });
+
+    test('a duration at a sane magnitude still parses', () {
+      expect(
+        FlatDocument.parse('t = 36500d\n').getDuration('t'),
+        const Duration(days: 36500),
+      );
+      expect(
+        FlatDocument.parse('t = 1.5s\n').getDuration('t'),
+        const Duration(milliseconds: 1500),
+      );
+    });
+
+    test('a varPattern without a real capture group is refused', () {
+      // Looking for a '(' in the text let these through, and interpolation
+      // then failed at group(1) with a RangeError.
+      for (final pattern in [r'\$\{(?:\w+)\}', r'\$\{\(\w+\)\}', r'\$\w+']) {
+        expect(
+          () => FlatEnvOptions(varPattern: pattern),
+          throwsArgumentError,
+          reason: pattern,
+        );
+      }
+
+      expect(() => FlatEnvOptions(varPattern: r'\$\{(\w+)\}'), returnsNormally);
+    });
+
+    test('an optional capture that does not participate is left alone', () {
+      final doc = FlatDocument.fromEnvironment(
+        const {'A': r'${} and ${B}', 'B': 'x'},
+        options: FlatEnvOptions(interpolate: true, varPattern: r'\$\{(\w+)?\}'),
+      );
+
+      expect(doc['A'], r'${} and x');
+    });
+
+    test('a line terminator the parser does not know is refused', () {
+      for (final terminator in ['|', 'x', '\n\n', '']) {
+        expect(
+          () => FlatDocument.parse('a = 1\n').encodeToBytesWithWriteOptions(
+            writeOptions: FlatStreamWriteOptions(lineTerminator: terminator),
+          ),
+          throwsA(anyOf(isA<AssertionError>(), isA<ArgumentError>())),
+          reason: 'for ${terminator.codeUnits}',
+        );
+      }
+    });
+
+    test('the three real line terminators still round-trip', () {
+      final doc = FlatDocument([FlatEntry('a', '1'), FlatEntry('b', '2')]);
+
+      for (final terminator in ['\n', '\r', '\r\n']) {
+        final bytes = doc.encodeToBytesWithWriteOptions(
+          writeOptions: FlatStreamWriteOptions(lineTerminator: terminator),
+        );
+
+        expect(
+          FlatDocument.parse(String.fromCharCodes(bytes)),
+          doc,
+          reason: 'for ${terminator.codeUnits}',
+        );
+      }
+    });
+
+    test('an include key no entry can carry is refused', () {
+      // It matched nothing, so includes stopped happening and the document
+      // came back with the directives still in it.
+      for (final key in ['', ' padded ', 'a=b', 'a"b', '#commented']) {
+        expect(
+          () => parseWithIncludesSync(
+            'config-file = theme.conf\n',
+            resolver: MemoryIncludeResolver(const {'theme.conf': 'a = 1'}),
+            includeOptions: FlatIncludeOptions(includeKey: key),
+          ),
+          throwsArgumentError,
+          reason: 'for «$key»',
+        );
+      }
+    });
+
+    test('a custom include key that can be an entry still works', () {
+      expect(
+        parseWithIncludesSync(
+          'include = theme.conf\n',
+          resolver: MemoryIncludeResolver(const {'theme.conf': 'a = 1'}),
+          includeOptions: const FlatIncludeOptions(includeKey: 'include'),
+        ).toMap(),
+        {'a': '1'},
+      );
     });
   });
 

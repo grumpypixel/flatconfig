@@ -184,6 +184,11 @@ class FlatIncludeOptions {
   /// missing file does not report itself instead of the bad argument.
   @internal
   void checkUsable() {
+    // A directive is an entry, so a key no entry can carry matches nothing and
+    // turns include processing into a silent no-op. `''`, `a=b` and a padded
+    // name were all accepted and all did nothing.
+    checkKey(includeKey, 'includeKey');
+
     checkNonNegative(maxIncludeDepth, 'maxIncludeDepth');
     checkNonNegative(maxIncludes, 'maxIncludes');
     checkNonNegative(maxIncludedEntries, 'maxIncludedEntries');
@@ -259,7 +264,12 @@ class FlatStreamWriteOptions {
   const FlatStreamWriteOptions({
     this.encoding = utf8,
     this.lineTerminator = Constants.newline,
-  }) : assert(lineTerminator.length > 0, 'lineTerminator must not be empty');
+  }) : assert(
+         lineTerminator == Constants.newline ||
+             lineTerminator == Constants.carriageReturn ||
+             lineTerminator == '\r\n',
+         r'lineTerminator must be one of "\n", "\r" or "\r\n"',
+       );
 
   /// Text encoding used when writing the file.
   ///
@@ -447,11 +457,20 @@ class FlatEnvOptions {
       throw ArgumentError.value(varPattern, 'varPattern', 'is not a regex: $e');
     }
 
+    // A RegExp does not say how many groups it has; a match does. An
+    // alternation with an empty branch always matches, and wrapping the
+    // pattern keeps its own alternations from binding to it.
+    final groups = RegExp('|(?:$varPattern)').firstMatch('')!.groupCount;
+
     // Interpolation reads group 1 as the variable name, so a pattern without
     // one could never name a variable. Rejected whether or not [interpolate]
     // is set: an unusable pattern is a mistake either way, and turning
     // interpolation on later should not be what surfaces it.
-    if (!varPattern.contains('(')) {
+    //
+    // Counted rather than guessed from the text. Looking for a '(' let
+    // `(?:\w+)` and an escaped `\(` through, and the pattern then failed at
+    // group(1) with a RangeError — an Error, for something a caller passed in.
+    if (groups < 1) {
       throw ArgumentError.value(
         varPattern,
         'varPattern',

@@ -79,7 +79,17 @@ extension FlatDocumentOptionalAccessors on FlatDocument {
       return null;
     }
 
-    return Duration(milliseconds: (value * perUnit).round());
+    final milliseconds = value * perUnit;
+
+    // A double this large cannot become an int: round() wraps and hands back
+    // something plausible-looking and wrong — 1e21 days arrived as minus one
+    // millisecond. Unreadable is the honest answer, and the one the three
+    // shapes of this accessor already promise.
+    if (milliseconds.abs() > _maxSafeMilliseconds) {
+      return null;
+    }
+
+    return Duration(milliseconds: milliseconds.round());
   }
 
   /// Parses the latest value for [key] as a duration, or returns [defaultValue].
@@ -210,3 +220,10 @@ extension FlatDocumentOptionalAccessors on FlatDocument {
     return v;
   }
 }
+
+/// The largest millisecond count a `double` converts to an `int` exactly.
+///
+/// Beyond 2^53 a double no longer holds every integer, and beyond 2^63 the
+/// conversion wraps instead of failing. The smaller bound is the useful one:
+/// it is roughly 285,000 years, and anything past it was a mistake.
+const _maxSafeMilliseconds = 9007199254740992.0;
