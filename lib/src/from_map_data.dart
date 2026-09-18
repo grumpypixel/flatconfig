@@ -634,32 +634,51 @@ String? _tryValueOverride({
   return overridden;
 }
 
-// ===== RFC-4180 CSV Utils =====
+// ===== Inline list quoting =====
 
-/// Quotes one CSV item per RFC-4180:
-/// - Quote if it contains the separator, quotes, or newlines.
-/// - Escape quotes by doubling them ("").
-String rfc4180Quote(String item, String separator) {
-  final hasSep = separator.isNotEmpty && item.contains(separator);
-  final hasQuote = item.contains('"');
-  final hasNl = item.contains('\n') || item.contains('\r');
+/// Quotes one inline list item the way this format reads it back.
+///
+/// The grammar of SPEC.md 5, which is what `FlatDocument.getList` parses: wrap
+/// the item in quotes when leaving it bare would change where the item ends,
+/// and escape a quote as `\"` and a backslash as `\\`.
+///
+/// This replaced an RFC-4180 encoder that doubled quotes instead. It produced
+/// valid CSV that this package could not read: `getList` decodes `\"`, so an
+/// item written `""quote""` came back with its doubling intact. Two public
+/// helpers that do not compose are worse than one.
+String quoteInlineItem(String item, String separator) {
+  // Any character of the separator, not the separator as a whole: the default
+  // writes `', '` while a reader splits on `,` and trims, so an item holding
+  // either would come back as two.
+  final holdsSeparator = separator.codeUnits.any(
+    (unit) => item.codeUnits.contains(unit),
+  );
 
-  if (!hasSep && !hasQuote && !hasNl) {
+  final needsQuotes =
+      item.isEmpty ||
+      holdsSeparator ||
+      item.contains(Constants.quote) ||
+      item.trim().length != item.length;
+
+  if (!needsQuotes) {
     return item;
   }
 
-  final escaped = item.replaceAll('"', '""');
+  final escaped = item
+      .replaceAll(Constants.backslash, r'\\')
+      .replaceAll(Constants.quote, r'\"');
 
   return '"$escaped"';
 }
 
-/// Returns a CsvItemEncoder that applies RFC-4180 quoting using the given separator.
-/// Example:
+/// A [CsvItemEncoder] that writes items [quoteInlineItem] can read back.
+///
 /// ```dart
-/// csvItemEncoder: rfc4180CsvItemEncoder(',')
+/// csvItemEncoder: inlineItemEncoder(',')
 /// ```
-CsvItemEncoder rfc4180CsvItemEncoder(String separator) {
-  String encode(String item, String keyPath) => rfc4180Quote(item, separator);
+CsvItemEncoder inlineItemEncoder(String separator) {
+  String encode(String item, String keyPath) =>
+      quoteInlineItem(item, separator);
 
   return encode;
 }

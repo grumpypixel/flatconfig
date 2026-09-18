@@ -50,10 +50,10 @@ FlatDocument parseSource(
 }) {
   checkCommentPrefix(options.commentPrefix);
 
-  if (source.trim().isEmpty) {
-    return FlatDocument.empty();
-  }
-
+  // No shortcut for a blank source. String.trim removes every Unicode space,
+  // while the grammar below counts only space, tab, CR and LF — so a line of
+  // U+00A0 was an empty document here and a missing separator through every
+  // other entry point.
   return parseSourceLines(lineSplitter.convert(source), options: options);
 }
 

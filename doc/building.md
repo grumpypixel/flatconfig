@@ -126,7 +126,7 @@ final doc = FlatDocument.fromData(
   options: FlatDataOptions(
     listMode: FlatListMode.csv,
     csvSeparator: ',',
-    csvItemEncoder: rfc4180CsvItemEncoder(','),   // safe quoting
+    csvItemEncoder: inlineItemEncoder(','),       // safe quoting
     keyEscaper: (k) => k.replaceAll('.', r'\.'),  // dots in keys
   ),
 );
@@ -144,8 +144,15 @@ colors = "red,\"mint,green\",blue"
 Reading it back gives the value unchanged, and `splitRespectingQuotes` turns it
 into the three items again.
 
-`rfc4180Quote` and `rfc4180CsvItemEncoder` are exported for this: they escape a
-quote as `""` and wrap any item containing the separator, a quote or a newline.
+`quoteInlineItem` and `inlineItemEncoder` are exported for this. They write
+what [`getList`](accessors.md#the-core-five) reads: an item is wrapped when
+leaving it bare would change where it ends, a quote inside becomes `\"` and a
+backslash `\\`.
+
+An earlier RFC-4180 encoder doubled quotes instead. That is valid CSV and this
+package cannot read it — `getList` decodes a backslash escape, so an item
+written `""quote""` came back with the doubling intact. Two public helpers
+that do not compose are worse than one.
 
 ### The two budgets
 

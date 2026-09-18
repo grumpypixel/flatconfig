@@ -246,27 +246,6 @@ void main() {
     });
   });
 
-  group('rfc4180Quote corner cases', () {
-    test('empty string, no quoting needed', () {
-      expect(rfc4180Quote('', ','), '');
-    });
-
-    test('separator is empty, only quotes/newlines trigger quoting', () {
-      expect(rfc4180Quote('a,b', ''), 'a,b');
-      expect(rfc4180Quote('has "q"', ''), '"has ""q"""');
-      expect(rfc4180Quote('multi\nline', ''), '"multi\nline"');
-    });
-
-    test('multiple-char separator', () {
-      expect(rfc4180Quote('a; b', '; '), '"a; b"');
-      expect(rfc4180Quote('plain', '; '), 'plain');
-    });
-
-    test('carriage return triggers quoting', () {
-      expect(rfc4180Quote('has\rcr', ','), '"has\rcr"');
-    });
-  });
-
   group('Strict validation propagation', () {
     test('a whitespace-only key is rejected', () {
       // The parser trims keys, so '   ' could never be read back (SPEC.md 3).

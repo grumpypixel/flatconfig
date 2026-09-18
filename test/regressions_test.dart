@@ -406,6 +406,46 @@ void main() {
     });
   });
 
+  group('every entry point reads the same grammar', () {
+    // parse() short-circuited on String.trim, which removes every Unicode
+    // space, while the line grammar counts only space, tab, CR and LF. A line
+    // of U+00A0 was an empty document through one door and a missing
+    // separator through the others.
+    const spaces = {
+      'no-break space': '\u00A0',
+      'en quad': '\u2000',
+      'ideographic space': '\u3000',
+      'zero width space': '\u200B',
+    };
+
+    spaces.forEach((name, space) {
+      test('a line of $name is read the same way everywhere', () {
+        List<FlatIssue> issuesFrom(void Function(FlatParseOptions) parse) {
+          final issues = <FlatIssue>[];
+          parse(FlatParseOptions(onIssue: issues.add));
+
+          return issues;
+        }
+
+        final viaSource = issuesFrom(
+          (o) => FlatDocument.parse(space, options: o),
+        );
+        final viaLines = issuesFrom(
+          (o) => FlatDocument.parseLines([space], options: o),
+        );
+
+        expect(viaSource, viaLines);
+        expect(viaSource.single.kind, FlatIssueKind.missingEquals);
+      });
+    });
+
+    test('ordinary blank input is still an empty document', () {
+      for (final blank in ['', '   ', '\n\n', ' \t \n']) {
+        expect(FlatDocument.parse(blank), FlatDocument.empty());
+      }
+    });
+  });
+
   group('strict and lenient name the same character', () {
     // They built their own positions from their own vocabularies, and drifted:
     // for a quoted value the strict path left out the offset of everything

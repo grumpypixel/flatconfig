@@ -13,17 +13,25 @@ void main() {
         options: FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: ',', // no space to make expected exact
-          csvItemEncoder: rfc4180CsvItemEncoder(','), // robust CSV
+          csvItemEncoder: inlineItemEncoder(','), // robust CSV
         ),
       );
 
-      expect(doc['tags'], 'hello,"a,b","with ""quote"""');
+      // Escaped the way this format reads escapes, not doubled the way CSV
+      // does: getList decodes a backslash escape and would hand the doubling
+      // straight back.
+      expect(doc['tags'], r'hello,"a,b","with \"quote\""');
+      expect(FlatDocument.parse('t = ${doc['tags']}\n').getList('t'), [
+        'hello',
+        'a,b',
+        'with "quote"',
+      ]);
     });
 
     test('an item containing a newline cannot be stored', () {
-      // RFC-4180 allows a newline inside a quoted field; this format does not,
-      // because it is line-based. rfc4180CsvItemEncoder is therefore only safe
-      // for newline-free items.
+      // CSV allows a newline inside a quoted field; this format does not,
+      // because it is line-based. The encoder is therefore only safe for
+      // newline-free items.
       expect(
         () => FlatDocument.fromData(
           {
@@ -32,7 +40,7 @@ void main() {
           options: FlatDataOptions(
             listMode: FlatListMode.csv,
             csvSeparator: ',',
-            csvItemEncoder: rfc4180CsvItemEncoder(','),
+            csvItemEncoder: inlineItemEncoder(','),
           ),
         ),
         throwsA(
@@ -53,7 +61,7 @@ void main() {
         options: FlatDataOptions(
           listMode: FlatListMode.csv,
           csvSeparator: '; ',
-          csvItemEncoder: rfc4180CsvItemEncoder('; '),
+          csvItemEncoder: inlineItemEncoder('; '),
         ),
       );
 
@@ -372,15 +380,6 @@ void main() {
         '': {'a': 1},
       });
       expect(doc['a'], '1');
-    });
-  });
-
-  group('rfc4180Quote – direct', () {
-    test('quotes when needed and escapes quotes', () {
-      expect(rfc4180Quote('a,b', ','), '"a,b"');
-      expect(rfc4180Quote('plain', ','), 'plain');
-      expect(rfc4180Quote('has "quote"', ','), '"has ""quote"""');
-      expect(rfc4180Quote('multi\nline', ','), '"multi\nline"');
     });
   });
 

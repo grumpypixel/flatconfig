@@ -30,8 +30,8 @@ export 'src/from_map_data.dart'
         FlatUnsupportedListItem,
         FlatValueEncoder,
         KeyEscaper,
-        rfc4180CsvItemEncoder,
-        rfc4180Quote;
+        inlineItemEncoder,
+        quoteInlineItem;
 export 'src/issue.dart' show FlatIssue, FlatIssueKind, OnIssue;
 export 'src/lookup.dart' show FlatAbsent, FlatLookup, FlatPresent, FlatReset;
 export 'src/options.dart'
