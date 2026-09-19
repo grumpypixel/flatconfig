@@ -1410,6 +1410,58 @@ shader = vignette=soft
           expect(result, 'key#value');
         },
       );
+
+      test('a line that is nothing but the prefix is a comment', () {
+        // The guard asks whether the prefix still fits before the end of the
+        // line. Off by one, a line holding exactly the prefix and nothing else
+        // stops being a comment and becomes an entry with no separator.
+        expect(preprocessLine('#', '#'), isNull);
+        expect(preprocessLine('//', '//'), isNull);
+        expect(preprocessLine('  #  ', '#'), isNull);
+      });
+    });
+
+    group('the parser reports the column in the raw line', () {
+      test('a value-level issue points past the separator', () {
+        // The offset handed to the value parser is where the value begins in
+        // the line. Built from the separator's position the wrong way round it
+        // still lands inside the line, just on the wrong character.
+        const line = 'key = "open';
+
+        expect(
+          () => FlatDocument.parse(
+            line,
+            options: const FlatParseOptions(strict: true),
+          ),
+          throwsA(
+            isA<FlatParseException>().having(
+              (e) => e.issue.column,
+              'column',
+              7,
+            ),
+          ),
+        );
+        expect(line[6], '"');
+      });
+    });
+
+    group('the parser checks the options it was handed', () {
+      test('a comment prefix spanning a line break is refused', () {
+        // FlatParseOptions does not validate it — no constructor assertion
+        // covers this one — so the parse is the only place that can, and
+        // nothing was checking that it does.
+        expect(
+          () => FlatDocument.parse(
+            'a = 1',
+            options: const FlatParseOptions(commentPrefix: '#\n#'),
+          ),
+          throwsA(
+            isA<ArgumentError>()
+                .having((e) => e.name, 'name', 'commentPrefix')
+                .having((e) => e.message, 'message', contains('line break')),
+          ),
+        );
+      });
     });
   });
 }

@@ -169,4 +169,79 @@ void main() {
       );
     });
   });
+
+  group('the two fields of a request are not interchangeable', () {
+    // Both fields are strings and both go into the hash, so the pair that
+    // means "fetch b from a" must not collide with the pair that means the
+    // opposite. Cheap to get wrong with a record or a set of requests, and
+    // nothing else pins it.
+
+    test('swapping target and origin changes the hash', () {
+      expect(
+        const IncludeRequest('a', fromId: 'b').hashCode,
+        isNot(const IncludeRequest('b', fromId: 'a').hashCode),
+      );
+    });
+
+    test('swapping a unit id and its content changes the hash', () {
+      expect(
+        const IncludeUnit(id: 'a', content: 'b').hashCode,
+        isNot(const IncludeUnit(id: 'b', content: 'a').hashCode),
+      );
+    });
+
+    test('equal requests still agree on their hash', () {
+      expect(
+        const IncludeRequest('a', fromId: 'b').hashCode,
+        const IncludeRequest('a', fromId: 'b').hashCode,
+      );
+    });
+  });
+
+  group('a composite resolver stops at the first hit', () {
+    // The asynchronous half had no test of its own. Inverting its null check
+    // makes it return the first miss instead of the first hit, which reads as
+    // an unresolved include rather than a wrong one.
+
+    test('it skips resolvers that answer nothing', () async {
+      final composite = core.CompositeIncludeResolver([
+        core.MemoryIncludeResolver(const {}),
+        core.MemoryIncludeResolver(const {'mem:a': 'from = second'}),
+      ]);
+
+      final unit = await composite.resolve(
+        const IncludeRequest('mem:a', fromId: 'mem:root'),
+      );
+
+      expect(unit, isNotNull);
+      expect(unit!.content, 'from = second');
+    });
+
+    test('the earlier resolver wins when both answer', () async {
+      final composite = core.CompositeIncludeResolver([
+        core.MemoryIncludeResolver(const {'mem:a': 'from = first'}),
+        core.MemoryIncludeResolver(const {'mem:a': 'from = second'}),
+      ]);
+
+      final unit = await composite.resolve(
+        const IncludeRequest('mem:a', fromId: 'mem:root'),
+      );
+
+      expect(unit!.content, 'from = first');
+    });
+
+    test('nothing answering is still null', () async {
+      final composite = core.CompositeIncludeResolver([
+        core.MemoryIncludeResolver(const {}),
+        core.MemoryIncludeResolver(const {}),
+      ]);
+
+      expect(
+        await composite.resolve(
+          const IncludeRequest('mem:a', fromId: 'mem:root'),
+        ),
+        isNull,
+      );
+    });
+  });
 }

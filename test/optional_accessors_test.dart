@@ -139,4 +139,47 @@ bad = soon
       );
     });
   });
+
+  group('a duration may carry a sign', () {
+    // The grammar accepts one, and both halves of the `[+-]` class could be
+    // removed without a test noticing: a clock skew of `-500ms` or an
+    // explicitly positive offset read as unparseable and silently fell back to
+    // the default.
+    final doc = FlatDocument.parse('''
+neg = -5s
+pos = +5s
+negFraction = -1.5s
+bare = -250
+''');
+
+    test('a negative duration parses', () {
+      expect(doc.getDuration('neg'), const Duration(seconds: -5));
+      expect(
+        doc.getDuration('negFraction'),
+        const Duration(milliseconds: -1500),
+      );
+      expect(doc.getDuration('bare'), const Duration(milliseconds: -250));
+    });
+
+    test('an explicit plus parses as positive', () {
+      expect(doc.getDuration('pos'), const Duration(seconds: 5));
+    });
+  });
+
+  group('requireDateTime explains what it wanted', () {
+    test('the message names the format', () {
+      final doc = FlatDocument.parse('when = yesterday');
+
+      expect(
+        () => doc.requireDateTime('when'),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('ISO-8601'),
+          ),
+        ),
+      );
+    });
+  });
 }

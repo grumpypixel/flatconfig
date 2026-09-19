@@ -147,6 +147,45 @@ void main() {
       expect(doc.length, 256);
     });
 
+    test('the sizes of sibling includes are summed, not replaced', () {
+      // Two includes of three entries each under a limit of five. Neither
+      // group breaches it alone, so a total that keeps only the last group
+      // read as four entries below the limit instead of one above it.
+      final resolver = _CountingMemoryResolver(const {
+        'a.conf': 'a1 = 1\na2 = 2\na3 = 3',
+        'b.conf': 'b1 = 1\nb2 = 2\nb3 = 3',
+      });
+
+      expect(
+        () => parseWithIncludesSync(
+          'config-file = a.conf\nconfig-file = b.conf',
+          resolver: resolver,
+          includeOptions: const FlatIncludeOptions(maxIncludedEntries: 5),
+          originId: 'main.conf',
+        ),
+        throwsA(
+          isA<IncludeBudgetExceededException>()
+              .having((e) => e.budget, 'budget', 'maxIncludedEntries')
+              .having((e) => e.limit, 'limit', 5),
+        ),
+      );
+    });
+
+    test('the same two includes fit under a limit of six', () {
+      expect(
+        parseWithIncludesSync(
+          'config-file = a.conf\nconfig-file = b.conf',
+          resolver: _CountingMemoryResolver(const {
+            'a.conf': 'a1 = 1\na2 = 2\na3 = 3',
+            'b.conf': 'b1 = 1\nb2 = 2\nb3 = 3',
+          }),
+          includeOptions: const FlatIncludeOptions(maxIncludedEntries: 6),
+          originId: 'main.conf',
+        ).length,
+        6,
+      );
+    });
+
     test('the including document\'s own entries are not charged', () {
       final source = [for (var i = 0; i < 50; i++) 'k$i = v'].join('\n');
 
@@ -659,6 +698,89 @@ void main() {
       );
 
       expect(theme.existsSync(), isTrue);
+    });
+  });
+
+  group('a unit served from the cache releases its claim', () {
+    test('the same include three times over is not a cycle', () {
+      // Two is not enough to see this: the claim taken for a cache hit is
+      // released on the way out, and holding on to it only becomes visible
+      // when a third directive asks for the same unit and finds it still on
+      // the stack.
+      final resolver = _CountingMemoryResolver(const {'a.conf': 'a = 1'});
+
+      expect(
+        parseWithIncludesSync(
+          'config-file = a.conf\n' * 3,
+          resolver: resolver,
+          originId: 'main.conf',
+        ).toMap(),
+        {'a': '1'},
+      );
+      expect(resolver.calls, 3);
+    });
+
+    test('a unit reached again through a diamond is not a cycle', () {
+      // left and right both include shared, and the root includes both.
+      expect(
+        parseWithIncludesSync(
+          'config-file = left.conf\n'
+          'config-file = right.conf\n'
+          'config-file = shared.conf',
+          resolver: _CountingMemoryResolver(const {
+            'left.conf': 'config-file = shared.conf',
+            'right.conf': 'config-file = shared.conf',
+            'shared.conf': 'shared = 1',
+          }),
+          originId: 'main.conf',
+        ).toMap(),
+        {'shared': '1'},
+      );
+    });
+  });
+
+  group('a refused traversal says which unit and which number', () {
+    // Both exceptions take two same-typed arguments in a row. Asserting only
+    // the type leaves the order unchecked, and swapping it still throws
+    // something that looks right: "depth=64, max=65", or a cycle blamed on the
+    // file that was included rather than the one that included it.
+
+    test('the depth limit reports the depth reached and the limit', () {
+      expect(
+        () => parseWithIncludesSync(
+          'config-file = a.conf',
+          resolver: _CountingMemoryResolver(const {
+            'a.conf': 'config-file = b.conf',
+            'b.conf': 'b = 1',
+          }),
+          includeOptions: const FlatIncludeOptions(maxIncludeDepth: 1),
+          originId: 'main.conf',
+        ),
+        throwsA(
+          isA<MaxIncludeDepthExceededException>()
+              .having((e) => e.depth, 'depth', 2)
+              .having((e) => e.maxDepth, 'maxDepth', 1)
+              .having((e) => e.filePath, 'filePath', 'b.conf'),
+        ),
+      );
+    });
+
+    test('a cycle names the file holding the directive', () {
+      expect(
+        () => parseWithIncludesSync(
+          'config-file = a.conf',
+          resolver: _CountingMemoryResolver(const {
+            'a.conf': 'config-file = b.conf',
+            'b.conf': 'config-file = a.conf',
+          }),
+          originId: 'main.conf',
+        ),
+        throwsA(
+          isA<CircularIncludeException>()
+              .having((e) => e.includingFile, 'includingFile', 'b.conf')
+              .having((e) => e.canonicalPath, 'canonicalPath', 'a.conf'),
+        ),
+      );
     });
   });
 

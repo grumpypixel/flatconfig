@@ -158,5 +158,41 @@ void main() {
         );
       }
     });
+
+    test('a directive naming nothing keeps the later includes in place', () {
+      // Every directive contributes one group, including the ones that name
+      // nothing: assembly walks directives and groups side by side, so a
+      // missing empty group shifts every later include onto the wrong slot.
+      final doc = parseWithIncludesSync(
+        'config-file =\n'
+        'config-file = mem:a\n'
+        'config-file = mem:b\n',
+        resolver: MemoryIncludeResolver(const {
+          'mem:a': 'from = a',
+          'mem:b': 'from = b',
+        }),
+        originId: 'mem:root',
+      );
+
+      expect(doc.allValues('from'), ['a', 'b']);
+    });
+
+    test('a required include that is missing names both files', () {
+      // The exception takes the including file first and the missing target
+      // second, both strings. Swapped, it reports the missing file as the one
+      // that asked for it.
+      expect(
+        () => parseWithIncludesSync(
+          'config-file = mem:absent\n',
+          resolver: MemoryIncludeResolver(const {}),
+          originId: 'mem:root',
+        ),
+        throwsA(
+          isA<MissingIncludeException>()
+              .having((e) => e.includingFile, 'includingFile', 'mem:root')
+              .having((e) => e.missingPath, 'missingPath', 'mem:absent'),
+        ),
+      );
+    });
   });
 }
