@@ -383,11 +383,210 @@ enum MultilineValuePolicy {
   skip,
 }
 
+/// Which environment keys are taken, and whether the prefix survives in them.
+///
+/// Matching on a prefix and removing it afterwards are one decision: there is
+/// nothing to strip that was not matched first. Held apart as a `String?` and
+/// a `bool`, "strip a prefix I never set" was writable, and the only answer
+/// left was an error at run time.
+///
+/// ```dart
+/// FlatEnvOptions(prefix: const EnvPrefix.keep('APP_'));  // APP_HOST stays
+/// FlatEnvOptions(prefix: const EnvPrefix.strip('APP_')); // APP_HOST -> HOST
+/// ```
+class EnvPrefix {
+  /// Takes the keys starting with [value] and leaves their names alone.
+  const EnvPrefix.keep(this.value)
+    : strip = false,
+      assert(value != '', 'A prefix must not be empty');
+
+  /// Takes the keys starting with [value] and removes it from their names.
+  const EnvPrefix.strip(this.value)
+    : strip = true,
+      assert(value != '', 'A prefix must not be empty');
+
+  /// The prefix a key must carry to be taken at all.
+  final String value;
+
+  /// Whether [value] is removed from the key once it has matched.
+  final bool strip;
+
+  /// Throws an [ArgumentError] unless this prefix can be used.
+  ///
+  /// The constructors assert the same thing, which catches a literal while
+  /// compiling. A release build drops the assertion, so a computed prefix
+  /// reaches this instead.
+  void checkUsable() {
+    if (value.isEmpty) {
+      throw ArgumentError.value(
+        value,
+        'prefix',
+        'Must not be empty; leave it unset to take every key',
+      );
+    }
+  }
+
+  @override
+  String toString() => 'EnvPrefix.${strip ? 'strip' : 'keep'}($value)';
+
+  @override
+  bool operator ==(Object other) =>
+      other is EnvPrefix && other.value == value && other.strip == strip;
+
+  @override
+  int get hashCode => Object.hash(value, strip);
+}
+
+/// Splits every key on one separator and rejoins it with another.
+///
+/// The two are one decision as well: a joiner has nothing to join without a
+/// separator to split on. As independent fields, `keyJoinWith: '.'` on its own
+/// was writable and had to be rejected — an API that has to say "you cannot
+/// mean this" is one the caller should not have been able to say it in.
+///
+/// ```dart
+/// FlatEnvOptions(
+///   prefix: const EnvPrefix.strip('APP_'),
+///   keys: const EnvKeySplit('_', joinWith: '.'),
+///   lowercaseKeys: true,
+/// );
+/// // APP_WINDOW_WIDTH -> window.width
+/// ```
+class EnvKeySplit {
+  /// Splits each key on [splitOn] and rejoins the parts with [joinWith].
+  const EnvKeySplit(this.splitOn, {this.joinWith})
+    : assert(splitOn != '', 'A key separator must not be empty');
+
+  /// The separator each key is split on.
+  final String splitOn;
+
+  /// What the parts are joined with, or null for [Constants.keySeparator].
+  ///
+  /// The empty string is a choice rather than an omission: it concatenates the
+  /// parts, which is how `A_B` becomes `AB`.
+  final String? joinWith;
+
+  /// The separator the parts are actually joined with.
+  String get joiner => joinWith ?? Constants.keySeparator;
+
+  /// Throws an [ArgumentError] unless this split can be used.
+  ///
+  /// A joiner that is not a legal key fragment would be caught by [FlatEntry],
+  /// one layer away from the setting that produced it.
+  void checkUsable() {
+    if (splitOn.isEmpty) {
+      throw ArgumentError.value(splitOn, 'splitOn', 'Must not be empty');
+    }
+
+    final separator = joinWith;
+    if (separator == null || separator.isEmpty) {
+      return;
+    }
+
+    final reason = invalidKeyReason(separator);
+    if (reason != null) {
+      throw ArgumentError.value(separator, 'joinWith', reason);
+    }
+  }
+
+  @override
+  String toString() => 'EnvKeySplit($splitOn, joinWith: $joinWith)';
+
+  @override
+  bool operator ==(Object other) =>
+      other is EnvKeySplit &&
+      other.splitOn == splitOn &&
+      other.joinWith == joinWith;
+
+  @override
+  int get hashCode => Object.hash(splitOn, joinWith);
+}
+
+/// Replaces `${VAR}` placeholders in values with other values.
+///
+/// Its presence is what turns interpolation on. A pattern and a
+/// missing-variable policy sitting beside `interpolate: false` were settings
+/// with no effect, which is why the pattern had to be validated anyway: so
+/// that setting the flag later was not what surfaced a broken one.
+///
+/// Interpolation reads the final view, after defaults, the environment and
+/// merge overrides, and before any key is rewritten — so a placeholder names
+/// an environment variable rather than whatever that variable became.
+///
+/// ```dart
+/// FlatEnvOptions(interpolation: const EnvInterpolation());
+/// FlatEnvOptions(
+///   interpolation: const EnvInterpolation(
+///     onMissing: MissingVariablePolicy.error,
+///   ),
+/// );
+/// ```
+class EnvInterpolation {
+  /// Interpolates [pattern], resolving a miss according to [onMissing].
+  const EnvInterpolation({
+    this.pattern = defaultPattern,
+    this.onMissing = MissingVariablePolicy.preserve,
+  });
+
+  /// The default `${VAR}` placeholder pattern.
+  static const String defaultPattern = r'\$\{([A-Za-z0-9_]+)\}';
+
+  /// Regex for a placeholder, whose first capture group names the variable.
+  final String pattern;
+
+  /// What a `${VAR}` naming nothing becomes.
+  final MissingVariablePolicy onMissing;
+
+  /// Throws an [ArgumentError] unless [pattern] can name a variable.
+  void checkUsable() {
+    try {
+      RegExp(pattern);
+    } on FormatException catch (e) {
+      throw ArgumentError.value(pattern, 'pattern', 'is not a regex: $e');
+    }
+
+    // A RegExp does not say how many groups it has; a match does. An
+    // alternation with an empty branch always matches, and wrapping the
+    // pattern keeps its own alternations from binding to it.
+    //
+    // Counted rather than guessed from the text. Looking for a '(' let
+    // `(?:\w+)` and an escaped `\(` through, and the pattern then failed at
+    // group(1) with a RangeError — an Error, for something a caller passed in.
+    final groups = RegExp('|(?:$pattern)').firstMatch('')!.groupCount;
+    if (groups < 1) {
+      throw ArgumentError.value(
+        pattern,
+        'pattern',
+        'must have a capture group naming the variable',
+      );
+    }
+  }
+
+  @override
+  String toString() =>
+      'EnvInterpolation(pattern: $pattern, onMissing: ${onMissing.name})';
+
+  @override
+  bool operator ==(Object other) =>
+      other is EnvInterpolation &&
+      other.pattern == pattern &&
+      other.onMissing == onMissing;
+
+  @override
+  int get hashCode => Object.hash(pattern, onMissing);
+}
+
 /// Options for loading environment variables into a FlatDocument.
 ///
 /// These options control how environment-like maps are processed when using
 /// [FlatDocument.fromEnvironment], including prefix filtering, interpolation,
 /// and precedence handling. Pure in-memory; no dart:io required.
+///
+/// The work happens in four stages, and the settings group by stage: which
+/// variables are taken and layered ([defaults], [prefix], [caseSensitive],
+/// [merge], [keepEmptyValues]), what a value may contain ([multilineValue]),
+/// what a placeholder resolves to ([interpolation]), and what the keys are
+/// renamed to ([prefix], [keys], [lowercaseKeys]).
 class FlatEnvOptions {
   /// Creates a new [FlatEnvOptions] with the specified configuration.
   ///
@@ -399,102 +598,39 @@ class FlatEnvOptions {
   /// maps would mean a later `defaults['X'] = 'y'` silently changed how an
   /// already-built options object behaves.
   FlatEnvOptions({
-    String? prefix,
+    this.prefix,
     this.caseSensitive = true,
-    this.interpolate = false,
-    this.missingVariable = MissingVariablePolicy.preserve,
+    this.interpolation,
     this.multilineValue = MultilineValuePolicy.error,
     this.keepEmptyValues = true,
-    this.varPattern = defaultVarPattern,
-    this.stripMatchedPrefix = false,
-    this.keySplitOn,
-    this.keyJoinWith,
+    this.keys,
     this.lowercaseKeys = false,
     Map<String, String> defaults = const {},
     Map<String, String> merge = const {},
-  }) : // An empty prefix filters nothing, which is what a null prefix means.
-       // Normalising here leaves one spelling of "no prefix" instead of two.
-       prefix = (prefix?.isEmpty ?? true) ? null : prefix,
-       defaults = Map.unmodifiable(defaults),
+  }) : defaults = Map.unmodifiable(defaults),
        merge = Map.unmodifiable(merge) {
-    if (stripMatchedPrefix && this.prefix == null) {
-      throw ArgumentError.value(
-        stripMatchedPrefix,
-        'stripMatchedPrefix',
-        'needs a prefix to strip',
-      );
-    }
-
-    if (keySplitOn != null && keySplitOn!.isEmpty) {
-      throw ArgumentError.value(keySplitOn, 'keySplitOn', 'must not be empty');
-    }
-
-    if (keyJoinWith != null && keySplitOn == null) {
-      throw ArgumentError.value(
-        keyJoinWith,
-        'keyJoinWith',
-        'has nothing to join without keySplitOn',
-      );
-    }
-
-    // A key rewritten into something the format cannot hold would only be
-    // caught by FlatEntry, one layer away from the setting that caused it.
-    final joiner = keyJoinWith;
-    if (joiner != null) {
-      final reason = invalidKeyReason(joiner);
-      if (reason != null && joiner.isNotEmpty) {
-        throw ArgumentError.value(joiner, 'keyJoinWith', reason);
-      }
-    }
-
-    try {
-      RegExp(varPattern);
-    } on FormatException catch (e) {
-      throw ArgumentError.value(varPattern, 'varPattern', 'is not a regex: $e');
-    }
-
-    // A RegExp does not say how many groups it has; a match does. An
-    // alternation with an empty branch always matches, and wrapping the
-    // pattern keeps its own alternations from binding to it.
-    final groups = RegExp('|(?:$varPattern)').firstMatch('')!.groupCount;
-
-    // Interpolation reads group 1 as the variable name, so a pattern without
-    // one could never name a variable. Rejected whether or not [interpolate]
-    // is set: an unusable pattern is a mistake either way, and turning
-    // interpolation on later should not be what surfaces it.
-    //
-    // Counted rather than guessed from the text. Looking for a '(' let
-    // `(?:\w+)` and an escaped `\(` through, and the pattern then failed at
-    // group(1) with a RangeError — an Error, for something a caller passed in.
-    if (groups < 1) {
-      throw ArgumentError.value(
-        varPattern,
-        'varPattern',
-        'must have a capture group naming the variable',
-      );
-    }
+    // Each part validates itself, so a bad value is named by the setting that
+    // carries it rather than by whatever failed on it three stages later.
+    prefix?.checkUsable();
+    keys?.checkUsable();
+    interpolation?.checkUsable();
   }
 
-  /// The default `${VAR}` placeholder pattern.
-  static const String defaultVarPattern = r'\$\{([A-Za-z0-9_]+)\}';
-
-  /// Optional key prefix to include only env vars starting with this prefix.
+  /// Which keys are taken, and whether the prefix stays in them.
   ///
-  /// If set, only keys that start with this prefix will be included in the
-  /// resulting document. The keys will retain the prefix in the document.
-  /// Use [FlatDocument.stripPrefix] on the result if you want to
-  /// remove the prefix from the keys.
+  /// Null takes every key. A prefix takes only the keys carrying it, and
+  /// [EnvPrefix.strip] also removes it from their names.
   ///
   /// Example:
   /// ```dart
-  /// final env = {'APP_HOST': 'localhost', 'APP_PORT': '8080', 'OTHER': 'value'};
+  /// final env = {'APP_HOST': 'localhost', 'APP_PORT': '8080', 'OTHER': 'x'};
   /// final doc = FlatDocument.fromEnvironment(
   ///   env,
-  ///   options: FlatEnvOptions(prefix: 'APP_'),
+  ///   options: FlatEnvOptions(prefix: const EnvPrefix.keep('APP_')),
   /// );
   /// print(doc.toMap()); // {APP_HOST: localhost, APP_PORT: 8080}
   /// ```
-  final String? prefix;
+  final EnvPrefix? prefix;
 
   /// When false, keys are matched case-insensitively (storage remains original).
   ///
@@ -512,18 +648,10 @@ class FlatEnvOptions {
   /// ```
   final bool caseSensitive;
 
-  /// Replace `${VAR}` placeholders in values using the final env view.
+  /// How `${VAR}` placeholders in values are resolved, or null to leave them.
   ///
-  /// When enabled, values can reference other variables using the `${VAR}`
-  /// syntax. The interpolation happens after all defaults, env, and merge
-  /// operations are applied, so any variable in the final environment can
-  /// be referenced. It runs before any key transformation, so a placeholder
-  /// names an environment variable and not a rewritten key.
-  ///
-  /// Defaults to false. A variable's value is data the program did not write,
-  /// and a `$` in it is far more often a password than a reference.
-  ///
-  /// [missingVariable] decides what a placeholder naming nothing becomes.
+  /// Off by default. A variable's value is data the program did not write, and
+  /// a `$` in it is far more often a password than a reference.
   ///
   /// Example:
   /// ```dart
@@ -534,16 +662,11 @@ class FlatEnvOptions {
   /// };
   /// final doc = FlatDocument.fromEnvironment(
   ///   env,
-  ///   options: FlatEnvOptions(interpolate: true),
+  ///   options: FlatEnvOptions(interpolation: const EnvInterpolation()),
   /// );
   /// print(doc['URL']); // http://localhost:8080
   /// ```
-  final bool interpolate;
-
-  /// What a `${VAR}` naming nothing becomes. Only read when [interpolate].
-  ///
-  /// Defaults to [MissingVariablePolicy.preserve].
-  final MissingVariablePolicy missingVariable;
+  final EnvInterpolation? interpolation;
 
   /// What to do with a value containing a line break.
   ///
@@ -572,47 +695,25 @@ class FlatEnvOptions {
   /// ```
   final bool keepEmptyValues;
 
-  /// Regex used for `${VAR}` placeholder matching (first capture = var name).
+  /// How each key is resplit, or null to leave it as it is.
   ///
-  /// The regex must have at least one capture group, which will be used as
-  /// the variable name to look up in the environment.
-  ///
-  /// Default pattern matches: `${VAR_NAME}` where VAR_NAME contains only
-  /// alphanumeric characters and underscores.
-  final String varPattern;
-
-  /// Remove [prefix] from each key that matched it.
-  ///
-  /// The three key settings run in order — strip, split and join, lowercase —
-  /// and all of them run after interpolation. Together they turn a screaming
-  /// environment into ordinary configuration keys:
+  /// The three key settings run in order — strip the prefix, split and rejoin,
+  /// lowercase — and all of them run after interpolation. Together they turn a
+  /// screaming environment into ordinary configuration keys:
   ///
   /// ```dart
   /// FlatEnvOptions(
-  ///   prefix: 'APP_',
-  ///   stripMatchedPrefix: true,
-  ///   keySplitOn: '_',
-  ///   keyJoinWith: '.',
+  ///   prefix: const EnvPrefix.strip('APP_'),
+  ///   keys: const EnvKeySplit('_', joinWith: '.'),
   ///   lowercaseKeys: true,
   /// );
   /// // APP_WINDOW_WIDTH -> window.width
   /// ```
   ///
-  /// Requires [prefix]. Keys from [defaults] and [merge] are transformed too:
-  /// they are settings for the same document, and leaving them untouched would
-  /// mean a default could not override the variable it is a default for.
-  final bool stripMatchedPrefix;
-
-  /// Separator the key is split on before being rejoined with [keyJoinWith].
-  ///
-  /// Null leaves the key as it is.
-  final String? keySplitOn;
-
-  /// Separator the split key parts are rejoined with.
-  ///
-  /// Defaults to [Constants.keySeparator] when [keySplitOn] is set. Setting it
-  /// without [keySplitOn] is an error rather than a no-op.
-  final String? keyJoinWith;
+  /// Keys from [defaults] and [merge] are transformed too: they are settings
+  /// for the same document, and leaving them untouched would mean a default
+  /// could not override the variable it is a default for.
+  final EnvKeySplit? keys;
 
   /// Lowercase every key, after stripping and rejoining.
   ///
@@ -659,11 +760,10 @@ class FlatEnvOptions {
   @override
   String toString() =>
       'FlatEnvOptions(prefix: $prefix, caseSensitive: $caseSensitive, '
-      'interpolate: $interpolate, missingVariable: ${missingVariable.name}, '
+      'interpolation: $interpolation, '
       'multilineValue: ${multilineValue.name}, '
-      'keepEmptyValues: $keepEmptyValues, varPattern: $varPattern, '
-      'stripMatchedPrefix: $stripMatchedPrefix, keySplitOn: $keySplitOn, '
-      'keyJoinWith: $keyJoinWith, lowercaseKeys: $lowercaseKeys, '
+      'keepEmptyValues: $keepEmptyValues, keys: $keys, '
+      'lowercaseKeys: $lowercaseKeys, '
       'defaults: ${defaults.length} entries, '
       'merge: ${merge.length} entries)';
 
@@ -672,14 +772,10 @@ class FlatEnvOptions {
       other is FlatEnvOptions &&
       other.prefix == prefix &&
       other.caseSensitive == caseSensitive &&
-      other.interpolate == interpolate &&
-      other.missingVariable == missingVariable &&
+      other.interpolation == interpolation &&
       other.multilineValue == multilineValue &&
       other.keepEmptyValues == keepEmptyValues &&
-      other.varPattern == varPattern &&
-      other.stripMatchedPrefix == stripMatchedPrefix &&
-      other.keySplitOn == keySplitOn &&
-      other.keyJoinWith == keyJoinWith &&
+      other.keys == keys &&
       other.lowercaseKeys == lowercaseKeys &&
       _sameEntries(other.defaults, defaults) &&
       _sameEntries(other.merge, merge);
@@ -688,14 +784,10 @@ class FlatEnvOptions {
   int get hashCode => Object.hash(
     prefix,
     caseSensitive,
-    interpolate,
-    missingVariable,
+    interpolation,
     multilineValue,
     keepEmptyValues,
-    varPattern,
-    stripMatchedPrefix,
-    keySplitOn,
-    keyJoinWith,
+    keys,
     lowercaseKeys,
     _entriesHash(defaults),
     _entriesHash(merge),

@@ -332,19 +332,27 @@ void main() {
       // then failed at group(1) with a RangeError.
       for (final pattern in [r'\$\{(?:\w+)\}', r'\$\{\(\w+\)\}', r'\$\w+']) {
         expect(
-          () => FlatEnvOptions(varPattern: pattern),
+          () =>
+              FlatEnvOptions(interpolation: EnvInterpolation(pattern: pattern)),
           throwsArgumentError,
           reason: pattern,
         );
       }
 
-      expect(() => FlatEnvOptions(varPattern: r'\$\{(\w+)\}'), returnsNormally);
+      expect(
+        () => FlatEnvOptions(
+          interpolation: const EnvInterpolation(pattern: r'\$\{(\w+)\}'),
+        ),
+        returnsNormally,
+      );
     });
 
     test('an optional capture that does not participate is left alone', () {
       final doc = FlatDocument.fromEnvironment(
         const {'A': r'${} and ${B}', 'B': 'x'},
-        options: FlatEnvOptions(interpolate: true, varPattern: r'\$\{(\w+)?\}'),
+        options: FlatEnvOptions(
+          interpolation: const EnvInterpolation(pattern: r'\$\{(\w+)?\}'),
+        ),
       );
 
       expect(doc['A'], r'${} and x');

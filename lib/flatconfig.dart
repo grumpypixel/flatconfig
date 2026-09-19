@@ -36,6 +36,9 @@ export 'src/issue.dart' show FlatIssue, FlatIssueKind, OnIssue;
 export 'src/lookup.dart' show FlatAbsent, FlatLookup, FlatPresent, FlatReset;
 export 'src/options.dart'
     show
+        EnvInterpolation,
+        EnvKeySplit,
+        EnvPrefix,
         FlatEncodeOptions,
         FlatEnvOptions,
         FlatParseOptions,

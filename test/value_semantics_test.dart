@@ -117,9 +117,9 @@ void main() {
 
     test('FlatEnvOptions', () {
       _behavesLikeAValue(
-        FlatEnvOptions(prefix: 'APP_'),
-        FlatEnvOptions(prefix: 'APP_'),
-        FlatEnvOptions(prefix: 'OTHER_'),
+        FlatEnvOptions(prefix: const EnvPrefix.keep('APP_')),
+        FlatEnvOptions(prefix: const EnvPrefix.keep('APP_')),
+        FlatEnvOptions(prefix: const EnvPrefix.keep('OTHER_')),
       );
     });
 

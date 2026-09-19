@@ -50,15 +50,19 @@ usable on the web and in tests, where there is no such thing.
 final doc = FlatDocument.fromEnvironment(
   Platform.environment,
   options: FlatEnvOptions(
-    prefix: 'APP_',
-    stripMatchedPrefix: true,
-    keySplitOn: '_',
-    keyJoinWith: '.',
+    prefix: const EnvPrefix.strip('APP_'),
+    keys: const EnvKeySplit('_', joinWith: '.'),
     lowercaseKeys: true,
   ),
 );
 // APP_WINDOW_WIDTH=1280  becomes  window.width = 1280
 ```
+
+`EnvPrefix` decides both which keys are taken and whether the prefix survives
+in them, because there is nothing to strip that was not matched first.
+`EnvKeySplit` pairs the separator with the one the parts are rejoined with, for
+the same reason: a joiner has nothing to join on its own. Neither combination
+can be written wrongly, so neither has to be rejected at run time.
 
 Precedence runs `defaults` → environment → `merge`. The key rewrite runs last,
 after interpolation, so a `${VAR}` names an environment variable rather than
@@ -67,11 +71,19 @@ whatever that variable's key was rewritten into.
 Two defaults are deliberately cautious.
 
 **Interpolation is off.** A variable's value is data your program did not write,
-and a `$` in it is more often a password than a reference. When you turn it on,
-`missingVariable` decides what `${NOPE}` becomes: `preserve` (the default)
-leaves the placeholder visible so it points at the typo, `empty` behaves like a
-POSIX shell, and `error` throws, naming both the variable and the value that
-references it.
+and a `$` in it is more often a password than a reference. Passing an
+`EnvInterpolation` is what turns it on, and its `onMissing` decides what
+`${NOPE}` becomes: `preserve` (the default) leaves the placeholder visible so it
+points at the typo, `empty` behaves like a POSIX shell, and `error` throws,
+naming both the variable and the value that references it.
+
+```dart
+FlatEnvOptions(
+  interpolation: const EnvInterpolation(
+    onMissing: MissingVariablePolicy.error,
+  ),
+);
+```
 
 **A value containing a line break is an error.** No document can hold one,
 because the format is line-based. Set

@@ -69,12 +69,19 @@ Added:
   rather than the only behaviour. `IncludeMergePolicy.lastWins` expands each
   include where it is written and lets a later entry win, which is what most
   formats do and what a line written below an include looks like it should do.
-- **Key transformation in `FlatEnvOptions`** — `stripMatchedPrefix`,
-  `keySplitOn`/`keyJoinWith` and `lowercaseKeys` turn `APP_WINDOW_WIDTH` into
-  `window.width` without post-processing. They run after interpolation, so a
-  `${VAR}` names an environment variable rather than a rewritten key, and they
-  apply to `defaults` and `merge` too — otherwise a default could not override
-  the variable it is a default for.
+- **Key transformation in `FlatEnvOptions`** — `EnvPrefix.strip`, `EnvKeySplit`
+  and `lowercaseKeys` turn `APP_WINDOW_WIDTH` into `window.width` without
+  post-processing. They run after interpolation, so a `${VAR}` names an
+  environment variable rather than a rewritten key, and they apply to
+  `defaults` and `merge` too — otherwise a default could not override the
+  variable it is a default for.
+- **`EnvPrefix`, `EnvKeySplit` and `EnvInterpolation`** — settings that only
+  mean something together now travel together. Thirteen fields on
+  `FlatEnvOptions` became nine, and three `ArgumentError`s disappeared with
+  them: "strip a prefix I never set", "join without splitting" and "split on
+  nothing" are no longer states a caller can write down. An `EnvInterpolation`
+  being absent is what interpolation being off means, so a pattern and a
+  missing-variable policy can no longer sit next to a flag that ignores them.
 - **`MultilineValuePolicy`** — an environment variable whose value contains a
   line break can now be skipped instead of throwing, for a process whose
   environment carries something like a PEM key it never reads. The default
@@ -192,10 +199,11 @@ Changed:
   awaiting when one of the sources it may consult does.
   `SyncCompositeIncludeResolver` composes synchronous ones.
 - **`IncludeUnit` is immutable with value equality**, and can be `const`.
-- **`FlatEnvOptions.interpolate` now defaults to `false`.** A variable's value
-  is data the program did not write, and a `$` in it is more often a password
-  than a reference. Turning it on is a decision, not the state you get by
-  forgetting to make one.
+- **Environment interpolation is off unless asked for.** A variable's value is
+  data the program did not write, and a `$` in it is more often a password than
+  a reference. Turning it on is a decision, not the state you get by forgetting
+  to make one — and it is now made by passing an `EnvInterpolation` rather than
+  by setting a flag beside two settings it silently governed.
 - **A `${VAR}` naming nothing is preserved rather than emptied.**
   `{'URL': r'https://${NOPE}/api'}` used to yield `https:///api`, which looks
   like a URL and fails somewhere else entirely; the unresolved placeholder
@@ -372,10 +380,10 @@ Fixed:
   longer `const` as a result.
 - **Invalid options are rejected where they are written.** An empty
   `lineTerminator`, a `commentPrefix` containing a line break, a negative
-  `maxIncludeDepth` and a `varPattern` that is not a valid regex with a capture
-  group all used to be accepted and then misbehave somewhere later. An empty
-  `FlatEnvOptions.prefix` now means the same as none, which is what it already
-  did in practice.
+  `maxIncludeDepth` and an interpolation pattern that is not a valid regex with
+  a capture group all used to be accepted and then misbehave somewhere later.
+  An empty `EnvPrefix` is refused rather than quietly read as no prefix, so
+  "take every key" has one spelling: leaving the prefix unset.
 - **Lenient parsing no longer drops lines in silence.** `onMissingEquals` and
   `onEmptyKey` covered two of the five things that can go wrong; an invalid key,
   an unterminated quote and trailing characters after a quote were skipped with

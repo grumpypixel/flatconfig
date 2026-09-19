@@ -365,10 +365,13 @@ constructible anyway, so the loss is limited to `const` lists of entries.
 every comparison with it is false. `NaN`, `Infinity` and `-Infinity` are now
 invalid for every numeric accessor.
 
-**Environment interpolation is off by default.** `FlatEnvOptions.interpolate`
-now defaults to `false`. A variable's value is data your program did not write,
-and a `$` in it is more often a password than a reference. If you used
-interpolation, pass `interpolate: true`.
+**Environment interpolation is off by default, and is now a value rather than a
+flag.** `FlatEnvOptions.interpolate`, `missingVariable` and `varPattern` are one
+`EnvInterpolation`, and its absence is what "off" means. A variable's value is
+data your program did not write, and a `$` in it is more often a password than a
+reference. If you used interpolation, pass
+`interpolation: const EnvInterpolation()`; `FlatEnvOptions.defaultVarPattern` is
+now `EnvInterpolation.defaultPattern`.
 
 **A `${VAR}` naming nothing is preserved, not emptied.**
 `{'URL': r'https://${NOPE}/api'}` used to yield `https:///api`, which looks like
@@ -421,9 +424,12 @@ final fontSize = switch (doc.lookup('font-size')) {
 a later entry win, which is what most formats do and what a line written below
 an include looks like it should do. The default stays `ghostty`.
 
-`FlatEnvOptions` can transform keys: `stripMatchedPrefix`, `keySplitOn` with
-`keyJoinWith`, and `lowercaseKeys` turn `APP_WINDOW_WIDTH` into `window.width`
-without post-processing.
+`FlatEnvOptions` can transform keys: `EnvPrefix.strip`, `EnvKeySplit` and
+`lowercaseKeys` turn `APP_WINDOW_WIDTH` into `window.width` without
+post-processing. Settings that only mean something together travel together, so
+"strip a prefix I never set" and "join without splitting" cannot be written —
+the two `ArgumentError`s that used to answer them are gone, and an empty prefix
+is refused rather than silently read as no prefix.
 
 `splitRespectingQuotes` and `indexOfUnquoted` are exported. `SPEC.md` §5 pins
 what they do, and they are what a custom `FlatConverter` needs in order to split

@@ -54,7 +54,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(prefix: 'APP_'),
+          options: FlatEnvOptions(prefix: const EnvPrefix.keep('APP_')),
         );
 
         expect(
@@ -73,7 +73,10 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(prefix: 'APP_', caseSensitive: false),
+          options: FlatEnvOptions(
+            prefix: const EnvPrefix.keep('APP_'),
+            caseSensitive: false,
+          ),
         );
 
         expect(
@@ -93,7 +96,10 @@ void main() {
 
           final doc = FlatDocument.fromEnvironment(
             env,
-            options: FlatEnvOptions(prefix: 'app_', caseSensitive: false),
+            options: FlatEnvOptions(
+              prefix: const EnvPrefix.keep('app_'),
+              caseSensitive: false,
+            ),
           );
 
           final keys = doc.keys.toList();
@@ -107,26 +113,33 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(prefix: 'APP_'),
+          options: FlatEnvOptions(prefix: const EnvPrefix.keep('APP_')),
         );
 
         expect(doc.isEmpty, isTrue);
       });
 
-      test('handles empty prefix as no filtering', () {
+      test('no prefix takes every key', () {
         final env = {'HOST': 'localhost', 'PORT': '8080'};
 
-        final doc1 = FlatDocument.fromEnvironment(
-          env,
-          options: FlatEnvOptions(prefix: ''),
+        expect(FlatDocument.fromEnvironment(env).length, 2);
+        expect(
+          FlatDocument.fromEnvironment(env, options: FlatEnvOptions()).length,
+          2,
         );
-        final doc2 = FlatDocument.fromEnvironment(
-          env,
-          options: FlatEnvOptions(prefix: null),
-        );
+      });
 
-        expect(doc1.length, equals(2));
-        expect(doc2.length, equals(2));
+      test('an empty prefix is refused rather than read as none', () {
+        // There is one way to say "take everything", and it is to leave the
+        // prefix unset. A literal empty one would be caught by the assertion
+        // while compiling; computing it defers that to run time, where a
+        // debug build asserts and a release build reaches checkUsable.
+        final empty = String.fromCharCodes(const <int>[]);
+
+        expect(
+          () => FlatEnvOptions(prefix: EnvPrefix.keep(empty)),
+          throwsA(anyOf(isA<AssertionError>(), isA<ArgumentError>())),
+        );
       });
     });
 
@@ -140,7 +153,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolation: const EnvInterpolation()),
         );
 
         expect(doc['URL'], equals('https://api.example.com:8080'));
@@ -153,7 +166,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolation: const EnvInterpolation()),
         );
 
         expect(doc['URL'], equals('https://\${HOST}:\${PORT}'));
@@ -165,8 +178,9 @@ void main() {
         final doc = FlatDocument.fromEnvironment(
           env,
           options: FlatEnvOptions(
-            interpolate: true,
-            missingVariable: MissingVariablePolicy.empty,
+            interpolation: const EnvInterpolation(
+              onMissing: MissingVariablePolicy.empty,
+            ),
           ),
         );
 
@@ -180,8 +194,9 @@ void main() {
           () => FlatDocument.fromEnvironment(
             env,
             options: FlatEnvOptions(
-              interpolate: true,
-              missingVariable: MissingVariablePolicy.error,
+              interpolation: const EnvInterpolation(
+                onMissing: MissingVariablePolicy.error,
+              ),
             ),
           ),
           throwsA(
@@ -203,7 +218,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolation: const EnvInterpolation()),
         );
 
         expect(doc['GREETING'], equals('Hello World!'));
@@ -217,7 +232,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolation: const EnvInterpolation()),
         );
 
         expect(doc['MESSAGE'], equals('John and John went to the store'));
@@ -228,7 +243,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(interpolate: false),
+          options: FlatEnvOptions(),
         );
 
         expect(doc['URL'], equals('https://\${HOST}'));
@@ -239,7 +254,10 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(interpolate: true, defaults: {'EMPTY': ''}),
+          options: FlatEnvOptions(
+            defaults: {'EMPTY': ''},
+            interpolation: const EnvInterpolation(),
+          ),
         );
 
         // Should not throw, just skip empty values
@@ -251,7 +269,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolation: const EnvInterpolation()),
         );
 
         expect(doc['HOST'], equals('localhost'));
@@ -264,9 +282,9 @@ void main() {
         final doc = FlatDocument.fromEnvironment(
           env,
           options: FlatEnvOptions(
-            interpolate: true,
             defaults: {'HOST': 'localhost'},
             merge: {'URL': 'http://\${HOST}:\${PORT}'},
+            interpolation: const EnvInterpolation(),
           ),
         );
 
@@ -431,8 +449,8 @@ void main() {
         final doc = FlatDocument.fromEnvironment(
           {'PEM': 'a\nb', 'COPY': r'${PEM}'},
           options: FlatEnvOptions(
-            interpolate: true,
             multilineValue: MultilineValuePolicy.skip,
+            interpolation: const EnvInterpolation(),
           ),
         );
 
@@ -451,7 +469,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(prefix: 'APP_'),
+          options: FlatEnvOptions(prefix: const EnvPrefix.keep('APP_')),
         );
         final clean = doc.stripPrefix('APP_');
 
@@ -557,7 +575,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolation: const EnvInterpolation()),
         );
 
         // A becomes the literal string "${A}" (from B's value)
@@ -577,7 +595,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolation: const EnvInterpolation()),
         );
 
         // These don't match the pattern, so they're kept as-is
@@ -593,8 +611,9 @@ void main() {
         final doc = FlatDocument.fromEnvironment(
           env,
           options: FlatEnvOptions(
-            interpolate: true,
-            varPattern: r'\$([A-Za-z0-9_]+)',
+            interpolation: const EnvInterpolation(
+              pattern: r'\$([A-Za-z0-9_]+)',
+            ),
           ),
         );
 
@@ -613,7 +632,10 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(prefix: 'APP_', interpolate: true),
+          options: FlatEnvOptions(
+            prefix: const EnvPrefix.keep('APP_'),
+            interpolation: const EnvInterpolation(),
+          ),
         );
         final clean = doc.stripPrefix('APP_');
 
@@ -675,7 +697,7 @@ void main() {
 
         final doc = FlatDocument.fromEnvironment(
           env,
-          options: FlatEnvOptions(interpolate: true),
+          options: FlatEnvOptions(interpolation: const EnvInterpolation()),
         );
 
         expect(doc['API_BASE_URL'], equals('https://api.example.com:443/v1'));
@@ -692,11 +714,9 @@ void main() {
             'OTHER_VAR': 'ignored',
           },
           options: FlatEnvOptions(
-            prefix: 'APP_',
-            stripMatchedPrefix: true,
-            keySplitOn: '_',
-            keyJoinWith: '.',
+            prefix: const EnvPrefix.strip('APP_'),
             lowercaseKeys: true,
+            keys: const EnvKeySplit('_', joinWith: '.'),
           ),
         );
 
@@ -706,7 +726,7 @@ void main() {
       test('keyJoinWith defaults to the key separator', () {
         final doc = FlatDocument.fromEnvironment({
           'A_B': '1',
-        }, options: FlatEnvOptions(keySplitOn: '_'));
+        }, options: FlatEnvOptions(keys: const EnvKeySplit('_')));
 
         expect(doc.containsKey('A.B'), isTrue);
       });
@@ -717,7 +737,7 @@ void main() {
         expect(
           FlatDocument.fromEnvironment(
             env,
-            options: FlatEnvOptions(prefix: 'APP_', stripMatchedPrefix: true),
+            options: FlatEnvOptions(prefix: const EnvPrefix.strip('APP_')),
           ).containsKey('A_B'),
           isTrue,
         );
@@ -735,8 +755,7 @@ void main() {
         final doc = FlatDocument.fromEnvironment(
           {'APP_PORT': '3000'},
           options: FlatEnvOptions(
-            prefix: 'APP_',
-            stripMatchedPrefix: true,
+            prefix: const EnvPrefix.strip('APP_'),
             lowercaseKeys: true,
             defaults: {'APP_HOST': 'localhost'},
             merge: {'APP_DEBUG': 'true'},
@@ -755,10 +774,9 @@ void main() {
         final doc = FlatDocument.fromEnvironment(
           {'APP_HOST': 'example.com', 'APP_URL': r'https://${APP_HOST}/api'},
           options: FlatEnvOptions(
-            prefix: 'APP_',
-            stripMatchedPrefix: true,
+            prefix: const EnvPrefix.strip('APP_'),
             lowercaseKeys: true,
-            interpolate: true,
+            interpolation: const EnvInterpolation(),
           ),
         );
 
@@ -769,7 +787,7 @@ void main() {
         // At construction, before any variable is read: the option is wrong
         // whatever the environment happens to contain.
         expect(
-          () => FlatEnvOptions(keySplitOn: '_', keyJoinWith: '='),
+          () => FlatEnvOptions(keys: const EnvKeySplit('_', joinWith: '=')),
           throwsArgumentError,
         );
       });
@@ -781,7 +799,7 @@ void main() {
         expect(
           () => FlatDocument.fromEnvironment({
             'APP_': '1',
-          }, options: FlatEnvOptions(prefix: 'APP_', stripMatchedPrefix: true)),
+          }, options: FlatEnvOptions(prefix: const EnvPrefix.strip('APP_'))),
           throwsA(
             isA<ArgumentError>().having(
               (e) => e.toString(),
@@ -801,16 +819,51 @@ void main() {
         expect(doc['key'], 'second');
       });
 
-      test('stripping without a prefix to strip is rejected', () {
+      test('a prefix carries whether it is stripped', () {
+        // Stripping without a prefix, and joining without splitting, used to
+        // be writable and had to be answered with an ArgumentError. Both now
+        // travel with the thing they depend on, so neither can be said.
+        const env = {'APP_WINDOW_WIDTH': '640'};
+
         expect(
-          () => FlatEnvOptions(stripMatchedPrefix: true),
-          throwsArgumentError,
+          FlatDocument.fromEnvironment(
+            env,
+            options: FlatEnvOptions(prefix: const EnvPrefix.keep('APP_')),
+          ).keys,
+          ['APP_WINDOW_WIDTH'],
+        );
+        expect(
+          FlatDocument.fromEnvironment(
+            env,
+            options: FlatEnvOptions(prefix: const EnvPrefix.strip('APP_')),
+          ).keys,
+          ['WINDOW_WIDTH'],
         );
       });
 
-      test('joining without splitting is rejected rather than ignored', () {
-        expect(() => FlatEnvOptions(keyJoinWith: '.'), throwsArgumentError);
-      });
+      test(
+        'a split key joins with the key separator unless told otherwise',
+        () {
+          const env = {'WINDOW_WIDTH': '640'};
+
+          expect(
+            FlatDocument.fromEnvironment(
+              env,
+              options: FlatEnvOptions(keys: const EnvKeySplit('_')),
+            ).keys,
+            ['WINDOW.WIDTH'],
+          );
+          expect(
+            FlatDocument.fromEnvironment(
+              env,
+              options: FlatEnvOptions(
+                keys: const EnvKeySplit('_', joinWith: '-'),
+              ),
+            ).keys,
+            ['WINDOW-WIDTH'],
+          );
+        },
+      );
     });
   });
 }

@@ -16,8 +16,10 @@ void main() {
     const read = FlatStreamReadOptions();
     const write = FlatStreamWriteOptions();
     final env = FlatEnvOptions(
-      missingVariable: MissingVariablePolicy.empty,
       multilineValue: MultilineValuePolicy.skip,
+      interpolation: const EnvInterpolation(
+        onMissing: MissingVariablePolicy.empty,
+      ),
     );
     const data = FlatDataOptions(listMode: FlatListMode.csv);
 

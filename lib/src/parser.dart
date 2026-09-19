@@ -294,7 +294,10 @@ FlatDocument documentFromEnvironment(
 
   final collected = _collectEnvironment(env, opts);
   final kept = _applyMultilinePolicy(collected, opts);
-  final interpolated = opts.interpolate ? _interpolate(kept, opts) : kept;
+  final interpolation = opts.interpolation;
+  final interpolated = interpolation == null
+      ? kept
+      : _interpolate(kept, interpolation);
 
   return FlatDocument([
     for (final e in _transformKeys(interpolated, opts).entries)
@@ -311,7 +314,7 @@ Map<String, String?> _collectEnvironment(
 
   final prefix = opts.prefix;
   for (final e in env.entries) {
-    if (prefix == null || _hasPrefix(e.key, prefix, opts.caseSensitive)) {
+    if (prefix == null || _hasPrefix(e.key, prefix.value, opts.caseSensitive)) {
       out[e.key] = e.value;
     }
   }
@@ -363,9 +366,9 @@ Map<String, String?> _applyMultilinePolicy(
 /// far rarer in an environment than a value that happens to contain `${`.
 Map<String, String?> _interpolate(
   Map<String, String?> values,
-  FlatEnvOptions opts,
+  EnvInterpolation options,
 ) {
-  final pattern = RegExp(opts.varPattern);
+  final pattern = RegExp(options.pattern);
   final snapshot = Map<String, String?>.from(values);
   final out = <String, String?>{};
 
@@ -377,7 +380,7 @@ Map<String, String?> _interpolate(
     }
 
     out[e.key] = raw.replaceAllMapped(pattern, (m) {
-      // FlatEnvOptions rejects a pattern without a first capture group, but
+      // EnvInterpolation rejects a pattern without a first capture group, but
       // an optional one can still match without participating. A match that
       // names nothing cannot be looked up, so it stays as it was written.
       final name = m.group(1);
@@ -390,7 +393,7 @@ Map<String, String?> _interpolate(
         return value;
       }
 
-      return switch (opts.missingVariable) {
+      return switch (options.onMissing) {
         MissingVariablePolicy.preserve => m[0]!,
         MissingVariablePolicy.empty => '',
         MissingVariablePolicy.error => throw ArgumentError.value(
@@ -414,7 +417,7 @@ Map<String, String?> _transformKeys(
   FlatEnvOptions opts,
 ) {
   final rewrites =
-      opts.stripMatchedPrefix || opts.keySplitOn != null || opts.lowercaseKeys;
+      (opts.prefix?.strip ?? false) || opts.keys != null || opts.lowercaseKeys;
   if (!rewrites) {
     return values;
   }
@@ -431,15 +434,15 @@ String _transformKey(String key, FlatEnvOptions opts) {
   var out = key;
 
   final prefix = opts.prefix;
-  if (opts.stripMatchedPrefix &&
-      prefix != null &&
-      _hasPrefix(out, prefix, opts.caseSensitive)) {
-    out = out.substring(prefix.length);
+  if (prefix != null &&
+      prefix.strip &&
+      _hasPrefix(out, prefix.value, opts.caseSensitive)) {
+    out = out.substring(prefix.value.length);
   }
 
-  final splitOn = opts.keySplitOn;
-  if (splitOn != null) {
-    out = out.split(splitOn).join(opts.keyJoinWith ?? Constants.keySeparator);
+  final split = opts.keys;
+  if (split != null) {
+    out = out.split(split.splitOn).join(split.joiner);
   }
 
   if (opts.lowercaseKeys) {

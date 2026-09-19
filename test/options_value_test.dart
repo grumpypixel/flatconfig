@@ -52,7 +52,10 @@ void main() {
         const FlatStreamWriteOptions(lineTerminator: '\r\n'),
         const FlatStreamWriteOptions(lineTerminator: '\r\n'),
       );
-      expect(FlatEnvOptions(prefix: 'A_'), FlatEnvOptions(prefix: 'A_'));
+      expect(
+        FlatEnvOptions(prefix: const EnvPrefix.keep('A_')),
+        FlatEnvOptions(prefix: const EnvPrefix.keep('A_')),
+      );
     });
 
     test('one differing field is enough to be unequal', () {
@@ -194,27 +197,54 @@ void main() {
 
     test('a varPattern that is not a regex is rejected', () {
       expect(
-        () => FlatEnvOptions(varPattern: r'([unclosed'),
+        () => FlatEnvOptions(
+          interpolation: const EnvInterpolation(pattern: r'([unclosed'),
+        ),
         throwsArgumentError,
       );
     });
 
     test('a varPattern with no capture group is rejected', () {
-      expect(() => FlatEnvOptions(varPattern: r'\$\w+'), throwsArgumentError);
+      expect(
+        () => FlatEnvOptions(
+          interpolation: const EnvInterpolation(pattern: r'\$\w+'),
+        ),
+        throwsArgumentError,
+      );
     });
 
-    test(
-      'an empty prefix is normalised to none, not kept as a second spelling',
-      () {
-        expect(FlatEnvOptions(prefix: '').prefix, isNull);
-        expect(FlatEnvOptions(prefix: ''), FlatEnvOptions());
-      },
-    );
+    test('an empty prefix is rejected rather than read as no prefix', () {
+      // It used to be normalised to null, which left two spellings of "take
+      // everything". Leaving the prefix unset is the one that remains.
+      //
+      // Computed, because a literal is caught by the assertion while
+      // compiling: a debug build asserts here, a release build reaches
+      // checkUsable, and both refuse it.
+      final empty = String.fromCharCodes(const <int>[]);
+      final refused = throwsA(
+        anyOf(isA<AssertionError>(), isA<ArgumentError>()),
+      );
 
-    test('an empty keySplitOn is rejected rather than normalised', () {
-      // Unlike the prefix, there is no sensible reading of "split on nothing":
-      // it would produce one empty segment per character.
-      expect(() => FlatEnvOptions(keySplitOn: ''), throwsArgumentError);
+      expect(() => FlatEnvOptions(prefix: EnvPrefix.keep(empty)), refused);
+      expect(() => FlatEnvOptions(prefix: EnvPrefix.strip(empty)), refused);
+    });
+
+    test('an empty key separator is rejected', () {
+      // There is no sensible reading of "split on nothing": it would produce
+      // one empty segment per character.
+      final empty = String.fromCharCodes(const <int>[]);
+
+      expect(
+        () => FlatEnvOptions(keys: EnvKeySplit(empty)),
+        throwsA(anyOf(isA<AssertionError>(), isA<ArgumentError>())),
+      );
+    });
+
+    test('a joiner that is not a legal key fragment is rejected', () {
+      expect(
+        () => FlatEnvOptions(keys: const EnvKeySplit('_', joinWith: '=')),
+        throwsArgumentError,
+      );
     });
   });
 }
