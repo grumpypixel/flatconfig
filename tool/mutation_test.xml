@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The curated mutation run: five minutes, and part of the normal loop.
+
+  Line coverage says a line ran. It does not say a test would notice if the
+  line were wrong. This run changes the source on purpose and checks that the
+  suite turns red. A surviving mutant is a line no assertion observes.
+
+    just mutants
+
+  These six files are the ones the first sweep found gaps in, kept together so
+  the run stays short enough to be worth repeating. `just mutants-all` covers
+  the rest of lib/ and takes hours.
+
+  Three survivors are the floor, and all three are equivalent mutants — the
+  changed code cannot behave differently, so no test can detect them:
+
+  - parser_utils.dart, `end <= start`: the trims move both bounds towards each
+    other and stop when they meet, so end is never below start;
+  - parser_utils.dart, `endIdxInSlice <= 0`: the search starts at index 1, so
+    it returns a positive index or -1, never 0;
+  - path_utils.dart, `identicalSync(path, other)`: the relation is symmetric.
+
+  A fourth survivor means a real gap. Read coverage/mutation for the line.
+
+  Commands, exclusions and the quality gate live in tool/mutation/rules.xml.
+-->
+<mutations version="1.2">
+  <files>
+    <file>lib/src/validation.dart</file>
+    <file>lib/src/parser_utils.dart</file>
+    <file>lib/src/lookup.dart</file>
+    <file>lib/src/include_path_utils.dart</file>
+    <file>lib/src/include_traversal.dart</file>
+    <file>lib/src/path_utils.dart</file>
+  </files>
+</mutations>

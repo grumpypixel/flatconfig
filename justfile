@@ -62,6 +62,45 @@ coverage-html:
 	genhtml "$LCOV_FILE" -o "$HTML_DIR"
 	echo "HTML report: $HTML_DIR/index.html"
 
+# Run mutation tests (which lines does no assertion actually observe?)
+mutants:
+	#!/usr/bin/env bash
+	set -euo pipefail
+
+	dart pub global activate mutation_test
+
+	# Without the coverage report, every line no test reaches becomes a
+	# guaranteed survivor and buries the real findings.
+	if [ ! -f coverage/lcov.info ]; then
+	  just coverage
+	fi
+
+	# -b restores the builtin operators, which naming a rules file turns off.
+	# The markdown report is the one to read: it lists the surviving mutants as
+	# text, so finding them does not mean scraping the HTML.
+	mutation_test \
+	  --builtin \
+	  --rules tool/mutation/rules.xml \
+	  --coverage coverage/lcov.info \
+	  --output coverage/mutation/curated \
+	  --format all \
+	  tool/mutation_test.xml
+
+	echo "Report: coverage/mutation/curated/mutation-test-report.md"
+
+# Run mutation tests over all of lib (hours; resumable, one file per run)
+mutants-all:
+	#!/usr/bin/env bash
+	set -euo pipefail
+
+	dart pub global activate mutation_test
+
+	if [ ! -f coverage/lcov.info ]; then
+	  just coverage
+	fi
+
+	tool/mutation/sweep.sh
+
 # Run micro-benchmark (optional arg: iterations)
 bench ITERATIONS="1000" ENTRIES="2000":
 	#!/usr/bin/env bash

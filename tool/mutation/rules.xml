@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  What every mutation run excludes, how it tests, and where the bar sits.
+
+  Shared so the curated run and the full sweep cannot drift apart: a rule
+  relaxed for one of them would otherwise silently not apply to the other.
+  Load it with `--rules`, and pass `-b` alongside, because naming a rules file
+  turns the builtin mutation operators off.
+
+  A run mutates a file in place and restores it afterwards, so killing one
+  leaves the source mutated. Let it finish. If it was interrupted, check the
+  working copy before trusting the next result: the giveaway is a run that
+  aborts with "test commands failed with unmodified code".
+-->
+<mutations version="1.2">
+  <commands>
+    <!--
+      The timeout is the guard against mutations that turn a bounded loop into
+      an unbounded one. The suite itself needs about four seconds.
+
+      Concurrency is capped because this command runs once per mutant, and
+      `dart test` otherwise starts a VM per two cores. On a 14-core machine
+      that is seven suites in flight for every one of hundreds of mutants,
+      which is what drove the machine into swap. Four keeps the wall time and
+      leaves the box usable.
+    -->
+    <command group="test" expected-return="0" working-directory="." timeout="120">dart test --reporter=failures-only --concurrency=4</command>
+  </commands>
+
+  <exclude>
+    <!-- Comments, including dartdoc, are documentation and not behaviour. -->
+    <token begin="//" end="\n"/>
+    <regex pattern="/[*].*?[*]/" dotAll="true"/>
+
+    <!--
+      Directives have no behaviour to detect. Matching up to the semicolon
+      rather than to the closing quote is what covers the barrel libraries,
+      whose exports carry a `show` clause on the next line: a token ending at
+      `';` never reached it, so the separator in `export 'src/document.dart'`
+      was mutated into `export 'src*document.dart'`.
+    -->
+    <regex pattern="^\s*(import|export|part)\s[^;]*;"/>
+
+    <!-- Documented upstream as a source of mostly false positives. -->
+    <regex pattern="\+\+"/>
+    <regex pattern="--"/>
+
+    <!-- Loop headers mutate into non-terminating loops. -->
+    <regex pattern="[\s]for[\s]*\(.*?\)[\s]*{" dotAll="true"/>
+    <regex pattern="[\s]while[\s]*\(.*?\)[\s]*{.*?}" dotAll="true"/>
+  </exclude>
+
+  <threshold failure="80">
+    <rating over="95" name="A"/>
+    <rating over="80" name="B"/>
+    <rating over="60" name="C"/>
+    <rating over="40" name="D"/>
+    <rating over="20" name="E"/>
+    <rating over="0" name="F"/>
+  </threshold>
+</mutations>
