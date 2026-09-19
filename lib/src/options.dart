@@ -6,10 +6,6 @@ import 'constants.dart';
 import 'issue.dart';
 import 'validation.dart';
 
-/// Callback function invoked when a parsing error occurs.
-///
-/// The [lineNumber] parameter indicates the 1-based line number where the error
-/// occurred, and [line] contains the raw line content that caused the error.
 // Issue reporting lives in issue.dart; see FlatIssue and OnIssue.
 
 /// Options that control how configuration files are parsed.
