@@ -9,9 +9,17 @@ coverage/
 .DS_Store
 .vscode/
 
-# Internal planning and tooling.
-ROADMAP_1.0.md
-REVIEW.md
+# Markdown at the repository root ships only if it is named below. Listing the
+# files to exclude instead let a review document dropped next to the README go
+# out with the package twice, because nobody thinks to update this file when
+# writing one. The prose pages under doc/ are not affected; this matches the
+# root only.
+/*.md
+!/README.md
+!/CHANGELOG.md
+!/SPEC.md
+
+# Internal tooling.
 justfile
 tool/
 
